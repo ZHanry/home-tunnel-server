@@ -1,4 +1,4 @@
-import { state } from "./state.js?v=5.0.0-modules2";
+import { state } from "./state.js?v=5.0.1-modules2";
 
 const appShell = document.querySelector("#app-shell");
 
@@ -23,7 +23,7 @@ const zhToEn = {
   选择客户端平台: "Choose a client platform",
   "Windows 图形客户端": "Windows desktop client",
   桌面图形客户端: "Desktop GUI client",
-  "Home Tunnel 5.0.0 Windows 图形客户端预览": "Home Tunnel 5.0.0 Windows desktop client preview",
+  "Home Tunnel 5.0.1 Windows 图形客户端预览": "Home Tunnel 5.0.1 Windows desktop client preview",
   "Home Tunnel 桌面图形客户端开发预览": "Home Tunnel desktop GUI development preview",
   "Linux 客户端快速开始": "Linux client quick start",
   "Windows x64 EXE": "Windows x64 EXE",
@@ -108,7 +108,7 @@ const zhToEn = {
   保存新密码: "Save new password",
   返回产品首页: "Back to product home",
   主导航: "Main navigation",
-  "控制中心 v5.0.0": "Control Center v5.0.0",
+  "控制中心 v5.0.1": "Control Center v5.0.1",
   工作区: "Workspace",
   系统总览: "Overview",
   用户管理: "Users",

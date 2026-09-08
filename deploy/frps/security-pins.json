@@ -1,0 +1,14 @@
+{
+  "upstream_commit": "fa3bcca2b0c4753cd4f0e2ab189dd6a5a6a15708",
+  "module_overrides": [
+    {
+      "path": "github.com/Azure/go-ntlmssp",
+      "version": "v0.1.1",
+      "sum": "h1:l+FM/EEMb0U9QZE7mKNEDw5Mu3mFiaa2GKOoTSsNDPw=",
+      "go_mod_sum": "h1:NYqdhxd/8aAct/s4qSYZEerdPuH1liG2/X9DiVTbhpk=",
+      "advisory": "GHSA-pjcq-xvwq-hhpj"
+    }
+  ],
+  "go_mod_sha256": "3327217613fb42c0304f461c3887ec0cc7d49dfd001d4cabdb4358924229cf1f",
+  "go_sum_sha256": "671c5e1ec636e19041aa88753008ce42fdb2831f324b0b334b7d2e1fa1c2a272"
+}

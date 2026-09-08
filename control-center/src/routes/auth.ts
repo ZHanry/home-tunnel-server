@@ -358,6 +358,7 @@ router.post(
 
 router.post(
   "/password/change",
+  loginIpLimiter,
   asyncHandler(async (request, response) => {
     const actor = requireActor(request);
     requireCsrf(request);

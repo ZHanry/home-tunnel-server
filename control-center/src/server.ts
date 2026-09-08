@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { pathToFileURL } from "node:url";
 import express from "express";
+import { rateLimit } from "express-rate-limit";
 import { config } from "./config.js";
 import { bootstrapAdmin, closeDatabase, migrate, pool } from "./db.js";
 import { authenticate, errorMiddleware, requestContext } from "./http.js";
@@ -14,7 +15,10 @@ import { internalRouter } from "./routes/internal.js";
 import { downloadRouter, publicRouter } from "./routes/public.js";
 import { APP_VERSION } from "./version.js";
 
-export async function createApplication(initializeDatabase = true) {
+export async function createApplication(
+  initializeDatabase = true,
+  limits: { publicRequestsPerMinute?: number; apiRequestsPerMinute?: number } = {},
+) {
   if (initializeDatabase) {
     await migrate();
     await bootstrapAdmin();
@@ -23,9 +27,26 @@ export async function createApplication(initializeDatabase = true) {
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
   app.use(requestContext);
+  const publicRequestLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: limits.publicRequestsPerMinute ?? 600,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: { error_code: "RATE_LIMITED", message: "请求过于频繁，请稍后重试" },
+  });
+  const apiRequestLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: limits.apiRequestsPerMinute ?? 1200,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: { error_code: "RATE_LIMITED", message: "请求过于频繁，请稍后重试" },
+  });
+  // Bound public API work before parsing bodies or looking up sessions. Internal
+  // service traffic has separate authentication and must not share a public budget.
+  app.use("/api", apiRequestLimiter);
   app.use(express.json({ limit: "1mb", strict: true }));
 
-  app.get("/healthz", async (_request, response) => {
+  app.get("/healthz", publicRequestLimiter, async (_request, response) => {
     try {
       await pool.query("SELECT 1");
       response.json({ status: "healthy", version: APP_VERSION, at: new Date().toISOString() });
@@ -37,7 +58,7 @@ export async function createApplication(initializeDatabase = true) {
   });
 
   app.use("/api/v1/public", publicRouter);
-  app.use("/downloads", downloadRouter);
+  app.use("/downloads", publicRequestLimiter, downloadRouter);
 
   const publicDirectory = fileURLToPath(new URL("../public", import.meta.url));
   app.use(
@@ -52,7 +73,7 @@ export async function createApplication(initializeDatabase = true) {
       },
     }),
   );
-  app.get(["/", "/admin", "/admin/{*path}"], (_request, response) => {
+  app.get(["/", "/admin", "/admin/{*path}"], publicRequestLimiter, (_request, response) => {
     response.setHeader("cache-control", "no-cache");
     response.sendFile("index.html", { root: publicDirectory });
   });
@@ -63,7 +84,7 @@ export async function createApplication(initializeDatabase = true) {
   app.use("/api/v1", clientRouter);
   app.use("/internal", internalRouter);
 
-  app.get("/{*path}", (request, response, next) => {
+  app.get("/{*path}", publicRequestLimiter, (request, response, next) => {
     if (request.path.startsWith("/api/") || request.path.startsWith("/internal/")) {
       next();
       return;

@@ -31,7 +31,8 @@ jobs:
     - id: version
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: python3 scripts/release.py metadata
+      run: |
+        python3 scripts/release.py metadata
   images:
     name: Image (${{ matrix.name }})
     if: needs.metadata.outputs.stable != 'true'
@@ -82,7 +83,8 @@ jobs:
       env:
         IMAGE: ${{ matrix.image }}
         DIGEST: ${{ steps.build.outputs.digest }}
-      run: cosign sign --yes "$IMAGE@$DIGEST"
+      run: |
+        cosign sign --yes "$IMAGE@$DIGEST"
     - name: Write machine-readable digest record
       shell: bash
       env:
@@ -113,12 +115,13 @@ jobs:
         pattern: image-*
         path: release
         merge-multiple: true
-    - run: |-
+    - run: |
         cp contracts/home-tunnel.v1.json release/
         cp deploy/frps/dependency.json release/frps-dependency.json
     - env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: python3 scripts/release.py seal
+      run: |
+        python3 scripts/release.py seal
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
         name: candidate-assets
@@ -159,6 +162,7 @@ jobs:
         python3 scripts/fetch-client-baseline.py "$SMOKE_ARCH" release
         export CLIENT_VERSION="$(jq -r .version tests/client-baseline.json)"
         export CONTROL_IMAGE="$(jq -r '.image + "@" + .digest' release/image-control-center.json)"
+        export FRPS_IMAGE="$(jq -r '.image + "@" + .digest' release/frps-dependency.json)"
         export GATEWAY_IMAGE="$(jq -r '.image + "@" + .digest' release/image-traffic-gateway.json)"
         bash ./tests/run-release-smoke.sh
         mkdir -p integration
@@ -191,7 +195,7 @@ jobs:
     - name: Seal and publish verified RC
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |-
+      run: |
         python3 scripts/release.py seal
         cosign sign-blob --yes --bundle release/SHA256SUMS.txt.sigstore.json release/SHA256SUMS.txt
         python3 scripts/release.py rc
@@ -212,4 +216,5 @@ jobs:
     - env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         RC_TAG: ${{ needs.metadata.outputs.rc-tag }}
-      run: python3 scripts/release.py stable
+      run: |
+        python3 scripts/release.py stable

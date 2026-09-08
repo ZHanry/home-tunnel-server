@@ -142,9 +142,18 @@ type SessionRow = {
   csrf_token_hash: string;
 };
 
+export function parseBearerToken(authorization: string | undefined): string | undefined {
+  if (!authorization || authorization.length > 2048) return undefined;
+  if (authorization.slice(0, 7).toLowerCase() !== "bearer ") return undefined;
+  const token = authorization.slice(7).trimStart();
+  // A single forbidden-character scan has linear cost; overlapping whitespace
+  // quantifiers must never backtrack over a client-controlled header.
+  if (!token || token.length > 1024 || /[^A-Za-z0-9._~+/=-]/.test(token)) return undefined;
+  return token;
+}
+
 export const authenticate: RequestHandler = asyncHandler(async (request, _response, next) => {
-  const authorization = request.header("authorization");
-  const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+  const bearer = parseBearerToken(request.header("authorization"));
   const cookieToken = parseCookies(request).ht_access;
   const token = bearer ?? cookieToken;
   if (!token) {

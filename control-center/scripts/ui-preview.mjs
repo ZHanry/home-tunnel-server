@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import express from "express";
+import { rateLimit } from "express-rate-limit";
 import { WebSocketServer } from "ws";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -54,8 +55,8 @@ const devices = [
     name: "书房主机",
     status: "active",
     online: true,
-    client_version: "5.0.0",
-    agent_version: "5.0.0",
+    client_version: "5.0.1",
+    agent_version: "5.0.1",
     applied_config_version: 12,
     config_version: 12,
     last_seen_at: new Date(now - 12_000).toISOString(),
@@ -68,8 +69,8 @@ const devices = [
     name: "家庭服务器",
     status: "active",
     online: false,
-    client_version: "5.0.0",
-    agent_version: "5.0.0",
+    client_version: "5.0.1",
+    agent_version: "5.0.1",
     applied_config_version: 4,
     config_version: 5,
     last_seen_at: new Date(now - 3_600_000).toISOString(),
@@ -133,6 +134,9 @@ const auditEvents = Array.from({ length: 67 }, (_, index) => ({
 }));
 
 const app = express();
+app.use(
+  rateLimit({ windowMs: 60_000, limit: 1200, standardHeaders: "draft-8", legacyHeaders: false }),
+);
 app.disable("x-powered-by");
 app.use((request, response, next) => {
   if (["admin", "user"].includes(String(request.query.role)))

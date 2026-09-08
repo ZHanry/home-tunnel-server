@@ -39,3 +39,9 @@ jobs:
     - uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81
       with:
         category: /language:${{ matrix.language }}/target:server
+        wait-for-processing: true
+    - name: Require no open CodeQL findings
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python scripts/check-codeql-alerts.py

@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { Router } from "express";
+import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { config } from "../config.js";
 import {
@@ -38,6 +39,13 @@ import { clientConnectionSelect, customDomainsByConnection } from "../connection
 import { checkSubdomainAvailability } from "../subdomain-policy.js";
 
 const router = Router();
+const domainVerificationLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 30,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error_code: "RATE_LIMITED", message: "域名验证请求过多，请稍后重试" },
+});
 
 function clientGuard(request: Parameters<typeof requireActor>[0]) {
   const actor = requirePasswordNormal(request);
@@ -592,6 +600,7 @@ router.post(
 
 router.post(
   "/client/custom-domains/:domainId/verify",
+  domainVerificationLimiter,
   asyncHandler(async (request, response) => {
     const actor = clientGuard(request);
     const domainId = pathParam(request, "domainId");

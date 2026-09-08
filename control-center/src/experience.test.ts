@@ -101,7 +101,7 @@ test("5.0 owner-aware validation, partial policies and complete pagination", asy
           name: "Fixture device",
           install_id: "experience-install",
           fingerprint_hash: "ab".repeat(32),
-          client_version: "5.0.0",
+          client_version: "5.0.1",
         },
         token,
       )

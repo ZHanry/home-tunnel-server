@@ -1,4 +1,4 @@
-import { createConnectionsView } from "./modules/connections.js?v=5.0.0-modules2";
+import { createConnectionsView } from "./modules/connections.js?v=5.0.1-modules2";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -6,8 +6,8 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=5.0.0-modules2";
-import { api, refreshSession } from "./modules/api.js?v=5.0.0-modules2";
+} from "./modules/forms.js?v=5.0.1-modules2";
+import { api, refreshSession } from "./modules/api.js?v=5.0.1-modules2";
 import {
   componentLabel,
   configState,
@@ -16,10 +16,10 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=5.0.0-modules2";
-import { localeTag, updateDocumentMetadata } from "./modules/locale.js?v=5.0.0-modules2";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=5.0.0-modules2";
-import { state } from "./modules/state.js?v=5.0.0-modules2";
+} from "./modules/format.js?v=5.0.1-modules2";
+import { localeTag, updateDocumentMetadata } from "./modules/locale.js?v=5.0.1-modules2";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=5.0.1-modules2";
+import { state } from "./modules/state.js?v=5.0.1-modules2";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -84,7 +84,7 @@ function applyRoleChrome() {
     item.hidden = !isAdmin();
   });
   const brand = document.querySelector(".sidebar-brand .brand-copy small");
-  if (brand) brand.textContent = isAdmin() ? "控制中心 v5.0.0" : "我的工作区";
+  if (brand) brand.textContent = isAdmin() ? "控制中心 v5.0.1" : "我的工作区";
   const sessionCopy = document.querySelector(".sidebar-session small");
   if (sessionCopy) sessionCopy.textContent = isAdmin() ? "权限已验证" : "仅显示你的资源";
 }

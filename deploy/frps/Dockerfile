@@ -4,8 +4,10 @@ ARG FRP_COMMIT=fa3bcca2b0c4753cd4f0e2ab189dd6a5a6a15708
 ENV CGO_ENABLED=0
 RUN git clone --depth 1 --branch "${FRP_VERSION}" https://github.com/fatedier/frp.git /src/frp \
     && test "$(git -C /src/frp rev-parse HEAD)" = "${FRP_COMMIT}" \
-    && cd /src/frp \
-    && go build -tags noweb -trimpath -buildvcs=false -ldflags="-s -w -buildid=" -o /go/bin/frps ./cmd/frps
+    && cd /src/frp
+COPY go.mod go.sum /src/frp/
+RUN cd /src/frp \
+    && go build -tags noweb -mod=readonly -trimpath -buildvcs=false -ldflags="-s -w -buildid=" -o /go/bin/frps ./cmd/frps
 
 FROM alpine:3.22
 ARG FRP_VERSION=v0.70.1

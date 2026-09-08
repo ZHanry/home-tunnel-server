@@ -36,12 +36,12 @@ test("webhook and telegram payloads are formatted per channel", async () => {
   assert.equal(outcome.delivered, true);
   assert.equal(outcome.deduplicated, false);
   assert.equal(outcome.results.length, 2);
-  const webhook = calls.find((entry) => entry.url.includes("hook.example.test"));
+  const webhook = calls.find((entry) => new URL(entry.url).hostname === "hook.example.test");
   assert.ok(webhook);
   assert.equal(webhook.body.event_type, "quota.suspended");
   assert.equal(webhook.body.severity, "critical");
   assert.equal(typeof webhook.body.at, "string");
-  const telegram = calls.find((entry) => entry.url.includes("api.telegram.org"));
+  const telegram = calls.find((entry) => new URL(entry.url).hostname === "api.telegram.org");
   assert.ok(telegram);
   assert.match(telegram.url, /\/botTOKEN\/sendMessage$/);
   assert.equal(telegram.body.chat_id, "CHAT");
