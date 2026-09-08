@@ -118,6 +118,7 @@ jobs:
     - run: |
         cp contracts/home-tunnel.v1.json release/
         cp deploy/frps/dependency.json release/frps-dependency.json
+        cp deploy/frps/dependency.sigstore.json release/frps-dependency.json.sigstore.json
     - env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |

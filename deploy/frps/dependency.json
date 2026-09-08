@@ -5,8 +5,43 @@
   "upstream_commit": "fa3bcca2b0c4753cd4f0e2ab189dd6a5a6a15708",
   "upstream_archive_sha256": "9c6b0188a8f74e982069dc89218cc3d79bada8663cedf3b514b98847530cbf7d",
   "image": "ghcr.io/zhanry/home-tunnel-frps",
-  "image_tag": "0.70.1-r2",
-  "digest": "sha256:0ca230caa4c3c71932efd9bd5b9024a6fdc289886b97a1db827eaf3f8b6de759",
-  "repository_revision": "9e39c2b1aaa567c5ca3fda18f76b12dc2f77f52e",
-  "workflow_run": "https://github.com/ZHanry/home-tunnel/actions/runs/32460680110"
+  "image_tag": "0.70.1-r3",
+  "digest": "sha256:b5636ba951da6e27d76caff228fb17b8511695ffbcdca3a04b0bc93d593e6716",
+  "repository_revision": "be96d25667cbb39f8e3dcaf5633c61316ee1da31",
+  "workflow_run": "https://github.com/ZHanry/home-tunnel-server/actions/runs/34230007888",
+  "security_dependencies": {
+    "upstream_commit": "fa3bcca2b0c4753cd4f0e2ab189dd6a5a6a15708",
+    "module_overrides": [
+      {
+        "path": "github.com/Azure/go-ntlmssp",
+        "version": "v0.1.1",
+        "sum": "h1:l+FM/EEMb0U9QZE7mKNEDw5Mu3mFiaa2GKOoTSsNDPw=",
+        "go_mod_sum": "h1:NYqdhxd/8aAct/s4qSYZEerdPuH1liG2/X9DiVTbhpk=",
+        "advisory": "GHSA-pjcq-xvwq-hhpj"
+      },
+      {
+        "path": "golang.org/x/crypto",
+        "version": "v0.56.0",
+        "sum": "h1:GUh5Ii4J5jtcseSMiRqr1jXCNHoxjeV9Fmekc2oLy6Y=",
+        "go_mod_sum": "h1:OMW5y6CY9l38uPLmxU6l6pwcXp1obtLo3e6gT7gQR2I=",
+        "advisories": [
+          "GO-2026-6355",
+          "GO-2026-6354",
+          "GO-2026-6303"
+        ]
+      },
+      {
+        "path": "github.com/gorilla/websocket",
+        "version": "v1.5.3",
+        "sum": "h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=",
+        "go_mod_sum": "h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=",
+        "advisory": "GHSA-w67g-5rqw-f597"
+      }
+    ],
+    "go_mod_sha256": "50d25710f6ebb84dd8a3acd2d74e1ce251e2cc2061c87ebbb09fc812513a8f85",
+    "go_sum_sha256": "f3526dabc3295be9ca389438e6592117d5487fd5ec67c544166791a1f11f7543",
+    "excluded_packages": [
+      "golang.org/x/crypto/openpgp"
+    ]
+  }
 }

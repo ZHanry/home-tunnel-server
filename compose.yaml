@@ -109,7 +109,7 @@ services:
     logging: *default-logging
 
   frps:
-    image: ${HOME_TUNNEL_FRPS_IMAGE:-ghcr.io/zhanry/home-tunnel-frps:0.70.1-r2@sha256:0ca230caa4c3c71932efd9bd5b9024a6fdc289886b97a1db827eaf3f8b6de759}
+    image: ${HOME_TUNNEL_FRPS_IMAGE:-ghcr.io/zhanry/home-tunnel-frps:0.70.1-r3@sha256:b5636ba951da6e27d76caff228fb17b8511695ffbcdca3a04b0bc93d593e6716}
     restart: unless-stopped
     init: true
     environment:

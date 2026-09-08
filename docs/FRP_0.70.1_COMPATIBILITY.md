@@ -1,7 +1,7 @@
 # FRP 0.70.1 compatibility and promotion record
 
 Status: **approved for the supported release scope**. Production is pinned to
-the reviewed `0.70.1-r2` FRPS image. The Windows desktop client is distributed
+the reviewed `0.70.1-r3` FRPS image. The Windows desktop client is distributed
 as `HomeTunnel-Windows-*-x64.zip` with `home-tunnel-gui.exe`.
 
 Review completed: 2026-08-21
@@ -13,8 +13,8 @@ Managed TCP/UDP extension review: 2026-08-21
 | FRP release | `v0.70.1` (2026-07-23) |
 | Upstream commit | `fa3bcca2b0c4753cd4f0e2ab189dd6a5a6a15708` |
 | GitHub API source archive SHA-256 | `9c6b0188a8f74e982069dc89218cc3d79bada8663cedf3b514b98847530cbf7d` |
-| FRPS image tag | `ghcr.io/zhanry/home-tunnel-frps:0.70.1-r2` |
-| FRPS multi-architecture digest | `sha256:0ca230caa4c3c71932efd9bd5b9024a6fdc289886b97a1db827eaf3f8b6de759` |
+| FRPS image tag | `ghcr.io/zhanry/home-tunnel-frps:0.70.1-r3` |
+| FRPS multi-architecture digest | `sha256:b5636ba951da6e27d76caff228fb17b8511695ffbcdca3a04b0bc93d593e6716` |
 | Protected FRPS workflow revision | `9e39c2b1aaa567c5ca3fda18f76b12dc2f77f52e` |
 | Protected FRPS workflow | [run 32460680110](https://github.com/ZHanry/home-tunnel/actions/runs/32460680110) |
 
@@ -73,7 +73,7 @@ FRP 0.70.1 is not a pin-only upgrade:
 
 - [x] Apply the reviewed Agent API adaptation and `-tags noweb` FRPS build.
 - [x] Update every active FRP pin, build input and third-party notice atomically.
-- [x] Build, audit, test the baked L4/Ping entrypoint, sign, and attest the protected `0.70.1-r2` FRPS dependency.
+- [x] Build, audit, test the baked L4/Ping entrypoint, sign, and attest the protected `0.70.1-r3` FRPS dependency.
 - [x] Pin the exact dependency manifest and immutable multi-architecture digest.
 - [x] Make the Windows Agent resource build reproducible with
       `SOURCE_DATE_EPOCH=0` and keep its expected SHA-256 fail-closed.
