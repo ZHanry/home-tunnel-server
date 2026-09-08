@@ -1,0 +1,229 @@
+name: Server CI
+'on':
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+  merge_group: null
+  workflow_dispatch: null
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  services:
+    name: TypeScript services
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+        - control-center
+        - traffic-gateway
+    defaults:
+      run:
+        working-directory: ${{ matrix.service }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+      with:
+        version: 11.16.0
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      with:
+        node-version: 24.19.0
+        cache: pnpm
+        cache-dependency-path: ${{ matrix.service }}/pnpm-lock.yaml
+    - run: pnpm install --frozen-lockfile
+    - name: Audit production dependencies
+      run: pnpm audit --prod --audit-level=moderate
+    - run: pnpm run check
+    - run: pnpm run lint
+    - run: pnpm run format:check
+    - run: pnpm run build
+    - run: pnpm test
+    - run: pnpm run test:coverage
+    - if: matrix.service == 'control-center'
+      run: pnpm run test:coverage:realtime
+    - if: matrix.service == 'control-center'
+      run: pnpm run test:public
+    - if: matrix.service == 'control-center'
+      run: pnpm run test:integration
+  browser:
+    name: Browser interaction regression
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      with:
+        node-version: 24.19.0
+    - name: Enable package manager
+      run: npm install -g pnpm@11.19.0
+    - run: pnpm install --frozen-lockfile
+      working-directory: control-center
+    - run: pnpm exec playwright install --with-deps chromium
+      working-directory: control-center
+    - run: pnpm run test:browser
+      working-directory: control-center
+  dependency-review:
+    name: Dependency Review
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
+      with:
+        fail-on-severity: moderate
+  deployment:
+    name: Deployment checks
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - name: Prepare non-production Compose inputs
+      run: |
+        cp .env.example .env
+        mkdir -p deploy/secrets
+        for name in internal_service_key frps_plugin_key lease_signing_key bootstrap_admin_password; do
+          printf '%064d\n' 0 > "deploy/secrets/$name"
+        done
+        # compose config only checks that secret files exist; stub PEM content is enough.
+        printf -- '-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n' > deploy/secrets/frps_tls_cert.pem
+        printf -- '-----BEGIN PRIVATE KEY-----\nstub\n-----END PRIVATE KEY-----\n' > deploy/secrets/frps_tls_key.pem
+    - name: Validate IPv6 self-host configuration generation
+      run: |
+        set -euo pipefail
+        test_root=$(mktemp -d)
+        trap 'rm -rf -- "$test_root"' EXIT
+        mkdir -p "$test_root/repo/deploy/scripts"
+        cp deploy/scripts/new-selfhost-config.sh "$test_root/repo/deploy/scripts/"
+        (
+          cd "$test_root/repo"
+          sh ./deploy/scripts/new-selfhost-config.sh \
+            tunnel.home.test 2001:db8:1::10 console.home.test admin@home.test
+        )
+        grep -Fxq 'HOME_TUNNEL_FRPS_PUBLIC_HOST=2001:db8:1::10' "$test_root/repo/.env"
+        openssl x509 -in "$test_root/repo/deploy/secrets/frps_tls_cert.pem" \
+          -noout -checkip 2001:db8:1::10
+    - name: Validate PowerShell self-host input path
+      shell: pwsh
+      run: |
+        ./deploy/scripts/new-selfhost-config.ps1 `
+          -TunnelDomain tunnel.home.test `
+          -FrpsPublicHost 2001:db8:1::10 `
+          -ConsoleHost console.home.test `
+          -AcmeEmail admin@home.test `
+          -Force `
+          -WhatIf
+    - run: docker compose config --quiet
+    - run: docker compose -f compose.yaml -f compose.build.yaml config --quiet
+    - name: Overlay without an explicit port range must fail closed
+      run: |
+        set -euo pipefail
+        if docker compose -f compose.yaml -f deploy/compose.tcp.yaml config --quiet; then
+          echo "tcp overlay must require HOME_TUNNEL_TCP_PORT_START" >&2
+          exit 1
+        fi
+    - name: Validate TCP and UDP overlays
+      env:
+        HOME_TUNNEL_TCP_BIND_ADDRESS: 127.0.0.1
+        HOME_TUNNEL_TCP_PORT_START: '10554'
+        HOME_TUNNEL_TCP_PORT_END: '10554'
+        HOME_TUNNEL_UDP_BIND_ADDRESS: 127.0.0.1
+        HOME_TUNNEL_UDP_PORT_START: '10554'
+        HOME_TUNNEL_UDP_PORT_END: '10554'
+        HOME_TUNNEL_L4_BIND_ADDRESS: 127.0.0.1
+        HOME_TUNNEL_L4_PORT_START: '10554'
+        HOME_TUNNEL_L4_PORT_END: '10554'
+      run: |
+        docker compose -f compose.yaml -f deploy/compose.tcp.yaml config --quiet
+        docker compose -f compose.yaml -f deploy/compose.udp.yaml config --quiet
+        docker compose -f compose.yaml -f deploy/compose.l4.yaml config --quiet
+        ./tests/test-frps-entrypoint.sh
+    - name: Validate deploy Compose file
+      env:
+        HOME_TUNNEL_TCP_BIND_ADDRESS: 127.0.0.1
+        HOME_TUNNEL_TCP_PORT_START: '10554'
+        HOME_TUNNEL_TCP_PORT_END: '10554'
+        HOME_TUNNEL_UDP_BIND_ADDRESS: 127.0.0.1
+        HOME_TUNNEL_UDP_PORT_START: '10554'
+        HOME_TUNNEL_UDP_PORT_END: '10554'
+        HOME_TUNNEL_L4_BIND_ADDRESS: 127.0.0.1
+        HOME_TUNNEL_L4_PORT_START: '10554'
+        HOME_TUNNEL_L4_PORT_END: '10554'
+      run: |
+        docker network inspect home-tunnel-edge >/dev/null 2>&1 || docker network create home-tunnel-edge
+        docker compose -f deploy/compose.yaml --env-file .env config --quiet
+        docker compose -f deploy/compose.yaml -f deploy/compose.tcp.yaml --env-file .env config --quiet
+        docker compose -f deploy/compose.yaml -f deploy/compose.udp.yaml --env-file .env config --quiet
+        docker compose -f deploy/compose.yaml -f deploy/compose.l4.yaml --env-file .env config --quiet
+    - name: Validate RC-aware offline deployment scripts
+      shell: pwsh
+      run: |
+        $paths = @(
+          'deploy/build-ui-release.ps1',
+          'deploy/build-release.ps1',
+          'deploy/deploy-ui.ps1'
+        )
+        foreach ($path in $paths) {
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path -LiteralPath $path),
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count -gt 0) {
+            throw "PowerShell syntax check failed for ${path}: $($errors.Message -join '; ')"
+          }
+        }
+        $buildUi = Get-Content -Raw -LiteralPath deploy/build-ui-release.ps1
+        $buildServer = Get-Content -Raw -LiteralPath deploy/build-release.ps1
+        $deployUi = Get-Content -Raw -LiteralPath deploy/deploy-ui.ps1
+        foreach ($source in @($buildUi, $buildServer, $deployUi)) {
+          if ($source -notmatch '\(\?:-rc\\\.\\d\+\)\?') {
+            throw 'An offline PowerShell release path does not accept RC versions'
+          }
+        }
+        if ($buildUi -notmatch '\$sourceVersion\s*=.*-replace' -or
+            $buildServer -notmatch '\$sourceVersion\s*=.*-replace') {
+          throw 'Offline builders must compare RC tags to the source base version'
+        }
+    - name: Validate RC-aware remote update script
+      run: |
+        set -euo pipefail
+        # The grep expressions below intentionally match literal shell/JavaScript source.
+        bash -n deploy/scripts/update-ui.sh
+        grep -Fq '(-rc\.[0-9]+)?$' deploy/scripts/update-ui.sh
+        grep -Fq 'source_version="${version%%-rc.*}"' deploy/scripts/update-ui.sh
+        grep -Fq "b.version!=='\$source_version'" deploy/scripts/update-ui.sh
+  repository:
+    name: Repository boundaries
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - run: python3 scripts/check-repository.py
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs:
+    - services
+    - browser
+    - dependency-review
+    - deployment
+    - repository
+    steps:
+    - name: Require all component checks
+      env:
+        RESULTS: ${{ toJSON(needs) }}
+      run: |
+        python3 - <<'PY'
+        import json, os
+        results = json.loads(os.environ['RESULTS'])
+        failed = {k:v['result'] for k,v in results.items() if v['result'] != 'success' and not (k == 'dependency-review' and v['result'] == 'skipped')}
+        if failed: raise SystemExit(str(failed))
+        print('All component checks passed')
+        PY

@@ -1,0 +1,41 @@
+name: CodeQL
+'on':
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+  merge_group: null
+  schedule:
+  - cron: 23 3 * * 1
+  workflow_dispatch: null
+permissions:
+  contents: read
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: javascript-typescript
+          name: JavaScript and TypeScript
+          os: ubuntu-latest
+          build-mode: none
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+    - uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81
+      with:
+        category: /language:${{ matrix.language }}/target:server

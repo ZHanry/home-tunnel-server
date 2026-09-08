@@ -1,0 +1,17 @@
+{
+  "repository": "ZHanry/home-tunnel",
+  "tag": "v5.0.0",
+  "version": "5.0.0",
+  "packages": {
+    "amd64": {
+      "file": "home-tunnel-linux-5.0.0-amd64.tar.gz",
+      "sha256": "9b94f22bbc82e886195ad6b9fb3d308d0605163400c2670ea6833b493e0b1fb1",
+      "url": "https://github.com/ZHanry/home-tunnel/releases/download/v5.0.0/home-tunnel-linux-5.0.0-amd64.tar.gz"
+    },
+    "arm64": {
+      "file": "home-tunnel-linux-5.0.0-arm64.tar.gz",
+      "sha256": "2c0961a3c14231c48e556176ae8bdaae239b2cf0eac6cad9c4d6b0b2d7e8d8c7",
+      "url": "https://github.com/ZHanry/home-tunnel/releases/download/v5.0.0/home-tunnel-linux-5.0.0-arm64.tar.gz"
+    }
+  }
+}

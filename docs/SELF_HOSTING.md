@@ -165,7 +165,9 @@ and tunnel suffix from that same HTTPS origin.
 To build the Windows installer yourself:
 
 ```powershell
-.\linux-client\packaging\windows\build-release.ps1
+git clone https://github.com/ZHanry/home-tunnel-client.git
+cd home-tunnel-client
+.\packaging\windows\build-release.ps1
 ```
 
 The output is `HomeTunnel-Setup-5.0.0-x64.exe`.
@@ -179,20 +181,19 @@ application ID `io.github.zhanry.hometunnel`, and the published persistent
 signing-certificate SHA-256 before allowing the sideload. The AAB attached to
 the Release cannot be installed directly and is not declared Google Play-ready.
 
-Enter the control-center HTTPS root selected for this deployment; the generic
-client does not embed the project maintainer's server. Keep the foreground
-service notification enabled. Android battery optimization and OEM background
-policies can interrupt a tunnel or delay reconnects, so exclude the Experimental
-client from device-specific optimization only after reviewing the security and
-battery tradeoff. See [`android-client/README.md`](../android-client/README.md)
-for permissions, foreground-service behavior, diagnostics, and current limits.
+Enter the control-center HTTPS root selected for this deployment. Android is a
+remote-management app: tunnels run on home computers, not on the phone. See the
+[Android repository](https://github.com/ZHanry/home-tunnel-android) for installation,
+permissions, signing identity and the current Experimental support level.
 
 ### Linux
 
 Build a headless `amd64` or `arm64` package on a Linux build machine with Go 1.26.6:
 
 ```sh
-ARCH=amd64 ./linux-client/packaging/build-release.sh
+git clone https://github.com/ZHanry/home-tunnel-client.git
+cd home-tunnel-client
+ARCH=amd64 ./packaging/build-release.sh
 ```
 
 Copy the archive from `outputs/linux/` to the target, verify its adjacent SHA-256 file, extract it, and run:
@@ -202,7 +203,7 @@ sudo ./install.sh
 sudo home-tunnel-enroll
 ```
 
-The enrollment helper registers the device without persisting the account password, then enables `home-tunnel-client.service`. Connections for the Linux device are managed in the control-center administrator UI. See [`linux-client/README.md`](../linux-client/README.md) for status, logs, upgrades and current limitations.
+The enrollment helper registers the device without persisting the account password, then enables `home-tunnel-client.service`. Connections for the Linux device are managed in the control-center administrator UI. See [client operations](https://github.com/ZHanry/home-tunnel-client/blob/main/docs/OPERATIONS.md) for status, logs, upgrades and current limitations.
 
 ## Operations
 

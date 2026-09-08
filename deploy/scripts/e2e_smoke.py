@@ -719,7 +719,7 @@ try {
             public_get(arguments.origin + "/", "Linux 客户端快速开始")
             _, landing_body = fetch(arguments.origin + "/")
             landing_page = landing_body.decode()
-            if 'href="https://github.com/ZHanry/home-tunnel/blob/main/linux-client/README.md"' not in landing_page:
+            if 'href="https://github.com/ZHanry/home-tunnel-client#readme"' not in landing_page:
                 raise RuntimeError("Landing page does not point to the Linux quick start")
             _, health_body = fetch(arguments.origin + "/healthz")
             product_version = str(json.loads(health_body)["version"]).split("-rc.")[0]

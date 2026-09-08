@@ -1,79 +1,28 @@
-# Contributing to Home Tunnel
+# Contributing
 
-Thanks for helping improve Home Tunnel. Small, focused changes with tests and a clear security impact are easiest to review.
+The public server stack: API, web console, gateway and deployment.
 
-## Development setup
+This repository owns its code, tests and component releases. The project overview,
+downloads and cross-component roadmap live at https://github.com/ZHanry/home-tunnel.
 
-Requirements:
-
-- Node.js 24.19.0 LTS and pnpm 11
-- Go 1.26.6 for the shared Windows/macOS/Linux desktop client
-- Docker with Compose for integration and container checks
-- Go 1.26.6 for the Linux client; `windres` is additionally required when rebuilding the managed Windows Agent
-- JDK 17 plus the Android SDK/NDK versions pinned by `android-client/` for the Experimental mobile client
-
-Install and verify the TypeScript services:
-
-```powershell
-Set-Location control-center
-pnpm install --frozen-lockfile
-pnpm run check
-pnpm run lint
-pnpm run format:check
-pnpm run build
-pnpm test
-pnpm run test:coverage
-pnpm run test:public
-
-Set-Location ..\traffic-gateway
-pnpm install --frozen-lockfile
-pnpm run check
-pnpm run lint
-pnpm run format:check
-pnpm run build
-pnpm test
-pnpm run test:coverage
-```
-
-Verify the shared desktop client:
+## Local checks
 
 ```sh
-cd linux-client
-gofmt -w .
-go vet ./...
-go test -race ./...
-staticcheck ./...
-govulncheck ./...
-go build ./cmd/home-tunnel-client ./cmd/home-tunnel-gui
+cd control-center
+pnpm install --frozen-lockfile
+pnpm run check && pnpm run lint && pnpm run build && pnpm test
+cd ../traffic-gateway
+pnpm install --frozen-lockfile
+pnpm run check && pnpm run build && pnpm test
 ```
 
-Windows zip:
+Keep changes focused, update the relevant tests and documentation, and explain
+changes to authentication, leases, Agent validation, signing or update trust.
+Generated binaries, credentials and local configuration must remain untracked.
+Pull requests never receive release signing secrets.
 
-```powershell
-.\linux-client\packaging\windows\build-release.ps1
-```
+## Versions and compatibility
 
-Verify the Android client without a release signing key:
-
-```sh
-cd android-client
-./gradlew --no-daemon test lint assembleDebug
-cd ..
-test -z "$(git ls-files -- '*.apk' '*.aab' '*.aar' '*.jks' '*.keystore' '*.so')"
-```
-
-Pull requests and ordinary `main` CI never receive the persistent Android
-release key. Do not add debug-signing fallback to the release path, print
-keystore secrets, or commit APK/AAB/AAR/SO/keystore output.
-
-## Pull requests
-
-1. Create a branch from `main` and keep the change scoped to one concern.
-2. Do not commit generated output, downloaded toolchains, executables, credentials or production-only configuration.
-3. Add or update tests for behavior changes.
-4. Run the relevant checks locally and describe the results in the pull request.
-5. Update `CHANGELOG.md` when a user-visible behavior or compatibility boundary changes.
-
-Changes to authentication, lease validation, FRPS authorization, update trust, Android foreground-service or native-Agent boundaries, signing, Caddy routing, or secret handling require an explicit security rationale in the pull request.
-
-By submitting a contribution, you agree that it is licensed under the Apache License 2.0 used by this repository.
+Only this component's version is changed for a component release. API v1 is the
+initial compatibility boundary; see `compatibility.json` and `docs/RELEASING.md`.
+The original project history remains available under the upstream `v5.0.0` tag.

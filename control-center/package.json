@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint src scripts public browser-tests playwright.config.mjs && node scripts/lint-desktop.mjs && node scripts/validate-workflows.mjs",
+    "lint": "eslint src scripts public browser-tests playwright.config.mjs && node scripts/validate-workflows.mjs",
     "format:check": "prettier --check \"src/**/*.ts\" \"scripts/**/*.mjs\" package.json tsconfig.json eslint.config.mjs",
     "preview": "node scripts/preview.mjs",
     "preview:ui": "node scripts/ui-preview.mjs",

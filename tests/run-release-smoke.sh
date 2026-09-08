@@ -162,9 +162,10 @@ expected_migration=$((10#$expected_migration))
   exit 1
 }
 
-package="$release_dir/home-tunnel-linux-${RC_VERSION%%-rc.*}-$smoke_arch.tar.gz"
-if [[ ! -s "$package" && -s "$release_dir/linux/home-tunnel-linux-${RC_VERSION%%-rc.*}-$smoke_arch.tar.gz" ]]; then
-  package="$release_dir/linux/home-tunnel-linux-${RC_VERSION%%-rc.*}-$smoke_arch.tar.gz"
+client_version=${CLIENT_VERSION:-${RC_VERSION%%-rc.*}}
+package="$release_dir/home-tunnel-linux-$client_version-$smoke_arch.tar.gz"
+if [[ ! -s "$package" && -s "$release_dir/linux/home-tunnel-linux-$client_version-$smoke_arch.tar.gz" ]]; then
+  package="$release_dir/linux/home-tunnel-linux-$client_version-$smoke_arch.tar.gz"
 fi
 [[ -s "$package" ]] || { echo "RC Linux package for $smoke_arch is missing" >&2; exit 1; }
 mkdir -p "$smoke_root/client"
