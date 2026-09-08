@@ -1,0 +1,5 @@
+# Historical, test-only passwords issued to a loopback server with an in-memory SQLite database.
+# Current tests already generate a fresh random password. These exact historical findings
+# are retained to preserve source history; no production credential is allowlisted.
+a887a90f577c0273c663a6116bbbcb01473f1a4e:control-center/src/experience.test.ts:generic-api-key:84
+a887a90f577c0273c663a6116bbbcb01473f1a4e:control-center/src/experience.test.ts:generic-api-key:90
