@@ -7,8 +7,22 @@
       "sum": "h1:l+FM/EEMb0U9QZE7mKNEDw5Mu3mFiaa2GKOoTSsNDPw=",
       "go_mod_sum": "h1:NYqdhxd/8aAct/s4qSYZEerdPuH1liG2/X9DiVTbhpk=",
       "advisory": "GHSA-pjcq-xvwq-hhpj"
+    },
+    {
+      "path": "golang.org/x/crypto",
+      "version": "v0.56.0",
+      "sum": "h1:GUh5Ii4J5jtcseSMiRqr1jXCNHoxjeV9Fmekc2oLy6Y=",
+      "go_mod_sum": "h1:OMW5y6CY9l38uPLmxU6l6pwcXp1obtLo3e6gT7gQR2I=",
+      "advisories": [
+        "GO-2026-6355",
+        "GO-2026-6354",
+        "GO-2026-6303"
+      ]
     }
   ],
-  "go_mod_sha256": "3327217613fb42c0304f461c3887ec0cc7d49dfd001d4cabdb4358924229cf1f",
-  "go_sum_sha256": "671c5e1ec636e19041aa88753008ce42fdb2831f324b0b334b7d2e1fa1c2a272"
+  "go_mod_sha256": "d14a182b2ca6ef2bb44a16e772f26e8c1ee636a000ef728fa0313c635e8a04a2",
+  "go_sum_sha256": "3abab870e74fd810b6966051961799c4453d7c96c96353d0f26aa4aacae2f5da",
+  "excluded_packages": [
+    "golang.org/x/crypto/openpgp"
+  ]
 }

@@ -7,6 +7,8 @@ RUN git clone --depth 1 --branch "${FRP_VERSION}" https://github.com/fatedier/fr
     && cd /src/frp
 COPY go.mod go.sum /src/frp/
 RUN cd /src/frp \
+    && go list -tags noweb -deps -mod=readonly ./cmd/frps > /tmp/frps-packages.txt \
+    && ! grep -q '^golang.org/x/crypto/openpgp' /tmp/frps-packages.txt \
     && go build -tags noweb -mod=readonly -trimpath -buildvcs=false -ldflags="-s -w -buildid=" -o /go/bin/frps ./cmd/frps
 
 FROM alpine:3.22
