@@ -157,10 +157,10 @@ jobs:
       run: |
         set -euo pipefail
         python3 scripts/fetch-client-baseline.py "$SMOKE_ARCH" release
-        export CLIENT_VERSION=5.0.0
+        export CLIENT_VERSION="$(jq -r .version tests/client-baseline.json)"
         export CONTROL_IMAGE="$(jq -r '.image + "@" + .digest' release/image-control-center.json)"
         export GATEWAY_IMAGE="$(jq -r '.image + "@" + .digest' release/image-traffic-gateway.json)"
-        ./tests/run-release-smoke.sh
+        bash ./tests/run-release-smoke.sh
         mkdir -p integration
         cp release-smoke-evidence/release-smoke.json "integration/server-smoke-$SMOKE_ARCH.json"
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
