@@ -1,74 +1,54 @@
-# Self-hosting
+# 自托管测试指南
 
-This guide describes the portable root-level `compose.yaml`. The scripts under `deploy/` also contain an ARM64 production profile for the original Home Tunnel installation; that profile assumes an existing Caddy deployment and is not the general quick-start path.
+本指南用于建立全新的内部测试环境。所有示例域名和地址均需替换；当前以源码构建为主要路径。
 
-## Requirements
+## 环境和 DNS
 
-- A Linux server with Docker Engine and Docker Compose v2
-- An `amd64` or `arm64` CPU, at least 1 GiB RAM (with swap on small hosts) and 2 GiB free disk space
-- A public IPv4 or IPv6 address reachable on TCP 80, 443 and 7000; UDP 443 is optional for HTTP/3. Optional raw TCP/UDP tunnels also require their explicitly configured port ranges.
-- A domain you control
-- A home computer for the shared graphical client (`home-tunnel-gui` on Windows, macOS, or Linux), or an `amd64`/`arm64` Linux machine for the headless systemd client. Android is a management app only.
+需要公网 Linux amd64 / arm64 主机、Docker Engine、Docker Compose，以及可以管理 DNS 的域名。
 
-Create DNS records before starting:
-
-| Record | Example | Target |
+| 记录或端口 | 示例 | 用途 |
 | --- | --- | --- |
-| Console | `console.tunnel.example.com` | Public server address |
-| Wildcard | `*.tunnel.example.com` | Public server address |
+| 控制台 DNS | `console.tunnel.example.com` 指向服务器 | 登录与 API |
+| 隧道通配符 DNS | `*.tunnel.example.com` 指向服务器 | HTTP / HTTPS 公网连接 |
+| TCP 80 / 443 | 主机与云防火墙按需放行 | Web 入口与证书验证 |
+| TCP 7000 | 家中客户端可以访问 | 默认 FRPS 接入端口 |
 
-Do not proxy TCP port 7000 through an HTTP-only CDN.
+生成配置前确认域名可正确解析。TCP / UDP 公网映射默认不开启，先完成 HTTP 测试。
 
-## 1. Generate local configuration
-
-On Linux:
-
-```sh
-./deploy/scripts/new-selfhost-config.sh \
-  tunnel.example.com \
-  203.0.113.10 \
-  console.tunnel.example.com \
-  admin@example.com
-```
-
-On Windows PowerShell:
-
-```powershell
-.\deploy\scripts\new-selfhost-config.ps1 `
-  -TunnelDomain tunnel.example.com `
-  -FrpsPublicHost 203.0.113.10 `
-  -ConsoleHost console.tunnel.example.com `
-  -AcmeEmail admin@example.com
-```
-
-The command creates an ignored `.env` file and the ignored secret files under `deploy/secrets/`: four generated keys plus a ten-year self-signed FRPS TLS certificate (`frps_tls_cert.pem`/`frps_tls_key.pem`, EC P-256, CN and SAN covering the FRPS host). FRPS serves this certificate on TCP 7000, the control center publishes the public part through `/api/v1/public/config`, and managed clients pin it so the Agent only completes the FRP TLS handshake with your real FRPS. If the certificate files already exist they are kept as-is. It refuses to overwrite existing configuration unless the PowerShell command is explicitly given `-Force`. Do not commit or share these files.
-
-## 2. Validate and start the server
+## 生成配置
 
 ```sh
-docker compose config --quiet
-docker compose pull
-docker compose up -d
-docker compose ps
+git clone https://github.com/ZHanry/home-tunnel-server.git
+cd home-tunnel-server
+sh deploy/scripts/new-selfhost-config.sh \
+  tunnel.example.com 203.0.113.10 \
+  console.tunnel.example.com admin@example.com
 ```
 
-Caddy obtains certificates after DNS is active and the hostname is requested. The control center authorizes the console hostname and assigned connection hostnames before issuance.
+脚本在本地生成 `.env` 与 `deploy/secrets/` 中的鉴权材料和 FRPS 证书。
+不要把这些文件提交到 Git，也不要用真实密码替换文档中的示例值再公开分享。
+Windows 开发机可使用同目录下的 `new-selfhost-config.ps1`；服务端运行目标仍为 Linux。
 
-The default path pulls prebuilt `amd64`/`arm64` images. To build from the checked-out source instead:
+## 从源码构建和启动
 
 ```sh
+docker compose -f compose.yaml -f compose.build.yaml config --quiet
 docker compose -f compose.yaml -f compose.build.yaml up -d --build
-```
-
-Read the one-time administrator password locally:
-
-```sh
+docker compose ps
 cat deploy/secrets/bootstrap_admin_password
 ```
 
-Open `https://console.tunnel.example.com/admin`, sign in as `admin`, and change the password immediately. The bootstrap password does not expire until that first successful login and password change; after rotation there is no portable reset helper, so keep the new password somewhere safe. Do not paste either password into an issue, log or shell history.
+两份 Compose 文件共同使用：基础文件描述运行配置，构建覆盖文件让服务使用当前源码。
+默认项目名为 `home-tunnel`。首次构建需要下载依赖与基础镜像。
 
-Create standard user accounts from the Users view and give each person their one-time password. Those users sign in at the same `/admin` URL, see only their own devices and tunnels, and can create HTTP/HTTPS connections themselves. TCP/UDP public ports stay administrator-assigned.
+打开 `https://console.tunnel.example.com/admin`，读取并使用一次性管理员密码，完成改密，再创建测试账号。
+
+## 接入设备与管理 App
+
+从[客户端仓库](https://github.com/ZHanry/home-tunnel-client#readme)构建完整包，选择 GUI 或 headless 模式，登录服务端并注册设备。
+在控制台创建一个指向本地 HTTP 测试服务的连接，验证访问、暂停、恢复和客户端重启。
+
+Android 的[调试 APK](https://github.com/ZHanry/home-tunnel-android#readme)用于管理已经注册的设备。它不要求手机运行隧道进程。
 
 ## Optional general TCP and fixed-port UDP
 
@@ -149,133 +129,32 @@ restrictions and rate limits in the host or cloud firewall. UDP services can
 be abused for reflection/amplification; assess the protocol and limit sources
 and rates before exposing it.
 
-## 3. Install and connect a client
-
-### Windows
-
-Download `HomeTunnel-Setup-5.0.0-x64.exe` from the latest GitHub Release and
-verify its SHA-256 before installing. The installer puts the windowed client
-and Agent in your user directory and creates a Start Menu shortcut. Closing
-the window hides it to the tray.
-On first launch, enter the control-center root address,
-for example `https://console.tunnel.example.com`, and sign in with a user
-created by the administrator. The client retrieves the public FRPS host, port,
-and tunnel suffix from that same HTTPS origin.
-
-To build the Windows installer yourself:
-
-```powershell
-git clone https://github.com/ZHanry/home-tunnel-client.git
-cd home-tunnel-client
-.\packaging\windows\build-release.ps1
-```
-
-The output is `HomeTunnel-Setup-5.0.0-x64.exe`.
-
-### Android
-
-On an Android 8.0+ `arm64-v8a` device, download
-`HomeTunnel-Android-5.0.0-arm64-v8a.apk` from the latest GitHub Release. Verify
-the adjacent SHA-256 or aggregate `SHA256SUMS.txt`, the Sigstore evidence, the
-application ID `io.github.zhanry.hometunnel`, and the published persistent
-signing-certificate SHA-256 before allowing the sideload. The AAB attached to
-the Release cannot be installed directly and is not declared Google Play-ready.
-
-Enter the control-center HTTPS root selected for this deployment. Android is a
-remote-management app: tunnels run on home computers, not on the phone. See the
-[Android repository](https://github.com/ZHanry/home-tunnel-android) for installation,
-permissions, signing identity and the current Experimental support level.
-
-### Linux
-
-Build a headless `amd64` or `arm64` package on a Linux build machine with Go 1.26.6:
-
-```sh
-git clone https://github.com/ZHanry/home-tunnel-client.git
-cd home-tunnel-client
-ARCH=amd64 ./packaging/build-release.sh
-```
-
-Copy the archive from `outputs/linux/` to the target, verify its adjacent SHA-256 file, extract it, and run:
-
-```sh
-sudo ./install.sh
-sudo home-tunnel-enroll
-```
-
-The enrollment helper registers the device without persisting the account password, then enables `home-tunnel-client.service`. Connections for the Linux device are managed in the control-center administrator UI. See [client operations](https://github.com/ZHanry/home-tunnel-client/blob/main/docs/OPERATIONS.md) for status, logs, upgrades and current limitations.
-
-## Operations
-
-View status and logs:
+## 日志和日常测试
 
 ```sh
 docker compose ps
 docker compose logs --tail 100 control-center traffic-gateway frps caddy
 ```
 
-The following upgrade command is only for deployments that already use the `sqlite-data` volume. If your current Compose file still contains a PostgreSQL service, stop here: the new profile intentionally does not auto-convert that database.
+修改代码后使用相同的基础文件、构建覆盖文件，以及本次测试启用的 TCP / UDP 覆盖文件重新构建。
+记录参与联调的客户端提交；不假设任意两个内部构建都兼容。
 
-Upgrade prebuilt images without deleting SQLite data:
+## 数据与备份
 
-```sh
-git pull --ff-only
-docker compose pull
-docker compose up -d
-```
+SQLite 位于 `sqlite-data` 卷的 `/data/home-tunnel.db`，Caddy 的状态使用单独的持久化卷。
+控制中心包含定时数据库快照，备份位置、周期和保留数可通过服务配置调整。
+同一数据卷中的快照不能替代主机外备份；测试恢复时保留部署密钥和原始数据副本。
 
-For the transport upgrade, back up SQLite, upgrade the server/control center
-and FRPS first, then upgrade every Windows, Linux, and macOS client before
-enabling UDP. Updated clients declare
-`supported_proxy_types = ["http", "tcp", "udp"]`. A legacy client that omits
-`supported_proxy_types` receives a UDP record with `enabled=false` and must not
-start it. The Android 5.0.0 Experimental client intentionally advertises only
-`["http"]`; it may display assigned TCP/UDP records but must not start them. On
-first launch after upgrading, a current desktop/headless client requests one full
-sync before recording the new sync-capability marker, replacing any cached
-compatibility-disabled UDP state. An existing deployment that only sets
-`TCP_TUNNEL_ENABLED` stays TCP-only; the upgrade does not implicitly open UDP.
-Re-apply the selected TCP, UDP, or L4 override on every later Compose update.
-For an application rollback to 3.0, first disable or delete every UDP
-connection while 3.1 is still running, then restore the pre-`008` database
-backup together with the old images. Do not let a 3.0 writer reinterpret a UDP
-compatibility mirror as TCP; schema `008` rejects that protocol drift.
-FRPS authorizes `Ping` as well as login and proxy creation. Every heartbeat
-rechecks the lease and subject status, so deleting/revoking a device stops raw
-forwarding within roughly the 90-second heartbeat window. A control-center
-or authorization-plugin outage that lasts beyond the same window also stops
-raw tunnels; restore the control plane and clients reconnect with valid leases.
-Use the host firewall or restart FRPS when an immediate cutoff is required.
+暂停测试环境可以使用 `docker compose stop`。普通停止或重新构建不需要删除数据卷。
+只有明确准备重建全部测试数据时才考虑删除卷，并事先确认目标环境和备份。
+底层数据库结构和配置可能在测试期变化，相关改动需在开发记录中说明。
 
-The database is `/data/home-tunnel.db` in the `sqlite-data` volume and uses WAL mode. The managed production profile includes online encrypted SQLite backup and integrity-verification scripts. Back it up before upgrades and retain the generated secret files in an encrypted backup. Never use `docker compose down -v` unless you intentionally want to delete SQLite and Caddy state.
+## 排查顺序
 
-The control center also snapshots its own database. Shortly after startup and then every 24 hours it runs SQLite `VACUUM INTO` and writes `control-center-<UTC timestamp>.sqlite3` into `/data/backups/` inside the same `sqlite-data` volume, keeping the newest seven snapshots. Adjust this with the `BACKUP_INTERVAL_HOURS` (set `0` to disable), `BACKUP_RETENTION_COUNT` and `BACKUP_DIRECTORY` environment variables on the `control-center` service. To restore a snapshot, stop the stack, replace `/data/home-tunnel.db` with the chosen backup file (and delete any leftover `home-tunnel.db-wal` and `home-tunnel.db-shm` files), then start the stack again.
+1. 核对 DNS、HTTPS 和云 / 主机防火墙。
+2. 核对容器状态及控制中心、FRPS 日志。
+3. 核对家中客户端是否在线、是否能直接访问本地目标。
+4. 核对连接归属、启用状态、域名或分配端口。
+5. 使用测试账号复现，记录提交 SHA、时间和脱敏后的错误。
 
-The managed updater also detects deployments created by older releases with PostgreSQL and exits before changing containers or data. Export or migrate that database before switching profiles.
-
-### Traffic quotas and alerts
-
-Each user can be given a monthly traffic quota (upload + download, per UTC calendar month) from the admin console. When a user reaches the quota the control center suspends them at the gateway layer: their connections stop serving public traffic and on-demand certificates are no longer authorized, but the connection and device configuration are left untouched, so no tunnel is reconfigured or restarted. Usage resets at the start of each month and suspended users are restored automatically; lowering usage or raising the quota also restores them on the next check (which runs about once a minute). Clearing a user's quota removes the limit and lifts any active suspension.
-
-Optional alerts are delivered to an outbound webhook and/or Telegram. Set `HOME_TUNNEL_ALERT_WEBHOOK_URL`, `HOME_TUNNEL_ALERT_TELEGRAM_BOT_TOKEN` and `HOME_TUNNEL_ALERT_TELEGRAM_CHAT_ID` in `.env` (blank disables a channel; Telegram needs both the token and the chat id). Alerts fire on quota warning (80%), suspension and restoration, and on device offline (no heartbeat for five minutes) and recovery. Deliveries have a five-second timeout, retry once, are de-duplicated per subject within a ten-minute window, and never block or fail control-center operations — failures are only logged. Use the admin console's "test alert" action to verify channel configuration. Certificate-issuance failures happen inside Caddy and are not covered by these alerts.
-
-## Current scope
-
-- Linux `amd64`/`arm64` server and headless systemd client: Stable
-- macOS `amd64`/`arm64` headless launchd client: Beta
-- Windows 10/11 x64 graphical client: self-signed Experimental EXE plus source
-- Android 8.0+ `arm64-v8a`: Experimental GitHub-sideloaded APK plus source; AAB is non-installable and not declared Play-ready
-- HTTP and HTTPS local targets
-- Administrator-managed general TCP and fixed-port UDP targets
-- One public tunnel domain per server deployment
-- Prebuilt and source-buildable `amd64` and `arm64` server containers
-
-A single-binary server, raw IP/ICMP, broadcast/multicast transport, FRP
-STCP/XTCP/SUDP, visitors, and arbitrary plugins are outside the supported
-scope. TCP and UDP are administrator-only advanced features and remain disabled
-unless their matching Compose override is explicitly added.
-
-Disabling a TCP or UDP connection pushes a stop configuration to the managed
-client. For an immediate hard cutoff of a disconnected or hostile client, also
-block the assigned protocol/port in the host firewall or restart FRPS without
-the raw-transport override.
+安全边界见 [SECURITY_MODEL.md](SECURITY_MODEL.md)，测试发布见 [RELEASING.md](RELEASING.md)。

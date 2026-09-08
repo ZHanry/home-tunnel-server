@@ -1,13 +1,10 @@
-# Repository maintenance
+# 仓库维护约定
 
-This repository owns the server component. CI and CodeQL are scoped to its sources.
-Release tags require a passing Quality Gate on the same commit and promote signed RC bytes.
-Keep release and protocol tags immutable; use a new version when changing a published artifact.
+代码、检查与测试包由本仓库维护；网站与通用规划位于项目入口仓库。
+`compatibility.json` 记录当前开发阶段与协议标识，内部测试阶段只分发预发布构建。
 
-Signing credentials belong in a restricted GitHub environment. Android's `android-release`
-environment is limited to `v*` tags and retains the original application identity.
-Do not commit generated artifacts, signing stores or operator credentials.
+CI、CodeQL、秘密扫描和签名检查继续执行。发布前检查目标提交的结果。
+已经使用的构建与协议标签保持不可变；修改产物时使用新的标识。
+Android 签名材料只放在限制标签访问的 GitHub 环境中。
 
-The original hub retains existing Issues, historical Releases and the project website.
-Component-specific issues and pull requests belong here. Public vulnerability reports
-must use the private reporting channel described in `SECURITY.md`.
+接口和配置变化可以在测试期迭代，但必须记录影响，不能用“内部测试”代替权限与输入校验。

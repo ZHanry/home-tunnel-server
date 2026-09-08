@@ -9,7 +9,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 os.chdir(ROOT)
-COMPONENT = json.loads((ROOT / "compatibility.json").read_text())["component"]
+PROJECT = json.loads((ROOT / "compatibility.json").read_text())
+COMPONENT = PROJECT["component"]
 REPO = os.environ["GITHUB_REPOSITORY"]
 SHA = os.environ["GITHUB_SHA"]
 TAG = os.environ["GITHUB_REF_NAME"]
@@ -27,15 +28,21 @@ def local_version():
         return re.search(r'const Version = "([^"]+)"', (ROOT / "internal/model/model.go").read_text()).group(1)
     return re.search(r'^HOME_TUNNEL_VERSION_NAME=(.+)$', (ROOT / "gradle.properties").read_text(), re.M).group(1)
 
-def metadata():
-    match = re.fullmatch(r"v(\d+\.\d+\.\d+)(?:-rc\.(\d+))?", TAG)
+def validate_release_tag(tag, source_version, stage):
+    if stage not in ("internal-testing", "public-release"):
+        raise SystemExit("Unknown release stage; set compatibility.json explicitly")
+    match = re.fullmatch(r"v(\d+\.\d+\.\d+)(?:-rc\.(\d+))?", tag)
     if not match:
         raise SystemExit("Release tags must be vX.Y.Z or vX.Y.Z-rc.N")
     version, candidate = match.groups()
-    if tuple(map(int, version.split('.'))) <= (5, 0, 0):
-        raise SystemExit("5.0.0 and earlier remain upstream; use a new component version after the migration")
-    if version != local_version():
+    if version != source_version:
         raise SystemExit("Tag does not match this component's source version")
+    if stage == "internal-testing" and candidate is None:
+        raise SystemExit("Internal testing publishes prereleases only; use vX.Y.Z-rc.N")
+    return version, candidate
+
+def metadata():
+    version, candidate = validate_release_tag(TAG, local_version(), PROJECT.get("stage"))
     run("python3", "scripts/check-repository.py")
     run("git", "fetch", "--tags", "origin", "main")
     run("git", "merge-base", "--is-ancestor", SHA, "origin/main")

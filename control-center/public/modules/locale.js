@@ -14,7 +14,8 @@ const zhToEn = {
   "GitHub 仓库": "GitHub repository",
   登录后台: "Admin sign in",
   登录控制台: "Sign in to console",
-  "自托管 · 受管 Web / TCP / UDP 隧道": "Self-hosted · Managed Web / TCP / UDP tunnels",
+  内部测试: "Internal testing",
+  "内部测试 · 自托管 Web / TCP / UDP": "Internal testing · Self-hosted Web / TCP / UDP",
   "家庭私有服务，": "Private services at home,",
   安全穿透直达: "securely accessible anywhere",
   "无需家庭公网 IP 或路由器端口映射，受管发布 Web、通用 TCP 与固定端口 UDP 服务；RTSP-over-TCP 可直接使用通用 TCP 映射。":
@@ -23,13 +24,13 @@ const zhToEn = {
   "Windows 图形客户端": "Windows desktop client",
   桌面图形客户端: "Desktop GUI client",
   "Home Tunnel 5.0.0 Windows 图形客户端预览": "Home Tunnel 5.0.0 Windows desktop client preview",
-  "Home Tunnel 5.0.0 桌面图形客户端预览": "Home Tunnel 5.0.0 desktop GUI preview",
+  "Home Tunnel 桌面图形客户端开发预览": "Home Tunnel desktop GUI development preview",
   "Linux 客户端快速开始": "Linux client quick start",
   "Windows x64 EXE": "Windows x64 EXE",
   "Windows EXE 为自签名 Experimental；安装时会提示未知发布者，请先核对 Release SHA-256。":
     "The Windows EXE is self-signed Experimental software. Expect an unknown-publisher warning and verify the Release SHA-256 first.",
-  "Windows 下载 Setup 安装包；macOS / Linux 使用同一套图形客户端。NAS 继续使用无界面服务。":
-    "Download the Windows Setup installer; macOS and Linux share the same graphical client. NAS hosts keep using the headless service.",
+  "当前为内部测试，客户端以源码构建为主。Windows / macOS / Linux 共用图形客户端，NAS 可使用 CLI 服务。":
+    "Internal testing uses source builds. Windows, macOS and Linux share the graphical client; NAS hosts can use the CLI service.",
   "Windows x64 图形客户端": "Windows x64 GUI client",
   "家里的电脑用同一套图形客户端；NAS 和无桌面主机用 Linux CLI 服务。":
     "Use the same graphical client on home computers; NAS and headless hosts use the Linux CLI service.",

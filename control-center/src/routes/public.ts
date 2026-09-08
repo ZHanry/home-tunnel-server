@@ -16,7 +16,7 @@ type ReleaseMetadata = {
 
 const versionPattern = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 const fileNamePattern = /^HomeTunnel-Windows-\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?-x64\.zip$/;
-const githubRepositoryUrl = "https://github.com/ZHanry/home-tunnel";
+const githubRepositoryUrl = "https://github.com/ZHanry/home-tunnel-client";
 
 function unavailable(): HttpError {
   return new HttpError(404, "RELEASE_UNAVAILABLE", "Windows 图形客户端暂不可用");

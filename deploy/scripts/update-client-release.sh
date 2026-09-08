@@ -82,8 +82,8 @@ checks = {
     "platform": "windows",
     "architecture": "x64",
     "file_name": expected_name,
-    "download_url": f"https://github.com/ZHanry/home-tunnel/releases/download/v{version}/{expected_name}",
-    "stable_download_url": "https://github.com/ZHanry/home-tunnel/releases/latest",
+    "download_url": f"https://github.com/ZHanry/home-tunnel-client/releases/download/v{version}/{expected_name}",
+    "stable_download_url": "https://github.com/ZHanry/home-tunnel-client/releases/latest",
 }
 for key, value in checks.items():
     if release.get(key) != value:

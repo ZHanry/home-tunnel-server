@@ -1,11 +1,18 @@
-# Security policy
+# 安全报告
 
-Report vulnerabilities privately through
-[GitHub private vulnerability reporting](https://github.com/ZHanry/home-tunnel-server/security/advisories/new).
-Do not post tokens, passwords, private addresses or sensitive logs in public issues.
-Until private reporting is enabled here, use the
-[project's existing private channel](https://github.com/ZHanry/home-tunnel/security/advisories/new).
+Home Tunnel 当前处于内部测试阶段，尚未提供生产稳定版本或长期支持范围。
+测试状态不改变权限校验、签名验证和凭据保护的要求。
 
-Supported releases and compatibility are documented in `README.md` and `compatibility.json`.
-Release builds keep checksums, SBOMs and provenance; Android upgrades retain the
-existing application identity and persistent signing certificate.
+## 私密报告问题
+
+疑似漏洞、凭据泄露或权限绕过，请使用[本仓库的私密漏洞报告](https://github.com/ZHanry/home-tunnel-server/security/advisories/new)，不要提交到公开 Issue。
+提供构建提交、最小复现、影响范围和经过脱敏的日志。报告中只包含复现所需的信息。
+
+## 测试环境
+
+- 使用独立测试账号和测试服务，限制公网暴露范围。
+- `.env`、部署密钥、设备状态、签名存储与访问令牌不进入源码和反馈附件。
+- HTTP 网关策略不覆盖直接经过 FRPS 的 TCP / UDP 流量，目标应用需要自己的认证与加密。
+- 安装测试产物时核对来源和校验文件；签名校验失败应停止使用该产物。
+
+维护者会依据复现和影响安排处理。当前未承诺响应时限或漏洞奖励计划。

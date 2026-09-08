@@ -1,11 +1,10 @@
-# Changelog
+# 开发记录
 
-## Unreleased
+## Unreleased · 内部测试
 
-- Extract the server component into its own repository, retaining relevant Git history.
-- Make builds, validation, documentation and release workflows independent of sibling source checkouts.
-- Preserve API v1 and the published 5.0.0 compatibility baseline.
+- 当前仓库负责API、Web 控制台、网关与服务端部署。
+- 统一开发文档、源码构建入口和内部测试状态。
+- 自动化检查与真实环境反馈共同用于后续功能完善。
 
-## Before the split
-
-See the [original changelog](https://github.com/ZHanry/home-tunnel/blob/cdf6136593d3dd7863f704724746a92a30240123/CHANGELOG.md).
+数字版本与已有标签用于识别内部构建。项目尚未建立正式稳定版本和长期支持政策。
+后续用户可见变化在这里记录，并注明影响到的接口、配置和测试步骤。

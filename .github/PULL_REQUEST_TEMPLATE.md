@@ -1,16 +1,12 @@
-## Summary
+## 问题与改动
 
-Describe the problem and the smallest useful solution.
+说明具体问题、改动后的行为及涉及的组件。
 
-## Validation
+## 验证
 
-- [ ] TypeScript checks/tests pass where applicable
-- [ ] Windows client tests pass where applicable
-- [ ] `docker compose config --quiet` passes for deployment changes
-- [ ] User-facing documentation or changelog is updated
+- [ ] 已运行与改动相关的检查，并列出结果
+- [ ] 文档示例、界面文案或配置说明已同步更新
+- [ ] 接口、配置或测试环境重建要求已说明（如适用）
+- [ ] 没有提交凭据、私有部署信息或生成的安装包
 
-## Security and compatibility
-
-- [ ] No credentials, production-only files or generated binaries are included
-- [ ] Existing deployments remain compatible, or the migration is documented
-- [ ] Authentication, leases, FRPS authorization, update trust and public routing were considered
+涉及认证、租约、Agent 校验或公开入口时，说明安全边界受到的影响。

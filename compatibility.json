@@ -1,11 +1,7 @@
 {
   "component": "server",
+  "stage": "internal-testing",
   "api_major": 1,
   "contract_ref": "api-v1.0.0",
-  "baseline": {
-    "server": "5.0.0",
-    "client": "5.0.0",
-    "android": "5.0.0"
-  },
-  "notes": "5.0.0 is the existing cross-component baseline; additional version pairs must pass integration tests."
+  "support_policy": "Internal test builds. APIs, configuration and installation may change; no production-stability or long-term compatibility commitment."
 }

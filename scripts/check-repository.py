@@ -9,6 +9,7 @@ root = Path(__file__).resolve().parents[1]
 compat = json.loads((root / "compatibility.json").read_text(encoding="utf-8"))
 component = compat["component"]
 assert compat["api_major"] == 1
+assert compat["stage"] in ("internal-testing", "public-release")
 for directory in ("linux-client", "windows-agent", "android-client"):
     assert not (root / directory).exists(), f"Legacy component directory: {directory}"
 

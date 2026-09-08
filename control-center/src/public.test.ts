@@ -65,11 +65,12 @@ test("public landing page stays available while Windows release metadata is abse
     assert.equal(landing.headers["cache-control"], "no-cache");
     assert.match(landing.body.toString("utf8"), /桌面图形客户端/);
     assert.match(landing.body.toString("utf8"), /Linux \/ macOS 无界面服务/);
-    assert.match(landing.body.toString("utf8"), /Windows 下载 Setup 安装包/);
+    assert.match(landing.body.toString("utf8"), /当前为内部测试，客户端以源码构建为主/);
     assert.match(
       landing.body.toString("utf8"),
-      /id="hero-download"[^>]*HomeTunnel-Setup-5\.0\.0-x64\.exe/,
+      /id="hero-download"[^>]*https:\/\/github\.com\/ZHanry\/home-tunnel-client#windows-x64/,
     );
+    assert.doesNotMatch(landing.body.toString("utf8"), /home-tunnel\/releases\/latest\/download/);
     assert.match(landing.body.toString("utf8"), /home-tunnel-client status/);
     assert.match(landing.body.toString("utf8"), /app\.js\?v=5\.0\.0-user-console/);
     assert.match(landing.body.toString("utf8"), /type="module"/);

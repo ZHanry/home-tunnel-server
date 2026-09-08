@@ -1,3 +1,7 @@
-# Windows release directory
+# 客户端下载元数据
 
-`latest.json` is reserved for the Windows updater. Do not generate or ship it while official Windows distribution is suspended. The control center and existing clients treat a missing manifest as “updates unavailable”; server releases must never copy an `.exe` into this directory.
+此目录可以提供控制台读取的 `latest.json` 元数据，缺失时下载发现功能返回不可用。
+当前内部测试主要使用客户端仓库的源码构建指南，不在这里托管安装包。
+
+需要验证下载元数据时，按客户端仓库真实存在的测试产物填写名称、大小和 SHA-256。
+元数据不能代替产物校验，也不能把一个内部测试构建声明为生产稳定版。

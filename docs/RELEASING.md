@@ -1,39 +1,35 @@
-# Independent server releases
+# 内部测试构建与发布
 
-Published 5.0.0 artifacts remain in the original project. The first release from this
-repository must use a new version greater than 5.0.0. Do not overwrite historical tags
-or replace already distributed binaries.
+当前阶段在 `compatibility.json` 中记录为 `internal-testing`。
+只在本仓库分发预发布测试包，不承担旧构建的长期升级桥接，也不要求沿用其他仓库的版本号。
+数字版本用于识别源码和产物；版本编号的大小不代表项目成熟度。
 
-## Release steps
+## 准备测试版本
 
-1. Update this component's source version and changelog. Leave sibling component versions alone.
-2. Update the compatibility record when new version pairs have passed integration tests.
-3. Merge to `main` and wait for its **Quality Gate** and security checks to pass.
-4. Tag that commit `vX.Y.Z-rc.N` and push the tag. `release.yml` builds the complete component
-   matrix once, retaining existing checksums, SBOMs and signing/provenance steps.
-5. Verify the published RC on supported real devices. Tag the exact same commit `vX.Y.Z`.
-   Stable verifies the RC manifest's identity, revision and every asset checksum, then
-   publishes those identical bytes. It does not rebuild or replace an existing release.
+1. 更新两个服务的 `package.json` 与 `control-center/src/version.ts`，并核对 Web 资源版本和本次部署配置。
+2. 更新开发记录，说明功能、接口或配置变化以及测试环境要求。
+3. 合入 `main`，等待相同提交的 Quality Gate、CodeQL 和秘密扫描通过。
+4. 给该提交创建 `vX.Y.Z-rc.N` 标签并推送。标签的基础版本需与本组件源码一致。
+5. 工作流构建、校验和签名完整产物，以 Pre-release 发布。真实设备验证后记录结果，需要修改时使用新标签。
 
-The aggregate checksum manifest is signed with GitHub OIDC. Verify it against this
-repository's `release.yml` identity and the **RC tag** recorded in `release-manifest.json`,
-including when downloading a stable release. Do not verify against the former monorepo
-workflow identity for newly built artifacts.
+源码中的基础版本可以从项目自己的起点规划；发布脚本没有“必须大于 5.0.0”的限制。
+不要为了调整展示编号直接复用已存在的标签或覆盖同名产物。
 
-Component versions are independent. API v1 is the current protocol boundary, not a
-guarantee that arbitrary future versions interoperate. Record and test supported pairs.
+## 产物校验
 
-## Server specifics
+保留每个产物的校验值、SBOM 和构建来源，聚合清单通过 GitHub OIDC 签名。
+验证时使用本仓库 `release.yml` 和清单中记录的 RC 标签身份。
+测试构建仍然执行权限、Agent 哈希和签名检查。
 
-Keep the versions in both service package files and `control-center/src/version.ts`
-aligned. Deployment defaults can continue to reference an accepted published baseline
-until the next release is verified. Images retain the existing GHCR package names;
-the server repository must have Actions write access to those packages.
+## 正式发布准备
 
-Release candidates build both Linux architectures and run production-path integration
-against the independently pinned client in `tests/client-baseline.json`. Stable releases
-publish `compose.release.yaml` with exact image digests. Apply it together with the base
-Compose file after reviewing upgrade notes. No floating image `latest` tag is required.
+当前状态会拒绝普通的 `vX.Y.Z` 稳定发布标签。只有完成真实环境验证、确定支持范围和更新方式后，
+才在经过审核的变更中将状态改为 `public-release`。
+届时稳定版本仍需提升相同提交、相同字节的已验证 RC，不能临时重建另一套产物。
 
-FRPS remains an independently pinned dependency. Do not overwrite its existing tag.
-Use a new dependency revision and update the recorded digest when rebuilding it.
+## 服务端补充
+
+内部测试启动优先使用源码构建覆盖文件。基础配置中的镜像版本仅用于明确构建来源，不代表生产支持状态。
+发布集成检查使用 `tests/client-baseline.json` 固定一个可复现的客户端测试夹具；它是测试输入，不是对所有旧客户端的兼容承诺。
+替换测试输入时同时更新来源、版本和校验值。
+FRPS 依赖独立固定；重建时使用新的依赖修订和镜像摘要。

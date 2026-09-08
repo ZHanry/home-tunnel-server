@@ -264,7 +264,7 @@ public_base_url="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}'
 public_base_url="${public_base_url%/}"
 curl --fail --silent --show-error --max-time 20 --output "$stage/homepage.html" "$public_base_url/"
 grep -q '/v2.css' "$stage/homepage.html"
-grep -q 'https://github.com/ZHanry/home-tunnel/releases/latest' "$stage/homepage.html"
+grep -q 'https://github.com/ZHanry/home-tunnel-client#windows-x64' "$stage/homepage.html"
 
 "$root/scripts/probe-existing.sh" "$stage/existing.post.tsv"
 cmp "$stage/existing.pre.tsv" "$stage/existing.post.tsv" >/dev/null || { echo "Existing domain regression detected" >&2; exit 1; }

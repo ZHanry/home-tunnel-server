@@ -721,14 +721,9 @@ try {
             landing_page = landing_body.decode()
             if 'href="https://github.com/ZHanry/home-tunnel-client#readme"' not in landing_page:
                 raise RuntimeError("Landing page does not point to the Linux quick start")
-            _, health_body = fetch(arguments.origin + "/healthz")
-            product_version = str(json.loads(health_body)["version"]).split("-rc.")[0]
-            windows_download = (
-                'href="https://github.com/ZHanry/home-tunnel/releases/latest/download/'
-                f'HomeTunnel-Setup-{product_version}-x64.exe"'
-            )
+            windows_download = 'href="https://github.com/ZHanry/home-tunnel-client#windows-x64"'
             if windows_download not in landing_page or 'id="hero-download"' not in landing_page:
-                raise RuntimeError("Landing page does not expose the matching Windows installer")
+                raise RuntimeError("Landing page does not point to the Windows test-build guide")
             if "home-tunnel-gui" not in landing_page or "Windows / macOS / Linux" not in landing_page:
                 raise RuntimeError("Landing page does not describe the unified desktop client")
 

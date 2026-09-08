@@ -69,7 +69,7 @@ FRP 0.70.1 is not a pin-only upgrade:
 4. A fresh FRP checkout lacks built dashboard assets. FRPS is built with
    `-tags noweb`; Home Tunnel does not expose the FRPS dashboard.
 
-## Promotion checklist
+## Dependency validation
 
 - [x] Apply the reviewed Agent API adaptation and `-tags noweb` FRPS build.
 - [x] Update every active FRP pin, build input and third-party notice atomically.
@@ -83,12 +83,12 @@ FRP 0.70.1 is not a pin-only upgrade:
 - [x] Pass the complete repository and release smoke matrices on the promoted
       commit.
 - [ ] Add a trusted Authenticode certificate and clean Windows 10/11 upgrade VM
-      matrix before promoting Windows from Experimental to Stable.
+      matrix before making Windows distribution support claims.
 - [ ] Publish the RC only after package/image SBOM, provenance, checksum,
       signature and attestation gates succeed.
 
-The reviewed source tree and the immutable dependency record above are
-authoritative after promotion.
+The source tree and dependency record describe the reviewed internal test input;
+they do not establish production support for the application.
 
 ## Managed L4 scope
 
