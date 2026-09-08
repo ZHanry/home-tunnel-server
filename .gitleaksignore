@@ -3,3 +3,10 @@
 # are retained to preserve source history; no production credential is allowlisted.
 a887a90f577c0273c663a6116bbbcb01473f1a4e:control-center/src/experience.test.ts:generic-api-key:84
 a887a90f577c0273c663a6116bbbcb01473f1a4e:control-center/src/experience.test.ts:generic-api-key:90
+# Historical PEM formatting code concatenates a freshly generated key at runtime;
+# the matched source contains ExportPkcs8PrivateKey(), not encoded private key material.
+5ead0b06189e2a73dc5a893aeff33664e0ab7a40:tests/run-compose-smoke.ps1:private-key:51
+5ead0b06189e2a73dc5a893aeff33664e0ab7a40:deploy/scripts/new-selfhost-config.ps1:private-key:85
+# WebSocket handshake test nonces are public protocol data, not authentication keys.
+5ead0b06189e2a73dc5a893aeff33664e0ab7a40:traffic-gateway/src/server.e2e.test.ts:generic-api-key:448
+c6276b78b9834fbdf93e4c83e41e2e29db5d585a:traffic-gateway/src/server.e2e.test.ts:generic-api-key:709
