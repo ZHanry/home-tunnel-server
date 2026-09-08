@@ -18,10 +18,17 @@
         "GO-2026-6354",
         "GO-2026-6303"
       ]
+    },
+    {
+      "path": "github.com/gorilla/websocket",
+      "version": "v1.5.3",
+      "sum": "h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=",
+      "go_mod_sum": "h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=",
+      "advisory": "GHSA-w67g-5rqw-f597"
     }
   ],
-  "go_mod_sha256": "d14a182b2ca6ef2bb44a16e772f26e8c1ee636a000ef728fa0313c635e8a04a2",
-  "go_sum_sha256": "3abab870e74fd810b6966051961799c4453d7c96c96353d0f26aa4aacae2f5da",
+  "go_mod_sha256": "50d25710f6ebb84dd8a3acd2d74e1ce251e2cc2061c87ebbb09fc812513a8f85",
+  "go_sum_sha256": "f3526dabc3295be9ca389438e6592117d5487fd5ec67c544166791a1f11f7543",
   "excluded_packages": [
     "golang.org/x/crypto/openpgp"
   ]

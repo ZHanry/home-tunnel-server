@@ -1,7 +1,9 @@
-FROM golang:1.26.6-bookworm AS build
+FROM --platform=$BUILDPLATFORM golang:1.26.6-bookworm AS build
+ARG TARGETOS
+ARG TARGETARCH
 ARG FRP_VERSION=v0.70.1
 ARG FRP_COMMIT=fa3bcca2b0c4753cd4f0e2ab189dd6a5a6a15708
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 RUN git clone --depth 1 --branch "${FRP_VERSION}" https://github.com/fatedier/frp.git /src/frp \
     && test "$(git -C /src/frp rev-parse HEAD)" = "${FRP_COMMIT}" \
     && cd /src/frp
