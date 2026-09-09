@@ -432,6 +432,37 @@ def udp_echo_denied(host: str, port: int, attempts: int = 12) -> None:
     raise RuntimeError("Disabled UDP tunnel continued to echo datagrams")
 
 
+def validate_landing_page(page: str) -> None:
+    """Check stable download destinations independently of layout and marketing copy."""
+    from html.parser import HTMLParser
+
+    class Links(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.links = set()
+            self.ids = set()
+
+        def handle_starttag(self, tag, attrs):
+            values = dict(attrs)
+            if tag == "a" and values.get("href"):
+                self.links.add(values["href"])
+            if values.get("id"):
+                self.ids.add(values["id"])
+
+    links = Links()
+    links.feed(page)
+    expected = {
+        "https://github.com/ZHanry/home-tunnel-client/releases/latest",
+        "https://github.com/ZHanry/home-tunnel-android/releases/latest",
+    }
+    if not expected.issubset(links.links):
+        raise RuntimeError("Landing page is missing an official component download destination")
+    if "hero-download" not in links.ids:
+        raise RuntimeError("Landing page is missing the primary download action")
+    if "home-tunnel-client status" not in page:
+        raise RuntimeError("Landing page is missing the headless client entry")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--origin", default="https://console.tunnel.example.com")
@@ -716,16 +747,9 @@ try {
             else:
                 raise RuntimeError("Console endpoint did not become ready")
 
-            public_get(arguments.origin + "/", "Linux 客户端快速开始")
+            public_get(arguments.origin + "/", "Home Tunnel")
             _, landing_body = fetch(arguments.origin + "/")
-            landing_page = landing_body.decode()
-            if 'href="https://github.com/ZHanry/home-tunnel-client#readme"' not in landing_page:
-                raise RuntimeError("Landing page does not point to the Linux quick start")
-            windows_download = 'href="https://github.com/ZHanry/home-tunnel-client#windows-x64"'
-            if windows_download not in landing_page or 'id="hero-download"' not in landing_page:
-                raise RuntimeError("Landing page does not point to the Windows test-build guide")
-            if "home-tunnel-gui" not in landing_page or "Windows / macOS / Linux" not in landing_page:
-                raise RuntimeError("Landing page does not describe the unified desktop client")
+            validate_landing_page(landing_body.decode())
 
             original_admin_hash = str(sqlite_value("SELECT password_hash FROM users WHERE lower(username)='admin' AND role='admin' LIMIT 1") or "")
             bootstrap_login = api("POST", "/api/v1/auth/login", {"username": "admin", "password": bootstrap_password, "client_type": "windows"})

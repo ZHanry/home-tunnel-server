@@ -1,4 +1,4 @@
-# Home Tunnel Server 6.0.0
+# Home Tunnel Server 6.0.1
 
 Home Tunnel 6.0 正式发布。Web、桌面与手机端采用全新的页面结构，统一使用清晰的设备与账号边界。
 
@@ -8,4 +8,6 @@ Home Tunnel 6.0 正式发布。Web、桌面与手机端采用全新的页面结�
 - 设备会话的连接、域名、流量与实时通知限制在本机，管理会话继续管理账号名下的全部设备。
 - Release 提供部署压缩包、固定镜像摘要的 Compose 文件和校验清单。
 
-升级前备份数据库与配置，升级全部组件至 6.0.0。详见 [升级指南](https://github.com/ZHanry/home-tunnel-server/blob/main/docs/UPGRADING.md)。
+升级前备份数据库与配置，使用服务端 6.0.1，客户端和 Android 6.0.0。详见 [升级指南](https://github.com/ZHanry/home-tunnel-server/blob/main/docs/UPGRADING.md)。
+
+- 更新发布联调对全新首页的验证，按实际下载链接与入口检查，不再依赖旧版宣传文案。

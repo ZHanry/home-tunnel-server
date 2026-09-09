@@ -1,4 +1,4 @@
-import { createConnectionsView } from "./modules/connections.js?v=6.0.0";
+import { createConnectionsView } from "./modules/connections.js?v=6.0.1";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -6,8 +6,8 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=6.0.0";
-import { api, refreshSession } from "./modules/api.js?v=6.0.0";
+} from "./modules/forms.js?v=6.0.1";
+import { api, refreshSession } from "./modules/api.js?v=6.0.1";
 import {
   componentLabel,
   configState,
@@ -16,10 +16,10 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=6.0.0";
-import { localeTag, updateDocumentMetadata } from "./modules/locale.js?v=6.0.0";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=6.0.0";
-import { state } from "./modules/state.js?v=6.0.0";
+} from "./modules/format.js?v=6.0.1";
+import { localeTag, updateDocumentMetadata } from "./modules/locale.js?v=6.0.1";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=6.0.1";
+import { state } from "./modules/state.js?v=6.0.1";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -83,7 +83,7 @@ function applyRoleChrome() {
     item.hidden = !isAdmin();
   });
   const brand = document.querySelector(".sidebar-brand .brand-copy small");
-  if (brand) brand.textContent = isAdmin() ? "控制中心 v6.0.0" : "我的工作区";
+  if (brand) brand.textContent = isAdmin() ? "控制中心 v6.0.1" : "我的工作区";
   const sessionCopy = document.querySelector(".sidebar-session small");
   if (sessionCopy) sessionCopy.textContent = isAdmin() ? "权限已验证" : "仅显示你的资源";
 }
