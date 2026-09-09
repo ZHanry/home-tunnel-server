@@ -20,9 +20,9 @@
 推荐从 [Release](https://github.com/ZHanry/home-tunnel-server/releases/latest) 下载部署包。建立版本目录并解压：
 
 ```sh
-mkdir home-tunnel-server-6.0.1
-tar -xzf home-tunnel-server-6.0.1.tar.gz -C home-tunnel-server-6.0.1
-cd home-tunnel-server-6.0.1
+mkdir home-tunnel-server-6.1.0
+tar -xzf home-tunnel-server-6.1.0.tar.gz -C home-tunnel-server-6.1.0
+cd home-tunnel-server-6.1.0
 ```
 
 也可以使用源码：`git clone https://github.com/ZHanry/home-tunnel-server.git`，再进入 `home-tunnel-server` 目录。两种方式共用以下配置步骤。
@@ -168,3 +168,11 @@ SQLite 位于 `sqlite-data` 卷的 `/data/home-tunnel.db`，Caddy 的状态使�
 5. 使用测试账号复现，记录提交 SHA、时间和脱敏后的错误。
 
 安全边界见 [SECURITY_MODEL.md](SECURITY_MODEL.md)，版本发布见 [RELEASING.md](RELEASING.md)。
+
+## 客户端创建 RTSP、TCP 和 UDP
+
+服务端和客户端使用 6.1.0 或以上后，可从客户端直接创建连接。先按上文启用所需传输的 Compose 覆盖文件、明确端口范围并开放主机／云防火墙。随后，管理员可以在自己的设备上创建；普通用户需在 Web 控制台“系统设置”中打开“允许普通用户自行创建 TCP/UDP 连接”。
+
+端口由服务端在允许范围内自动分配，客户端不能指定范围外端口。关闭自助创建授权不会停掉已建立的连接。HTTP/HTTPS 的原有创建流程保持兼容。
+
+RTSP 预设使用 TCP 交错传输，播放器应开启 RTSP over TCP，并在分配地址后补上摄像头流路径。动态 RTP/RTCP UDP 协商不属于该预设的自动转发范围。

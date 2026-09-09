@@ -36,7 +36,8 @@ import {
 import { opaqueToken, signLease, tokenHash } from "../security.js";
 import { parseBody } from "../validation.js";
 import { clientConnectionSelect, customDomainsByConnection } from "../connection-query.js";
-import { checkSubdomainAvailability } from "../subdomain-policy.js";
+import { checkSubdomainAvailability, usernamePrefix } from "../subdomain-policy.js";
+import { allocateClientPort, clientConnectionCapabilities } from "../client-transports.js";
 
 const router = Router();
 const domainVerificationLimiter = rateLimit({
@@ -284,7 +285,13 @@ router.get(
       [actor.userId, actor.deviceId, actor.deviceId],
     );
     const domains = await customDomainsByConnection(rows.map((row) => row.id));
-    response.json({ items: rows.map((row) => publicConnection(row, domains.get(row.id) ?? [])) });
+    const capabilities = await transaction((client) =>
+      clientConnectionCapabilities(client, actor.role),
+    );
+    response.json({
+      items: rows.map((row) => publicConnection(row, domains.get(row.id) ?? [])),
+      capabilities,
+    });
   }),
 );
 
@@ -294,12 +301,33 @@ router.post(
     const actor = clientGuard(request);
     const body = parseBody(
       connectionInputSchema
-        .omit({ proxy_type: true, remote_port: true, tcp_remote_port: true })
-        .extend({ device_id: z.string().uuid(), proxy_type: z.literal("http").default("http") }),
+        .omit({ remote_port: true, tcp_remote_port: true })
+        .extend({
+          device_id: z.string().uuid(),
+          subdomain: z.string().trim().min(1).max(63).optional(),
+        })
+        .strict(),
       request.body,
     );
     const created = await transaction(async (client) => {
-      const connection = await createConnection(client, actor.userId, body.device_id, body);
+      const raw = body.proxy_type !== "http";
+      if (!raw && !body.subdomain)
+        throw new HttpError(400, "VALIDATION_ERROR", "请填写 Web 访问子域名", {
+          field_errors: { subdomain: "请填写子域名" },
+        });
+      if (raw && body.access)
+        throw new HttpError(400, "VALIDATION_ERROR", "TCP/UDP 的认证与加密由目标应用提供");
+      const remotePort = raw
+        ? await allocateClientPort(client, actor.role, body.proxy_type as "tcp" | "udp")
+        : null;
+      const subdomain = raw
+        ? `${usernamePrefix(actor.username)}${body.proxy_type}-${randomUUID().slice(0, 12)}`
+        : body.subdomain!;
+      const connection = await createConnection(client, actor.userId, body.device_id, {
+        ...body,
+        subdomain,
+        remote_port: remotePort,
+      });
       // 审计补充 Basic 用户名（口令与哈希绝不入审计）。
       await audit(client, request, "ConnectionCreated", "Connection", connection.id, null, {
         ...publicConnection(connection),

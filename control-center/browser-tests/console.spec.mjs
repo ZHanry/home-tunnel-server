@@ -71,6 +71,19 @@ test("integer bandwidth is accepted and saves with a version condition", async (
   await expect(page.locator("#modal")).not.toBeVisible();
 });
 
+test("administrator can explicitly authorize client TCP and UDP creation", async ({ page }) => {
+  await ready(page, "/admin#settings");
+  const checkbox=page.locator("#client-raw-tunnels");
+  await expect(checkbox).not.toBeChecked();
+  await checkbox.check();
+  const request=page.waitForRequest(r=>r.method()==="PATCH"&&r.url().endsWith("/admin/settings"));
+  await page.locator("#settings-form button[type=submit]").click();
+  expect((await request).postDataJSON().client_raw_tunnels_enabled).toBe(true);
+  await expect(page.locator("#toast-region")).toContainText("部署设置已保存");
+  await page.reload();
+  await expect(checkbox).toBeChecked();
+});
+
 test("background config events preserve input and focus", async ({ page }) => {
   await page.addInitScript(() => {
     const WS = window.WebSocket;

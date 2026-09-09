@@ -4,5 +4,5 @@
   "api_major": 1,
   "contract_ref": "api-v1.0.0",
   "support_policy": "Official releases. Web and Android manage account-owned resources; registered desktop and CLI sessions are restricted to their device. Upgrade all components to 6.0.0 together.",
-  "version": "6.0.1"
+  "version": "6.1.0"
 }

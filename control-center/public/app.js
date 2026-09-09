@@ -1,4 +1,4 @@
-import { createConnectionsView } from "./modules/connections.js?v=6.0.1";
+import { createConnectionsView } from "./modules/connections.js?v=6.1.0";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -6,8 +6,8 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=6.0.1";
-import { api, refreshSession } from "./modules/api.js?v=6.0.1";
+} from "./modules/forms.js?v=6.1.0";
+import { api, refreshSession } from "./modules/api.js?v=6.1.0";
 import {
   componentLabel,
   configState,
@@ -16,10 +16,10 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=6.0.1";
-import { localeTag, updateDocumentMetadata } from "./modules/locale.js?v=6.0.1";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=6.0.1";
-import { state } from "./modules/state.js?v=6.0.1";
+} from "./modules/format.js?v=6.1.0";
+import { localeTag, updateDocumentMetadata } from "./modules/locale.js?v=6.1.0";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=6.1.0";
+import { state } from "./modules/state.js?v=6.1.0";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -83,7 +83,7 @@ function applyRoleChrome() {
     item.hidden = !isAdmin();
   });
   const brand = document.querySelector(".sidebar-brand .brand-copy small");
-  if (brand) brand.textContent = isAdmin() ? "控制中心 v6.0.1" : "我的工作区";
+  if (brand) brand.textContent = isAdmin() ? "控制中心 v6.1.0" : "我的工作区";
   const sessionCopy = document.querySelector(".sidebar-session small");
   if (sessionCopy) sessionCopy.textContent = isAdmin() ? "权限已验证" : "仅显示你的资源";
 }
@@ -552,6 +552,7 @@ async function renderSettings(renderId = state.renderId) {
             <option value="enforce" ${policy === "enforce" ? "selected" : ""}>强制 {用户名}-{名称}</option>
           </select>
         </div>
+        <div class="field"><label for="client-raw-tunnels"><input id="client-raw-tunnels" type="checkbox" name="client_raw_tunnels_enabled" ${data.client_raw_tunnels_enabled ? "checked" : ""}>允许普通用户自行创建 TCP/UDP 连接</label><p class="helper">客户端从已开放的端口范围自动分配。此开关仅影响新建权限，现有连接继续运行。管理员可在自己的设备上直接创建。</p><p class="helper">还需在部署配置中启用 TCP/UDP 并开放防火墙端口。RTSP 预设使用 TCP 传输。</p></div>
         <button class="button button-primary" type="submit">保存设置</button>
       </form>
     </section>`;
@@ -1652,7 +1653,10 @@ viewContent.addEventListener("submit", async (event) => {
       const form = new FormData(event.target);
       await api("/api/v1/admin/settings", {
         method: "PATCH",
-        body: JSON.stringify({ subdomain_prefix_policy: form.get("subdomain_prefix_policy") }),
+        body: JSON.stringify({
+          subdomain_prefix_policy: form.get("subdomain_prefix_policy"),
+          client_raw_tunnels_enabled: form.has("client_raw_tunnels_enabled"),
+        }),
       });
       state.prefixPolicy = form.get("subdomain_prefix_policy");
       viewContent.dataset.dirty = "false";

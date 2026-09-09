@@ -49,6 +49,7 @@ export const connectionInputSchema = z.object({
   local_port: z.number().int().min(1).max(65_535),
   enabled: z.boolean().default(true),
   proxy_type: proxyTypeSchema.default("http"),
+  application_protocol: z.enum(["rtsp", "ssh", "rdp"]).nullable().optional(),
   remote_port: z.number().int().min(1).max(65_535).nullable().optional(),
   tcp_remote_port: z.number().int().min(1).max(65_535).nullable().optional(),
   bandwidth_limit_bps: z.number().int().positive().max(10_000_000_000).nullable().optional(),
@@ -78,6 +79,7 @@ export type ConnectionRow = {
   transport_type?: ProxyType;
   remote_port?: string | number | null;
   proxy_type?: "http" | "tcp";
+  application_protocol?: "rtsp" | "ssh" | "rdp" | null;
   tcp_remote_port?: string | number | null;
   enabled: boolean;
   version: string | number;
@@ -145,6 +147,17 @@ export function publicConnection(
       proxyType !== "http" && remotePort != null
         ? publicHostPort(config.publicFrpsHost, remotePort)
         : null,
+    ...(proxyType === "tcp" && row.application_protocol
+      ? {
+          application_protocol: row.application_protocol,
+          access_url:
+            proxyType === "tcp" &&
+            remotePort != null &&
+            (row.application_protocol === "rtsp" || row.application_protocol === "ssh")
+              ? `${row.application_protocol}://${publicHostPort(config.publicFrpsHost, remotePort)}`
+              : null,
+        }
+      : {}),
     custom_domains: customDomains,
     local_scheme: row.local_scheme,
     local_host: row.local_host,
@@ -263,6 +276,8 @@ export async function createConnection(
   await assertSubdomainPolicy(client, userId, subdomain);
   const remotePort = requestedRemotePort(input);
   validateProxySettings(input.proxy_type, remotePort, input.enabled);
+  if (input.application_protocol && input.proxy_type !== "tcp")
+    throw new HttpError(400, "VALIDATION_ERROR", "RTSP、SSH 和 RDP 预设需要 TCP 传输");
   if (input.proxy_type !== "http") {
     const occupied = await client.query<{ id: string }>(
       `SELECT id FROM connections
@@ -285,8 +300,8 @@ export async function createConnection(
     `INSERT INTO connections(
        id,user_id,device_id,name,subdomain,local_scheme,local_host,local_port,enabled,
        transport_type,remote_port,proxy_type,tcp_remote_port,
-       access_ip_allowlist,access_basic_user,access_basic_hash)
-     VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *`,
+       access_ip_allowlist,access_basic_user,access_basic_hash,application_protocol)
+     VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *`,
     [
       connectionId,
       userId,
@@ -304,6 +319,7 @@ export async function createConnection(
       accessAllowlistJson,
       accessBasicUser,
       accessBasicHash,
+      input.application_protocol ?? null,
     ],
   );
   await client.query(
@@ -354,6 +370,7 @@ const agentPatchFields = [
   "proxy_type",
   "remote_port",
   "tcp_remote_port",
+  "application_protocol",
 ] as const;
 
 export async function updateConnection(
@@ -397,6 +414,13 @@ export async function updateConnection(
     }
     const currentProxyType = connectionTransport(current);
     const proxyType = patch.proxy_type ?? currentProxyType;
+    const applicationProtocol = Object.hasOwn(patch, "application_protocol")
+      ? patch.application_protocol
+      : proxyType === "tcp"
+        ? current.application_protocol
+        : null;
+    if (applicationProtocol && proxyType !== "tcp")
+      throw new HttpError(400, "VALIDATION_ERROR", "应用协议预设需要 TCP 传输");
     const hasRemotePortPatch =
       Object.hasOwn(patch, "remote_port") || Object.hasOwn(patch, "tcp_remote_port");
     const remotePort = hasRemotePortPatch
@@ -422,7 +446,7 @@ export async function updateConnection(
     const updated = await client.query<ConnectionRow>(
       `UPDATE connections SET
          name=?,subdomain=?,local_scheme=?,local_host=?,local_port=?,enabled=?,
-         transport_type=?,remote_port=?,proxy_type=?,tcp_remote_port=?,
+         transport_type=?,remote_port=?,proxy_type=?,tcp_remote_port=?,application_protocol=?,
          version=version+1,updated_at=home_tunnel_now()
         WHERE id=? AND version=? AND deleted_at IS NULL RETURNING *`,
       [
@@ -436,6 +460,7 @@ export async function updateConnection(
         remotePort,
         legacyProxyType(proxyType),
         legacyTcpRemotePort(proxyType, remotePort),
+        applicationProtocol ?? null,
         connectionId,
         expectedVersion,
       ],

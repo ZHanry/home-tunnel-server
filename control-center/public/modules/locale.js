@@ -1,9 +1,15 @@
-import { state } from "./state.js?v=6.0.1";
+import { state } from "./state.js?v=6.1.0";
 
 const appShell = document.querySelector("#app-shell");
 
 const localeStorageKey = "ht_locale";
 const zhToEn = {
+  "允许普通用户自行创建 TCP/UDP 连接": "Allow regular users to create TCP/UDP connections",
+  "客户端从已开放的端口范围自动分配。此开关仅影响新建权限，现有连接继续运行。管理员可在自己的设备上直接创建。":
+    "Ports are assigned from the enabled range. This controls creation only; existing connections keep running. Administrators may create connections on their own devices.",
+  "还需在部署配置中启用 TCP/UDP 并开放防火墙端口。RTSP 预设使用 TCP 传输。":
+    "Enable TCP/UDP in deployment configuration and open the firewall ports. The RTSP preset uses TCP.",
+
   查找用户: "Find a user",
   用户名或显示名称: "Username or display name",
   "最多显示 100 位用户，使用搜索查找更多账号。":

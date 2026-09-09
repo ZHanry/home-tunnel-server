@@ -150,6 +150,7 @@ app.use((request, response, next) => {
 const isUser = (request) => (request.headers.cookie ?? "").includes("preview_role=user");
 const isEmpty = (request) => (request.headers.cookie ?? "").includes("preview_scenario=empty");
 let prefixPolicy = "suggest";
+let clientRawTunnels = false;
 const initialData = structuredClone({ users, devices, connections });
 const domains = [];
 
@@ -190,11 +191,18 @@ app.get("/api/v1/public/config", (_request, response) =>
   response.json({ tunnel_domain: "tunnel.example.com", subdomain_prefix_policy: prefixPolicy }),
 );
 app.get("/api/v1/admin/settings", (_request, response) =>
-  response.json({ subdomain_prefix_policy: prefixPolicy }),
+  response.json({
+    subdomain_prefix_policy: prefixPolicy,
+    client_raw_tunnels_enabled: clientRawTunnels,
+  }),
 );
 app.patch("/api/v1/admin/settings", (request, response) => {
-  prefixPolicy = request.body.subdomain_prefix_policy;
-  response.json({ subdomain_prefix_policy: prefixPolicy });
+  prefixPolicy = request.body.subdomain_prefix_policy ?? prefixPolicy;
+  clientRawTunnels = request.body.client_raw_tunnels_enabled ?? clientRawTunnels;
+  response.json({
+    subdomain_prefix_policy: prefixPolicy,
+    client_raw_tunnels_enabled: clientRawTunnels,
+  });
 });
 app.get("/api/v1/client/devices", (request, response) =>
   response.json({ items: isEmpty(request) ? [] : devices.filter((d) => d.user_id === ids.user) }),
@@ -225,6 +233,7 @@ app.post("/__preview/reset", (_request, response) => {
   connections.splice(0, connections.length, ...structuredClone(initialData.connections));
   domains.splice(0);
   prefixPolicy = "suggest";
+  clientRawTunnels = false;
   response.sendStatus(204);
 });
 app.post("/api/v1/auth/logout", (_request, response) => response.sendStatus(204));
