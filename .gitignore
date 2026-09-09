@@ -81,3 +81,8 @@ tests/frpc-https.toml
 
 **/test-results/
 **/playwright-report/
+
+# Release workflow staging
+release/
+release-public/
+release-notes.md

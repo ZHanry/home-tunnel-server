@@ -1,7 +1,8 @@
 {
   "component": "server",
-  "stage": "internal-testing",
+  "stage": "public-release",
   "api_major": 1,
   "contract_ref": "api-v1.0.0",
-  "support_policy": "Internal test builds. APIs, configuration and installation may change; no production-stability or long-term compatibility commitment."
+  "support_policy": "Official releases. Web and Android manage account-owned resources; registered desktop and CLI sessions are restricted to their device. Upgrade all components to 6.0.0 together.",
+  "version": "6.0.0"
 }

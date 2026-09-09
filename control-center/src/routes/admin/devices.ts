@@ -37,7 +37,7 @@ router.get(
       `SELECT d.id,d.user_id,u.username,d.name,d.status,d.config_version,
             d.applied_config_version,d.client_version,d.agent_version,d.last_seen_at,d.lease_expires_at,d.created_at
        FROM devices d JOIN users u ON u.id=d.user_id
-      WHERE (?='' OR d.user_id=?) AND (?='' OR d.status=?)
+      WHERE u.deleted_at IS NULL AND (?='' OR d.user_id=?) AND (?='' OR d.status=?)
       ORDER BY d.last_seen_at DESC NULLS LAST,d.created_at DESC LIMIT 200`,
       [userId, userId, status, status],
     );

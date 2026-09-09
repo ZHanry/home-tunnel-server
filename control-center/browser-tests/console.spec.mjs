@@ -24,6 +24,21 @@ test("public home and return link work without a session", async ({ page }) => {
   await expect(page.locator("#landing-screen")).toBeVisible();
 });
 
+test("account deletion describes affected resources, supports cancellation and sends its version", async ({ page }) => {
+  await ready(page, "/admin#users");
+  await page.locator('.person-row .more-actions summary').first().click();
+  await page.locator('[data-action="delete-user"]').first().click();
+  await expect(page.locator('#modal')).toContainText('所有设备凭据和会话将撤销');
+  await page.locator('#modal-close').click();
+  await expect(page.locator('.person-row')).toHaveCount(2);
+  await page.locator('[data-action="delete-user"]').first().click();
+  const request = page.waitForRequest(r => r.method() === 'DELETE' && r.url().includes('/admin/users/'));
+  await page.locator('#modal button[type="submit"]').click();
+  expect((await request).postDataJSON().expected_version).toBe(1);
+  await expect(page.locator('.person-row')).toHaveCount(1);
+  await expect(page.locator('#toast-region')).toContainText('用户已删除');
+});
+
 test("one click switches theme and locale without translating resource names", async ({ page }) => {
   await page.route("**/api/v1/admin/connections?**", async (route) => {
     const data = await (await route.fetch()).json();
@@ -187,18 +202,15 @@ for (const width of [375, 768, 1024, 1280, 1440])
     await expect(page.locator('[data-action="edit-connection"]').first()).toBeVisible();
   });
 
-test("mobile navigation contains keyboard focus", async ({ page }) => {
+test("mobile top navigation exposes every destination and supports keyboard activation", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await ready(page);
-  await page.locator("#menu-button").click();
-  for (let i = 0; i < 14; i++) {
-    await page.keyboard.press("Tab");
-    expect(await page.evaluate(() => Boolean(document.activeElement.closest(".sidebar")))).toBe(
-      true,
-    );
-  }
-  await page.keyboard.press("Escape");
-  await expect(page.locator("#menu-button")).toBeFocused();
+  for (const view of ["dashboard", "users", "devices", "connections", "audit", "settings", "account"])
+    await expect(page.locator(`[data-view="${view}"]`)).toBeVisible();
+  await page.locator('[data-view="devices"]').focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#page-title")).toHaveText("设备管理");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test("standard user can access account limits and edit raw targets without errors", async ({

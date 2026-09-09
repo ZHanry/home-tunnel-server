@@ -1,4 +1,4 @@
-"""Component release gates: build RC assets once, then promote the verified bytes."""
+"""Build, verify and publish a component; keep engineering evidence in Actions."""
 from pathlib import Path
 import hashlib
 import json
@@ -56,22 +56,6 @@ def metadata():
         if not matching or max(matching, key=lambda r:r["id"])["conclusion"] != "success":
             raise SystemExit(f"The tagged commit must pass {workflow_name} before release")
     rc_tag = TAG
-    if not candidate:
-        released = []
-        for tag in run("git", "tag", "--list", f"v{version}-rc.*", capture=True).splitlines():
-            if not re.fullmatch(re.escape(f"v{version}-rc.") + r"\d+", tag):
-                continue
-            revision = run("git", "rev-parse", tag + "^{commit}", capture=True).strip()
-            if revision != SHA:
-                continue
-            found = subprocess.run(["gh", "release", "view", tag, "--repo", REPO, "--json", "isPrerelease,isDraft"], text=True, capture_output=True)
-            if found.returncode == 0:
-                release = json.loads(found.stdout)
-                if release["isPrerelease"] and not release["isDraft"]:
-                    released.append(tag)
-        if not released:
-            raise SystemExit("Stable must promote an already published RC from the identical commit")
-        rc_tag = max(released, key=lambda t:int(t.rsplit('.',1)[1]))
     with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
         for key, value in {"version":TAG.removeprefix('v'),"base-version":version,
                            "stable":str(not candidate).lower(),"rc-version":rc_tag.removeprefix('v'),"rc-tag":rc_tag}.items():
@@ -106,6 +90,13 @@ def seal():
         for record in records:
             lines += [f"  {record['name']}:", f"    image: {record['image']}@{record['digest']}"]
         (directory/'compose.release.yaml').write_text('\n'.join(lines)+'\n')
+    if COMPONENT == 'server':
+        import tarfile
+        archive = directory/f'home-tunnel-server-{local_version()}.tar.gz'
+        with tarfile.open(archive, 'w:gz') as bundle:
+            for entry in ['compose.yaml', '.env.example', 'README.md', 'LICENSE', 'deploy', 'docs/SELF_HOSTING.md', 'docs/UPGRADING.md']:
+                bundle.add(ROOT/entry, arcname=entry, filter=lambda item: None if '__pycache__' in item.name or item.name.endswith('.pyc') else item)
+            bundle.add(directory/'compose.release.yaml',arcname='compose.release.yaml')
     lines=[]
     for path in sorted(directory.iterdir()):
         if path.is_file() and path.name not in ('SHA256SUMS.txt','SHA256SUMS.txt.sigstore.json'):
@@ -133,29 +124,44 @@ def verify(directory, rc_tag):
     required_assets(directory)
     return identity
 
+def public_asset_names(component, version):
+    if component == "android":
+        return [f"HomeTunnel-Android-{version}-arm64-v8a.apk"]
+    if component == "client":
+        return [f"HomeTunnel-Setup-{version}-x64.exe", f"HomeTunnel-Windows-{version}-x64.zip"] + [
+            f"home-tunnel-{platform}-{version}-{arch}.tar.gz"
+            for platform in ("linux", "macos") for arch in ("amd64", "arm64")]
+    return [f"home-tunnel-server-{version}.tar.gz", "compose.release.yaml"]
+
 def publish(stable=False):
     directory=ROOT/'release'
-    if stable:
-        directory.mkdir(exist_ok=True)
-        rc_tag=os.environ['RC_TAG']
-        run('gh','release','download',rc_tag,'--repo',REPO,'--dir',str(directory))
-    else:
-        rc_tag=TAG
-    identity=verify(directory,rc_tag)
+    stable = re.fullmatch(r"v\d+\.\d+\.\d+", TAG) is not None
+    identity=verify(directory,TAG)
     if COMPONENT=='server' and stable:
         for name in ('control-center','traffic-gateway'):
             record=json.loads((directory/f'image-{name}.json').read_text())
             reference=f"{record['image']}@{record['digest']}"
             run('cosign','verify',reference,'--certificate-identity',identity,'--certificate-oidc-issuer','https://token.actions.githubusercontent.com',capture=True)
-            run('docker','buildx','imagetools','create','--tag',f"{record['image']}:{local_version()}",reference)
+    import shutil
+    public = ROOT/'release-public'
+    public.mkdir(exist_ok=True)
+    selected=public_asset_names(COMPONENT,local_version())
+    for name in selected:
+        shutil.copyfile(directory/name,public/name)
+    checksums=''.join(f"{hashlib.sha256((public/name).read_bytes()).hexdigest()}  {name}\n" for name in selected)
+    if COMPONENT != 'android':
+        (public/'SHA256SUMS.txt').write_text(checksums,encoding='utf-8')
     title=f'Home Tunnel {COMPONENT} {local_version()}' + ('' if stable else f' ({TAG.rsplit("-",1)[1]})')
     notes=ROOT/'release-notes.md'
-    notes.write_text(f'{title}\n\nIndependent {COMPONENT} release. API v1 compatibility is recorded in compatibility.json.\n\nBuilt once from {SHA}; checksums, release manifest and signing evidence are attached. Stable promotes identical RC bytes.\n',encoding='utf-8')
+    summary=(ROOT/'docs/RELEASE_NOTES.md').read_text(encoding='utf-8')
+    run_url=f"https://github.com/{REPO}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+    notes.write_text(summary + f"\n\nSource: `{SHA}`. [Build, verification and signing evidence]({run_url}).\n\n" +
+        ("APK SHA-256: `" + checksums.split()[0] + "`\n" if COMPONENT == 'android' else "Package checksums are in SHA256SUMS.txt.\n"),encoding='utf-8')
     created=False
     try:
         run('gh','release','create',TAG,'--repo',REPO,'--verify-tag','--target',SHA,'--draft','--title',title,'--notes-file',str(notes))
         created=True
-        run('gh','release','upload',TAG,'--repo',REPO,*[str(p) for p in sorted(directory.iterdir()) if p.is_file()])
+        run('gh','release','upload',TAG,'--repo',REPO,*[str(p) for p in sorted(public.iterdir()) if p.is_file()])
         flags=['--draft=false','--latest=true'] if stable else ['--draft=false','--prerelease','--latest=false']
         run('gh','release','edit',TAG,'--repo',REPO,*flags)
     except BaseException:

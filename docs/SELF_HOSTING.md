@@ -1,6 +1,6 @@
-# 自托管测试指南
+# 自托管部署指南
 
-本指南用于建立全新的内部测试环境。所有示例域名和地址均需替换；当前以源码构建为主要路径。
+本指南用于部署 Home Tunnel 6.0 正式版。请将示例域名、IP 和邮箱替换为自己的配置。已有部署请先阅读 [升级指南](UPGRADING.md)。
 
 ## 环境和 DNS
 
@@ -13,7 +13,7 @@
 | TCP 80 / 443 | 主机与云防火墙按需放行 | Web 入口与证书验证 |
 | TCP 7000 | 家中客户端可以访问 | 默认 FRPS 接入端口 |
 
-生成配置前确认域名可正确解析。TCP / UDP 公网映射默认不开启，先完成 HTTP 测试。
+生成配置前确认域名可正确解析。TCP / UDP 公网映射默认不开启，先完成 HTTP 连接验证。
 
 ## 生成配置
 
@@ -29,26 +29,26 @@ sh deploy/scripts/new-selfhost-config.sh \
 不要把这些文件提交到 Git，也不要用真实密码替换文档中的示例值再公开分享。
 Windows 开发机可使用同目录下的 `new-selfhost-config.ps1`；服务端运行目标仍为 Linux。
 
-## 从源码构建和启动
+## 启动正式版
 
 ```sh
-docker compose -f compose.yaml -f compose.build.yaml config --quiet
-docker compose -f compose.yaml -f compose.build.yaml up -d --build
+docker compose -f compose.yaml config --quiet
+docker compose -f compose.yaml up -d
 docker compose ps
 cat deploy/secrets/bootstrap_admin_password
 ```
 
-两份 Compose 文件共同使用：基础文件描述运行配置，构建覆盖文件让服务使用当前源码。
+默认使用当前正式版镜像。使用 Release 部署包时，可追加 `-f compose.release.yaml` 固定镜像摘要。源码开发时追加 `-f compose.build.yaml` 并使用 `up -d --build`。
 默认项目名为 `home-tunnel`。首次构建需要下载依赖与基础镜像。
 
-打开 `https://console.tunnel.example.com/admin`，读取并使用一次性管理员密码，完成改密，再创建测试账号。
+打开 `https://console.tunnel.example.com/admin`，读取并使用一次性管理员密码，完成改密，再创建普通用户账号。
 
 ## 接入设备与管理 App
 
-从[客户端仓库](https://github.com/ZHanry/home-tunnel-client#readme)构建完整包，选择 GUI 或 headless 模式，登录服务端并注册设备。
-在控制台创建一个指向本地 HTTP 测试服务的连接，验证访问、暂停、恢复和客户端重启。
+从[客户端下载页](https://github.com/ZHanry/home-tunnel-client/releases/latest)获取完整安装包，选择 GUI 或 headless 模式，登录服务端并注册设备。
+在控制台创建一个指向本地 HTTP 服务的连接，验证访问、暂停、恢复和客户端重启。
 
-Android 的[调试 APK](https://github.com/ZHanry/home-tunnel-android#readme)用于管理已经注册的设备。它不要求手机运行隧道进程。
+Android 的[正式 APK](https://github.com/ZHanry/home-tunnel-android/releases/latest)用于管理已经注册的设备。它不要求手机运行隧道进程。
 
 ## Optional general TCP and fixed-port UDP
 
@@ -137,7 +137,7 @@ docker compose logs --tail 100 control-center traffic-gateway frps caddy
 ```
 
 修改代码后使用相同的基础文件、构建覆盖文件，以及本次测试启用的 TCP / UDP 覆盖文件重新构建。
-记录参与联调的客户端提交；不假设任意两个内部构建都兼容。
+记录参与联调的客户端提交；按兼容性说明选择组件版本。
 
 ## 数据与备份
 
@@ -157,4 +157,4 @@ SQLite 位于 `sqlite-data` 卷的 `/data/home-tunnel.db`，Caddy 的状态使�
 4. 核对连接归属、启用状态、域名或分配端口。
 5. 使用测试账号复现，记录提交 SHA、时间和脱敏后的错误。
 
-安全边界见 [SECURITY_MODEL.md](SECURITY_MODEL.md)，测试发布见 [RELEASING.md](RELEASING.md)。
+安全边界见 [SECURITY_MODEL.md](SECURITY_MODEL.md)，版本发布见 [RELEASING.md](RELEASING.md)。

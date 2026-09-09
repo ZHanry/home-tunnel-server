@@ -1,4 +1,4 @@
-import { createConnectionsView } from "./modules/connections.js?v=5.0.1-modules2";
+import { createConnectionsView } from "./modules/connections.js?v=6.0.0";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -6,8 +6,8 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=5.0.1-modules2";
-import { api, refreshSession } from "./modules/api.js?v=5.0.1-modules2";
+} from "./modules/forms.js?v=6.0.0";
+import { api, refreshSession } from "./modules/api.js?v=6.0.0";
 import {
   componentLabel,
   configState,
@@ -16,10 +16,10 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=5.0.1-modules2";
-import { localeTag, updateDocumentMetadata } from "./modules/locale.js?v=5.0.1-modules2";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=5.0.1-modules2";
-import { state } from "./modules/state.js?v=5.0.1-modules2";
+} from "./modules/format.js?v=6.0.0";
+import { localeTag, updateDocumentMetadata } from "./modules/locale.js?v=6.0.0";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=6.0.0";
+import { state } from "./modules/state.js?v=6.0.0";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -39,7 +39,6 @@ const modalEyebrow = document.querySelector("#modal-eyebrow");
 const modalError = document.querySelector("#modal-error");
 const toastRegion = document.querySelector("#toast-region");
 const skipLink = document.querySelector("#skip-link");
-const sidebarScrim = document.querySelector(".sidebar-scrim");
 
 const { renderConnections } = createConnectionsView({
   api,
@@ -84,7 +83,7 @@ function applyRoleChrome() {
     item.hidden = !isAdmin();
   });
   const brand = document.querySelector(".sidebar-brand .brand-copy small");
-  if (brand) brand.textContent = isAdmin() ? "控制中心 v5.0.1" : "我的工作区";
+  if (brand) brand.textContent = isAdmin() ? "控制中心 v6.0.0" : "我的工作区";
   const sessionCopy = document.querySelector(".sidebar-session small");
   if (sessionCopy) sessionCopy.textContent = isAdmin() ? "权限已验证" : "仅显示你的资源";
 }
@@ -359,106 +358,43 @@ async function renderDashboard(renderId) {
   if (renderId !== state.renderId) return;
   updateTransportTunnelState(summary);
   const totalTraffic = Number(summary.upload_24h) + Number(summary.download_24h);
+  const healthRows = health.components
+    .map((item) => {
+      const label =
+        { healthy: "正常", unhealthy: "异常", degraded: "需要处理", unknown: "待确认" }[
+          item.status
+        ] ?? "待确认";
+      const detail =
+        item.component === "backup"
+          ? item.completed_at
+            ? `${label} · ${formatDate(item.completed_at)}`
+            : "待确认 · 尚无备份记录"
+          : item.component === "outbox"
+            ? `${label} · 待处理 ${Number(item.pending ?? 0)}`
+            : `${label}${item.latency_ms == null ? "" : ` · ${Number(item.latency_ms)} ms`}`;
+      return `<div class="health-rail-item ${item.status === "healthy" ? "" : item.status === "unhealthy" ? "error" : "warn"}"><span class="health-rail-dot"></span><strong>${escapeHtml(componentLabel(item.component))}</strong><span class="health-rail-val">${detail}</span></div>`;
+    })
+    .join("");
+  const metrics = [
+    ["在线连接", `${Number(summary.online_connections)} / ${Number(summary.connections)}`],
+    ["在线设备", Number(summary.online_devices)],
+    ["启用账号", Number(summary.users)],
+    ["24 小时流量", formatBytes(totalTraffic)],
+  ];
   viewContent.innerHTML = `
-    <div class="dashboard-hero-layout">
-      <section class="panel tunnel-pulse-card" aria-label="Tunnel Pulse 核心控制台">
-        <div class="pulse-header">
-          <div class="pulse-brand">
-            <span class="pulse-dot"></span>
-            <div>
-              <h3>Tunnel Pulse 穿透主控</h3>
-              <p>实时连接状态与 24 小时数据流转</p>
-            </div>
-          </div>
-          <span class="status-badge ${health.status === "healthy" ? "ok" : health.status === "unhealthy" ? "error" : "warn"}">${health.status === "healthy" ? "系统运行正常" : health.status === "unhealthy" ? "系统异常" : "系统需要处理"}</span>
-        </div>
-        <div class="pulse-core-metrics">
-          <div class="pulse-metric-item">
-            <span class="pulse-label">在线 / 总连接</span>
-            <div class="pulse-value-large">${Number(summary.online_connections)} <small>/ ${Number(summary.connections)}</small></div>
-            <span class="pulse-meta">以服务端运行状态为准</span>
-          </div>
-          <div class="pulse-metric-item">
-            <span class="pulse-label">24 小时传输流量</span>
-            <div class="pulse-value-large">${formatBytes(totalTraffic)}</div>
-            <span class="pulse-meta">↑ 上传 ${formatBytes(summary.upload_24h)} · ↓ 下载 ${formatBytes(summary.download_24h)}</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel health-rail-panel" aria-label="系统组件健康状态">
-        <div class="health-rail-header">
-          <div class="health-summary">${statusBadge(health.status)}<span><strong>系统组件</strong><small>${health.components.length} 项实时检查</small></span></div>
-        </div>
-        <div class="health-rail-list">${health.components
-          .map((item) => {
-            const tone =
-              item.status === "healthy" ? "" : item.status === "unhealthy" ? "error" : "warn";
-            const label =
-              { healthy: "正常", unhealthy: "异常", degraded: "需要处理", unknown: "待确认" }[
-                item.status
-              ] ?? "待确认";
-            const detail =
-              item.component === "backup"
-                ? item.completed_at
-                  ? `${label} · ${formatDate(item.completed_at)}`
-                  : "待确认 · 尚无备份记录"
-                : item.component === "outbox"
-                  ? `${label} · 待处理 ${Number(item.pending ?? 0)}`
-                  : `${label}${item.latency_ms == null ? "" : ` · ${Number(item.latency_ms).toLocaleString(localeTag())} ms`}`;
-            return `<div class="health-rail-item ${tone}" title="${escapeHtml(item.message || detail)}">
-            <span class="health-rail-dot"></span>
-            <span class="health-rail-name">${escapeHtml(componentLabel(item.component))}</span>
-            <span class="health-rail-val">${detail}</span>
-          </div>`;
-          })
-          .join("")}</div>
-      </section>
-    </div>
-
-    <section class="stats-strip-grid" aria-label="关键补充统计">
-      <article class="stat-strip-item">
-        <span class="stat-strip-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.9"/></svg></span>
-        <div class="stat-strip-info">
-          <span class="stat-strip-label">启用账号</span>
-          <strong class="stat-strip-val">${Number(summary.users).toLocaleString(localeTag())}</strong>
-        </div>
-      </article>
-      <article class="stat-strip-item">
-        <span class="stat-strip-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm3 17h8"/></svg></span>
-        <div class="stat-strip-info">
-          <span class="stat-strip-label">在线设备</span>
-          <strong class="stat-strip-val">${Number(summary.online_devices).toLocaleString(localeTag())}</strong>
-        </div>
-      </article>
-      <article class="stat-strip-item">
-        <span class="stat-strip-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-        <div class="stat-strip-info">
-          <span class="stat-strip-label">受管域名</span>
-          <strong class="stat-strip-val mono">${escapeHtml(state.tunnelDomain)}</strong>
-        </div>
-      </article>
-    </section>
-
-    <section class="panel table-panel table-section">
-      <div class="panel-header">
-        <div>
-          <h3>流量最高的连接</h3>
-          <span class="panel-subtle">过去 24 小时数据传输排行</span>
-        </div>
-      </div>
-      ${
-        traffic.items.length
-          ? `<table class="data-table"><thead><tr><th>连接</th><th>用户</th><th>上传</th><th>下载</th><th>请求</th></tr></thead><tbody>${traffic.items
-              .slice(0, 6)
-              .map(
-                (item) =>
-                  `<tr><td data-label="连接"><span class="cell-primary" data-no-translate>${escapeHtml(item.name)}</span><span class="cell-secondary mono" data-no-translate>${escapeHtml(item.subdomain)}.${escapeHtml(state.tunnelDomain)}</span></td><td data-label="用户">${escapeHtml(item.username)}</td><td data-label="上传" class="mono">${formatBytes(item.upload_bytes)}</td><td data-label="下载" class="mono">${formatBytes(item.download_bytes)}</td><td data-label="请求" class="mono">${Number(item.requests).toLocaleString(localeTag())}</td></tr>`,
-              )
-              .join("")}</tbody></table>`
-          : emptyState("暂无流量样本", "网关收到业务请求后会按 10 秒桶写入样本。")
-      }
-    </section>`;
+    <section class="overview-banner"><div><p class="eyebrow">YOUR HOME, CONNECTED</p><h2>${health.status === "healthy" ? "一切就绪，连接你的日常。" : "有些服务需要你的关注。"}</h2><p>从这里管理设备、访问权限和每一条家庭连接。</p></div><div class="overview-domain"><small>当前部署</small><strong class="mono" data-no-translate>${escapeHtml(state.tunnelDomain)}</strong></div></section>
+    <section class="overview-metrics" aria-label="运行概况">${metrics.map(([label, value]) => `<article class="overview-metric"><span>${label}</span><strong>${value}</strong></article>`).join("")}</section>
+    <div class="overview-columns"><section class="panel table-panel"><div class="panel-header"><div><h3>流量最高的连接</h3><span class="panel-subtle">过去 24 小时 · 按实际使用量排序</span></div><button class="button button-quiet" data-action="view-connections">全部连接</button></div>${
+      traffic.items.length
+        ? `<table class="data-table"><thead><tr><th>服务</th><th>上传</th><th>下载</th><th>请求</th></tr></thead><tbody>${traffic.items
+            .slice(0, 6)
+            .map(
+              (item) =>
+                `<tr><td data-label="服务"><strong class="cell-primary" data-no-translate>${escapeHtml(item.name)}</strong><small class="cell-secondary" data-no-translate>${escapeHtml(item.username)}</small></td><td data-label="上传">${formatBytes(item.upload_bytes)}</td><td data-label="下载">${formatBytes(item.download_bytes)}</td><td data-label="请求">${Number(item.requests).toLocaleString(localeTag())}</td></tr>`,
+            )
+            .join("")}</tbody></table>`
+        : emptyState("还没有流量记录", "发布服务并访问后，这里会显示使用情况。")
+    }</section><div><section class="panel"><div class="panel-header"><h3>系统组件</h3>${statusBadge(health.status)}</div><div class="health-rail-list">${healthRows}</div></section><section class="panel quick-start"><h3>让下一台设备加入</h3><p>创建用户，将账号交给设备使用者。客户端登录后会自动登记这台机器。</p><button class="button button-secondary" data-action="create-user">创建普通用户</button></section></div></div>`;
 }
 
 function emptyState(title, detail, action, actionLabel) {
@@ -528,48 +464,8 @@ async function renderUserDashboard(renderId) {
   ).length;
   const onlineDevices = state.devices.filter((item) => item.online).length;
   viewContent.innerHTML = `
-    <div class="dashboard-hero-layout">
-      <section class="panel tunnel-pulse-card" aria-label="我的隧道">
-        <div class="pulse-header">
-          <div class="pulse-brand">
-            <span class="pulse-dot"></span>
-            <div>
-              <h3>我的工作区</h3>
-              <p>只包含 ${escapeHtml(state.me.display_name)} 的设备与隧道，其他租户不可见</p>
-            </div>
-          </div>
-          <span class="status-badge ok">租户隔离</span>
-        </div>
-        <div class="pulse-core-metrics">
-          <div class="pulse-metric-item">
-            <span class="pulse-label">在线 / 我的连接</span>
-            <div class="pulse-value-large">${onlineConnections} <small>/ ${state.connections.length}</small></div>
-            <span class="pulse-meta">HTTP 可自助开通 · TCP/UDP 由管理员分配端口</span>
-          </div>
-          <div class="pulse-metric-item">
-            <span class="pulse-label">累计流量</span>
-            <div class="pulse-value-large">${formatBytes(totalTraffic)}</div>
-            <span class="pulse-meta">仅统计你名下的连接</span>
-          </div>
-        </div>
-      </section>
-    </div>
-    <section class="stats-strip-grid stats-strip-grid-2" aria-label="我的资源">
-      <article class="stat-strip-item">
-        <span class="stat-strip-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm3 17h8"/></svg></span>
-        <div class="stat-strip-info">
-          <span class="stat-strip-label">在线设备</span>
-          <strong class="stat-strip-val">${onlineDevices.toLocaleString(localeTag())} / ${state.devices.length}</strong>
-        </div>
-      </article>
-      <article class="stat-strip-item">
-        <span class="stat-strip-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-        <div class="stat-strip-info">
-          <span class="stat-strip-label">受管域名</span>
-          <strong class="stat-strip-val mono">${escapeHtml(state.tunnelDomain)}</strong>
-        </div>
-      </article>
-    </section>
+    <section class="overview-banner"><div><p class="eyebrow">YOUR PERSONAL WORKSPACE</p><h2 data-no-translate>${escapeHtml(state.me.display_name)}</h2><p>你的设备与服务，在这里相连。</p></div><div class="overview-domain"><small>当前部署</small><strong class="mono" data-no-translate>${escapeHtml(state.tunnelDomain)}</strong></div></section>
+    <section class="overview-metrics"><article class="overview-metric"><span>在线连接</span><strong>${onlineConnections}</strong></article><article class="overview-metric"><span>全部连接</span><strong>${state.connections.length}</strong></article><article class="overview-metric"><span>在线设备</span><strong>${onlineDevices} / ${state.devices.length}</strong></article><article class="overview-metric"><span>累计流量</span><strong>${formatBytes(totalTraffic)}</strong></article></section>
     <section class="panel table-panel table-section">
       <div class="panel-header">
         <div>
@@ -601,23 +497,25 @@ async function renderUsers(renderId = state.renderId) {
     await renderView("dashboard");
     return;
   }
-  const data = await api("/api/v1/admin/users");
+  const data = await api(
+    "/api/v1/admin/users" +
+      (state.userSearch ? `?search=${encodeURIComponent(state.userSearch)}` : ""),
+  );
   if (renderId !== state.renderId) return;
   state.users = data.items;
-  viewContent.innerHTML = `
-    <section class="panel table-panel">${state.users.length ? `<table class="data-table"><thead><tr><th>用户</th><th>角色</th><th>状态</th><th>设备 / 连接</th><th>账号上限</th><th>本月流量</th><th><span class="visually-hidden">操作</span></th></tr></thead><tbody>${state.users.map((user) => `<tr><td data-label="用户"><span class="cell-primary" data-no-translate>${escapeHtml(user.display_name)}</span><span class="cell-secondary mono" data-no-translate>${escapeHtml(user.username)}</span></td><td data-label="角色">${user.role === "admin" ? "管理员" : "普通用户"}</td><td data-label="状态">${statusBadge(user.status)} ${user.password_state === "must_change" ? statusBadge("must_change") : ""} ${user.quota_suspended ? statusBadge("quota_suspended") : ""}</td><td data-label="设备 / 连接" class="mono">${user.device_count} / ${user.connection_count}</td><td data-label="账号上限" class="mono">${formatBps(user.bandwidth_limit_bps)}</td><td data-label="本月流量" class="mono">${formatBytes(user.month_to_date_bytes)}${user.monthly_quota_bytes ? ` / ${formatBytes(user.monthly_quota_bytes)}` : ""}</td><td class="actions-cell" data-label="操作"><div class="actions"><button class="button button-quiet button-small" data-action="user-policy" data-id="${user.id}">限速</button><button class="button button-quiet button-small" data-action="reset-password" data-id="${user.id}">重置密码</button><button class="button ${user.status === "active" ? "button-danger" : "button-secondary"} button-small" data-action="toggle-user" data-id="${user.id}" data-status="${user.status}">${user.status === "active" ? "禁用" : "恢复"}</button></div></td></tr>`).join("")}</tbody></table>` : emptyState("还没有用户", "创建首个普通用户，并把一次性临时密码安全交给本人。", "create-user", "创建普通用户")}</section>`;
+  viewContent.innerHTML = `<form id="user-search-form" class="connection-filter panel"><div class="field"><label for="user-search">查找用户</label><input id="user-search" type="search" value="${escapeHtml(state.userSearch ?? "")}" placeholder="用户名或显示名称"></div><button class="button button-secondary" type="submit">搜索</button></form><div class="section-intro"><span>最多显示 100 位用户，使用搜索查找更多账号。</span></div><div class="notice"><span>此部署保留一名管理员。普通用户独立管理自己的设备与连接。</span></div><div class="people-list">${state.users.length ? state.users.map((user) => `<article class="person-row panel"><div class="person-profile"><span class="person-avatar" aria-hidden="true" data-no-translate>${escapeHtml(user.display_name.slice(0, 1))}</span><div><h3 data-no-translate>${escapeHtml(user.display_name)}</h3><span class="cell-secondary" data-no-translate>@${escapeHtml(user.username)}</span><span class="status-badge ${user.role === "admin" ? "ok" : "neutral"}">${user.role === "admin" ? "唯一管理员" : "普通用户"}</span> ${statusBadge(user.status)} ${user.password_state === "must_change" ? statusBadge("must_change") : ""}</div></div><div class="person-metrics"><div><strong>${user.device_count} / ${user.connection_count}</strong><small>设备 / 连接</small></div><div><strong>${formatBytes(user.month_to_date_bytes)}</strong><small>本月流量</small></div><div><strong>${formatBps(user.bandwidth_limit_bps)}</strong><small>账号上限</small></div></div><div class="actions"><button class="button button-secondary button-small" data-action="user-policy" data-id="${user.id}">限速</button>${user.role !== "admin" ? `<details class="more-actions"><summary aria-label="更多用户操作">管理账号</summary><div><button class="button button-quiet" data-action="reset-password" data-id="${user.id}">重置密码</button><button class="button button-quiet" data-action="toggle-user" data-id="${user.id}" data-status="${user.status}">${user.status === "active" ? "禁用" : "恢复"}</button><button class="button button-danger" data-action="delete-user" data-id="${user.id}">删除用户</button></div></details>` : `<button class="button button-quiet button-small" data-action="change-password">修改密码</button>`}</div></article>`).join("") : emptyState("还没有用户", "创建普通用户，让家人使用自己的账号接入。", "create-user", "创建普通用户")}</div>`;
+  document.querySelector("#user-search-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    state.userSearch = document.querySelector("#user-search").value.trim();
+    void renderView("users");
+  });
 }
 
 async function renderDevices(renderId = state.renderId) {
   const data = await api(devicesPath());
   if (renderId !== state.renderId) return;
   state.devices = data.items;
-  const deleteCell = (device) =>
-    isAdmin()
-      ? `<td class="actions-cell" data-label="操作"><div class="actions"><button class="button button-danger button-small" data-action="delete-device" data-id="${device.id}" data-name="${escapeHtml(device.name)}" aria-label="删除设备 ${escapeHtml(device.name)}">删除</button></div></td>`
-      : `<td class="actions-cell" data-label="操作"><span class="cell-secondary">由客户端保活</span></td>`;
-  viewContent.innerHTML = `
-    <section class="panel table-panel">${state.devices.length ? `<table class="data-table"><thead><tr><th>设备</th><th>用户</th><th>状态</th><th>配置</th><th class="hide-tablet">最后在线</th><th class="hide-tablet">租约到期</th><th><span class="visually-hidden">操作</span></th></tr></thead><tbody>${state.devices.map((device) => `<tr><td data-label="设备"><span class="cell-primary" data-no-translate>${escapeHtml(device.name)}</span><span class="cell-secondary mono" data-no-translate>${escapeHtml(device.id.slice(0, 8))} · 客户端 ${escapeHtml(device.client_version ?? "未知")} · Agent ${escapeHtml(device.agent_version ?? "未知")}</span></td><td data-label="用户">${escapeHtml(device.username ?? state.me.username)}</td><td data-label="状态">${statusBadge(device.status === "active" && device.online ? "active" : device.status === "active" ? "Offline" : device.status)}</td><td data-label="配置">${configState(device)}</td><td data-label="最后在线" class="hide-tablet">${formatDate(device.last_seen_at)}</td><td data-label="租约到期" class="hide-tablet">${formatDate(device.lease_expires_at)}</td>${deleteCell(device)}</tr>`).join("")}</tbody></table>` : emptyState("还没有注册设备", isAdmin() ? "请用户在家里的 Windows / macOS / Linux 电脑上安装图形客户端并登录。" : "在家里的电脑上安装客户端，用当前账号登录后设备会出现在这里。")}</section>`;
+  viewContent.innerHTML = `<div class="section-intro"><p><strong>${state.devices.filter((d) => d.online && d.status === "active").length}</strong> 台在线 · ${state.devices.length} 台设备</p><span>一台设备，一个独立的服务空间</span></div><section class="device-grid">${state.devices.length ? state.devices.map((device) => `<article class="panel device-tile"><div class="device-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="13" rx="2"/><path d="M8 21h8m-4-5v5"/></svg>${statusBadge(device.status === "active" && device.online ? "active" : device.status === "active" ? "Offline" : device.status)}</div><h3 data-no-translate>${escapeHtml(device.name)}</h3><p class="cell-secondary" data-no-translate>${escapeHtml(device.username ?? state.me.username)}</p><dl><dt>配置同步</dt><dd>${configState(device)}</dd><dt>最后在线</dt><dd>${formatDate(device.last_seen_at)}</dd><dt>客户端版本</dt><dd data-no-translate>${escapeHtml(device.client_version ?? "—")}</dd></dl><footer>${isAdmin() ? `<button class="button button-danger button-small" data-action="delete-device" data-id="${device.id}" data-name="${escapeHtml(device.name)}" aria-label="删除设备 ${escapeHtml(device.name)}">删除设备</button>` : `<span class="cell-secondary">在这台设备上登录客户端以保持连接</span>`}</footer></article>`).join("") : emptyState("还没有注册设备", "在家庭电脑上安装客户端，用当前账号登录，设备就会出现在这里。")}</section>`;
 }
 
 // 访问控制徽章：只依据 access_basic_auth_enabled / access_ip_allowlist 展示
@@ -645,7 +543,7 @@ async function renderSettings(renderId = state.renderId) {
   viewContent.innerHTML = `
     <section class="panel">
       <div class="panel-header"><div><h3>子域命名策略</h3><span class="panel-subtle">默认建议带用户名前缀，避免多人抢同一个短名。强制后新建 HTTP 子域必须以用户名开头。</span></div></div>
-      <form id="settings-form" class="form-stack" style="padding:20px">
+      <form id="settings-form" class="form-stack settings-form">
         <div class="field">
           <label for="prefix-policy">新建子域</label>
           <select id="prefix-policy" name="subdomain_prefix_policy">
@@ -1619,6 +1517,25 @@ appShell.addEventListener("click", async (event) => {
         if (button.isConnected) setBusy(button, false);
       }
     }
+    if (action === "view-connections") await navigateTo("connections");
+    if (action === "delete-user") {
+      const user = state.users.find((item) => item.id === button.dataset.id);
+      if (!user || user.role === "admin") return;
+      confirmAction(
+        "删除用户",
+        `删除 ${user.display_name}（${user.username}）后，所有设备凭据和会话将撤销，${user.connection_count} 条连接将停止并删除。操作无法撤销，历史审计记录保留。`,
+        "确认删除用户",
+        async () => {
+          await api(`/api/v1/admin/users/${user.id}`, {
+            method: "DELETE",
+            body: JSON.stringify({ expected_version: user.version }),
+          });
+          modal.close("done");
+          toast("用户已删除，设备访问权限已撤销");
+          await renderUsers();
+        },
+      );
+    }
     if (action === "create-user") await openCreateUser();
     if (action === "user-policy") await openUserPolicy(button.dataset.id);
     if (action === "reset-password") {
@@ -1764,56 +1681,17 @@ viewContent.addEventListener("submit", async (event) => {
   await renderView("audit");
 });
 
-function closeSidebar() {
-  const wasOpen = document.querySelector(".sidebar").classList.contains("open");
-  document.querySelector(".sidebar").classList.remove("open");
-  document.querySelector(".workspace").inert = false;
-  if (wasOpen) document.querySelector("#menu-button").focus();
-  document.querySelector("#menu-button").setAttribute("aria-expanded", "false");
-}
-
 document.querySelectorAll(".nav-item").forEach((button) =>
-  button.addEventListener("click", async () => {
-    closeSidebar();
-    await navigateTo(button.dataset.view);
+  button.addEventListener("click", () => {
+    void navigateTo(button.dataset.view);
   }),
 );
 
-document.querySelector("#menu-button").addEventListener("click", (event) => {
-  const sidebar = document.querySelector(".sidebar");
-  const open = sidebar.classList.toggle("open");
-  event.currentTarget.setAttribute("aria-expanded", String(open));
-  document.querySelector(".workspace").inert = open;
-  if (open) sidebar.querySelector(".nav-item:not([hidden])")?.focus();
-});
-
-sidebarScrim.addEventListener("click", closeSidebar);
 window.addEventListener("popstate", () => {
   if (!state.me) return;
   const view = location.hash.replace("#", "");
   if (viewMeta[view]) void renderView(view);
 });
-document.addEventListener("keydown", (event) => {
-  const sidebar = document.querySelector(".sidebar");
-  if (event.key === "Tab" && sidebar.classList.contains("open")) {
-    const items = [...sidebar.querySelectorAll("button,a")].filter(
-      (el) => !el.hidden && !el.disabled && el.getClientRects().length,
-    );
-    const first = items[0],
-      last = items.at(-1);
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    }
-    if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  }
-  if (event.key === "Escape" && document.querySelector(".sidebar").classList.contains("open"))
-    closeSidebar();
-});
-
 document.querySelectorAll(".password-toggle").forEach((button) =>
   button.addEventListener("click", () => {
     const input = document.querySelector(`#${button.dataset.target}`);

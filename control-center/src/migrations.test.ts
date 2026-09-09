@@ -38,6 +38,37 @@ function apply(database: DatabaseSync, names: string[]): void {
   }
 }
 
+test("legacy administrators consolidate without deleting accounts, devices or history", () => {
+  const database = new DatabaseSync(":memory:", { enableForeignKeyConstraints: true });
+  try {
+    const index = migrations.findIndex((name) => name.startsWith("010_"));
+    apply(database, migrations.slice(0, index));
+    database.exec(`INSERT INTO users(id,username,display_name,password_hash,password_state,role,created_at)
+      VALUES('first','first','First','hash','normal','admin','2024-01-01'),
+      ('second','second','Second','hash','normal','admin','2025-01-01');
+      INSERT INTO devices(id,user_id,name,install_id,fingerprint_hash,credential_hash)
+      VALUES('device','second','Old device','install','fingerprint','credential');`);
+    apply(database, migrations.slice(index));
+    assert.equal(database.prepare("SELECT role FROM users WHERE id='first'").get()?.role, "admin");
+    assert.equal(database.prepare("SELECT role FROM users WHERE id='second'").get()?.role, "user");
+    assert.equal(
+      database.prepare("SELECT count(*) AS count FROM devices WHERE user_id='second'").get()?.count,
+      1,
+    );
+    assert.equal(
+      database
+        .prepare(
+          "SELECT count(*) AS count FROM audit_events WHERE action='AdministratorConsolidated'",
+        )
+        .get()?.count,
+      1,
+    );
+    assert.throws(() => database.exec("UPDATE users SET role='admin' WHERE id='second'"), /UNIQUE/);
+  } finally {
+    database.close();
+  }
+});
+
 test("the earliest public database upgrades additively through every migration", () => {
   const database = new DatabaseSync(":memory:", { enableForeignKeyConstraints: true });
   try {

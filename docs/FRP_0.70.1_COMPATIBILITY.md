@@ -87,7 +87,7 @@ FRP 0.70.1 is not a pin-only upgrade:
 - [ ] Publish the RC only after package/image SBOM, provenance, checksum,
       signature and attestation gates succeed.
 
-The source tree and dependency record describe the reviewed internal test input;
+The source tree and dependency record describe the reviewed dependency input;
 they do not establish production support for the application.
 
 ## Managed L4 scope

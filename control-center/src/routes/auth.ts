@@ -90,9 +90,10 @@ router.post(
       response.setHeader("retry-after", String(limit.retryAfterSeconds));
       throw new HttpError(429, "RATE_LIMITED", "登录尝试过多，请稍后重试");
     }
-    const user = await one<UserRow>("SELECT * FROM users WHERE lower(username)=lower(?)", [
-      normalized,
-    ]);
+    const user = await one<UserRow>(
+      "SELECT * FROM users WHERE lower(username)=lower(?) AND deleted_at IS NULL",
+      [normalized],
+    );
     const passwordValid = await verifyPassword(
       user?.password_hash ?? (await dummyHashPromise),
       body.password,

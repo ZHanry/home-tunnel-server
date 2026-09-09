@@ -11,7 +11,7 @@ import {
   requireAdmin,
   requirePasswordNormal,
 } from "../../http.js";
-import { bumpDeviceConfig } from "../../domain.js";
+import { bumpDeviceConfig, deleteConnection } from "../../domain.js";
 import { generateTemporaryPassword, hashPassword, normalizeUsername } from "../../security.js";
 import { nullableBandwidth, parseBody } from "../../validation.js";
 import { config } from "../../config.js";
@@ -81,7 +81,7 @@ router.get(
     const rows = await query<UserSummary>(
       `SELECT ${userFields}
        FROM users u LEFT JOIN traffic_policies tp ON tp.scope_type='user' AND tp.scope_id=u.id
-      WHERE (?='' OR u.username LIKE '%'||?||'%' OR u.display_name LIKE '%'||?||'%')
+      WHERE u.deleted_at IS NULL AND (?='' OR u.username LIKE '%'||?||'%' OR u.display_name LIKE '%'||?||'%')
       ORDER BY u.created_at DESC LIMIT 100`,
       [search, search, search],
     );
@@ -155,7 +155,7 @@ router.get(
     requirePasswordNormal(request);
     const row = await one<UserSummary>(
       `SELECT ${userFields} FROM users u LEFT JOIN traffic_policies tp
-      ON tp.scope_type='user' AND tp.scope_id=u.id WHERE u.id=?`,
+      ON tp.scope_type='user' AND tp.scope_id=u.id WHERE u.id=? AND u.deleted_at IS NULL`,
       [request.params.userId],
     );
     if (!row) throw new HttpError(404, "NOT_FOUND", "用户不存在");
@@ -186,7 +186,7 @@ router.patch(
     const updated = await transaction(async (client) => {
       const beforeResult = await client.query<UserSummary>(
         `SELECT ${userFields} FROM users u LEFT JOIN traffic_policies tp
-        ON tp.scope_type='user' AND tp.scope_id=u.id WHERE u.id=?`,
+        ON tp.scope_type='user' AND tp.scope_id=u.id WHERE u.id=? AND u.deleted_at IS NULL`,
         [userId],
       );
       const before = beforeResult.rows[0];
@@ -235,7 +235,7 @@ router.post(
     const row = await transaction(async (client) => {
       const before = await client.query<UserSummary>(
         `SELECT ${userFields} FROM users u LEFT JOIN traffic_policies tp
-        ON tp.scope_type='user' AND tp.scope_id=u.id WHERE u.id=?`,
+        ON tp.scope_type='user' AND tp.scope_id=u.id WHERE u.id=? AND u.deleted_at IS NULL`,
         [userId],
       );
       const user = before.rows[0];
@@ -300,7 +300,7 @@ router.post(
       const result = await client.query<{ id: string }>(
         `UPDATE users SET password_hash=?,password_state='must_change',
          temporary_password_expires_at=home_tunnel_add_seconds(home_tunnel_now(),?),token_version=token_version+1,
-         version=version+1,updated_at=home_tunnel_now() WHERE id=? RETURNING id`,
+         version=version+1,updated_at=home_tunnel_now() WHERE id=? AND deleted_at IS NULL RETURNING id`,
         [passwordHash, config.temporaryPasswordSeconds, userId],
       );
       if (!result.rows[0]) throw new HttpError(404, "NOT_FOUND", "用户不存在");
@@ -316,6 +316,69 @@ router.post(
       temporary_password: temporaryPassword,
       expires_in_seconds: config.temporaryPasswordSeconds,
     });
+  }),
+);
+
+router.delete(
+  "/users/:userId",
+  asyncHandler(async (request, response) => {
+    const actor = adminGuard(request);
+    const userId = pathParam(request, "userId");
+    const expected = parseExpectedVersion(request, request.body?.expected_version);
+    await transaction(async (client) => {
+      const result = await client.query<UserSummary>(
+        `SELECT ${userFields} FROM users u LEFT JOIN traffic_policies tp
+         ON tp.scope_type='user' AND tp.scope_id=u.id WHERE u.id=? AND u.deleted_at IS NULL`,
+        [userId],
+      );
+      const user = result.rows[0];
+      if (!user) throw new HttpError(404, "NOT_FOUND", "用户不存在");
+      if (user.role === "admin" || userId === actor.userId)
+        throw new HttpError(409, "ADMIN_SINGLETON", "不能删除管理员账号");
+      if (Number(user.version) !== expected)
+        throw new HttpError(409, "VERSION_CONFLICT", "用户信息已更新，请刷新后重试");
+      const connections = await client.query<{ id: string; version: number }>(
+        "SELECT id,version FROM connections WHERE user_id=? AND deleted_at IS NULL",
+        [userId],
+      );
+      for (const connection of connections.rows)
+        await deleteConnection(client, connection.id, Number(connection.version), userId);
+      const devices = await client.query<{ id: string }>(
+        "SELECT id FROM devices WHERE user_id=? AND revoked_at IS NULL",
+        [userId],
+      );
+      for (const device of devices.rows)
+        await bumpDeviceConfig(
+          client,
+          device.id,
+          "subject.revoked",
+          "User",
+          userId,
+          expected + 1,
+          userId,
+          { subject_type: "user", subject_id: userId, action: "delete" },
+        );
+      await client.query(
+        `UPDATE devices SET status='revoked',revoked_at=COALESCE(revoked_at,home_tunnel_now()),
+         lease_expires_at=home_tunnel_now(),updated_at=home_tunnel_now() WHERE user_id=?`,
+        [userId],
+      );
+      await client.query(
+        "UPDATE sessions SET revoked_at=COALESCE(revoked_at,home_tunnel_now()),updated_at=home_tunnel_now() WHERE user_id=?",
+        [userId],
+      );
+      await client.query(
+        `UPDATE users SET status='disabled',deleted_at=home_tunnel_now(),password_hash='',
+         token_version=token_version+1,version=version+1,updated_at=home_tunnel_now() WHERE id=?`,
+        [userId],
+      );
+      await audit(client, request, "UserDeleted", "User", userId, publicUser(user), {
+        deleted: true,
+        revoked_devices: devices.rows.length,
+        deleted_connections: connections.rows.length,
+      });
+    });
+    response.status(204).end();
   }),
 );
 

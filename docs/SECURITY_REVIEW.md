@@ -1,6 +1,6 @@
 # Security repair notes
 
-The 5.0.1 internal test build addresses the open control-center findings and updates
+The 5.0.1 maintenance build addresses the open control-center findings and updates
 the actual FRPS build dependencies. The published FRPS `0.70.1-r3` dependency is
 recorded with its signed manifest in `deploy/frps/`.
 

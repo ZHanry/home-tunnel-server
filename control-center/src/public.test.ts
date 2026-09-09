@@ -65,17 +65,17 @@ test("public landing page stays available while Windows release metadata is abse
     assert.equal(landing.headers["cache-control"], "no-cache");
     assert.match(landing.body.toString("utf8"), /桌面图形客户端/);
     assert.match(landing.body.toString("utf8"), /Linux \/ macOS 无界面服务/);
-    assert.match(landing.body.toString("utf8"), /当前为内部测试，客户端以源码构建为主/);
+    assert.doesNotMatch(landing.body.toString("utf8"), /内部测试|Experimental|Beta/);
     assert.match(
       landing.body.toString("utf8"),
-      /id="hero-download"[^>]*https:\/\/github\.com\/ZHanry\/home-tunnel-client#windows-x64/,
+      /id="hero-download"[^>]*https:\/\/github\.com\/ZHanry\/home-tunnel-client\/releases\/latest/,
     );
     assert.doesNotMatch(landing.body.toString("utf8"), /home-tunnel\/releases\/latest\/download/);
     assert.match(landing.body.toString("utf8"), /home-tunnel-client status/);
-    assert.match(landing.body.toString("utf8"), /app\.js\?v=5\.0\.1-user-console/);
+    assert.match(landing.body.toString("utf8"), /app\.js\?v=6\.0\.0/);
     assert.match(landing.body.toString("utf8"), /type="module"/);
-    assert.match(landing.body.toString("utf8"), /v2\.css\?v=5\.0\.1-user-console/);
-    assert.match(landing.body.toString("utf8"), /theme\.js\?v=5\.0\.1-locale/);
+    assert.match(landing.body.toString("utf8"), /console\.css\?v=6\.0\.0/);
+    assert.match(landing.body.toString("utf8"), /theme\.js\?v=6\.0\.0/);
     assert.match(landing.body.toString("utf8"), /data-locale-toggle/);
     assert.doesNotMatch(landing.body.toString("utf8"), /实时同步正常|系统健康|受管请求路径/);
     assert.match(landing.body.toString("utf8"), /id="page-actions"/);
@@ -96,28 +96,19 @@ test("public landing page stays available while Windows release metadata is abse
     assert.equal(publicConfigValue.frps_port, 7000);
     assert.equal(publicConfigValue.frps_tls_certificate_pem, frpsCertificatePem);
 
-    const stylesheet = await request(origin + "/v2.css?v=5.0.1-user-console");
+    const stylesheet = await request(origin + "/console.css?v=6.0.0");
     assert.equal(stylesheet.status, 200);
     assert.equal(stylesheet.headers["cache-control"], "public, max-age=31536000, immutable");
 
-    const themeScript = await request(origin + "/theme.js?v=5.0.1-locale");
+    const themeScript = await request(origin + "/theme.js?v=6.0.0");
     assert.equal(themeScript.status, 200);
     assert.match(themeScript.body.toString("utf8"), /ht_locale/);
 
-    const applicationScript = await request(origin + "/app.js?v=5.0.1-user-console");
+    const applicationScript = await request(origin + "/app.js?v=6.0.0");
     assert.equal(applicationScript.status, 200);
-    assert.match(
-      applicationScript.body.toString("utf8"),
-      /\.\/modules\/api\.js\?v=5\.0\.1-modules2/,
-    );
-    assert.match(
-      applicationScript.body.toString("utf8"),
-      /\.\/modules\/locale\.js\?v=5\.0\.1-modules2/,
-    );
-    assert.match(
-      applicationScript.body.toString("utf8"),
-      /\.\/modules\/realtime\.js\?v=5\.0\.1-modules2/,
-    );
+    assert.match(applicationScript.body.toString("utf8"), /\.\/modules\/api\.js\?v=6\.0\.0/);
+    assert.match(applicationScript.body.toString("utf8"), /\.\/modules\/locale\.js\?v=6\.0\.0/);
+    assert.match(applicationScript.body.toString("utf8"), /\.\/modules\/realtime\.js\?v=6\.0\.0/);
     assert.match(applicationScript.body.toString("utf8"), /toLocaleString\(localeTag\(\)/);
     assert.equal(applicationScript.headers["cache-control"], "public, max-age=31536000, immutable");
     assert.match(applicationScript.body.toString("utf8"), /data-action="delete-device"/);
@@ -126,15 +117,12 @@ test("public landing page stays available while Windows release metadata is abse
       /凭据、会话、租约、连接和流量明细将被删除/,
     );
     assert.match(applicationScript.body.toString("utf8"), /api\/v1\/admin\/system\/health/);
-    assert.match(
-      applicationScript.body.toString("utf8"),
-      /请用户在家里的 Windows \/ macOS \/ Linux 电脑上安装图形客户端并登录/,
-    );
+    assert.match(applicationScript.body.toString("utf8"), /在家庭电脑上安装客户端/);
     assert.match(applicationScript.body.toString("utf8"), /TCP（RTSP \/ SSH \/ RDP \/ 数据库等）/);
     assert.match(applicationScript.body.toString("utf8"), /UDP（固定端口）/);
     assert.doesNotMatch(applicationScript.body.toString("utf8"), /data-action="revoke-device"/);
 
-    const localeModule = await request(origin + "/modules/locale.js?v=5.0.1-modules2");
+    const localeModule = await request(origin + "/modules/locale.js?v=6.0.0");
     assert.equal(localeModule.status, 200);
     assert.match(localeModule.body.toString("utf8"), /const zhToEn =/);
     assert.match(localeModule.body.toString("utf8"), /Switch to English/);
@@ -146,7 +134,7 @@ test("public landing page stays available while Windows release metadata is abse
     assert.match(localeModule.body.toString("utf8"), /record\.type === "characterData"/);
     assert.equal(localeModule.headers["cache-control"], "public, max-age=31536000, immutable");
 
-    const realtimeModule = await request(origin + "/modules/realtime.js?v=5.0.1-modules2");
+    const realtimeModule = await request(origin + "/modules/realtime.js?v=6.0.0");
     assert.equal(realtimeModule.status, 200);
     assert.match(realtimeModule.body.toString("utf8"), /config\.version\.changed/);
     assert.match(realtimeModule.body.toString("utf8"), /export function disconnectRealtime/);

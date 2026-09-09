@@ -206,7 +206,8 @@ export function requireActor(request: AuthenticatedRequest): AuthenticatedActor 
 
 export function requireAdmin(request: AuthenticatedRequest): AuthenticatedActor {
   const actor = requireActor(request);
-  if (actor.role !== "admin") throw new HttpError(403, "FORBIDDEN", "需要管理员权限");
+  if (actor.role !== "admin" || actor.deviceId)
+    throw new HttpError(403, "FORBIDDEN", "请使用管理控制台的管理员会话");
   return actor;
 }
 

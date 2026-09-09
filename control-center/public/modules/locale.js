@@ -1,9 +1,70 @@
-import { state } from "./state.js?v=5.0.1-modules2";
+import { state } from "./state.js?v=6.0.0";
 
 const appShell = document.querySelector("#app-shell");
 
 const localeStorageKey = "ht_locale";
 const zhToEn = {
+  查找用户: "Find a user",
+  用户名或显示名称: "Username or display name",
+  "最多显示 100 位用户，使用搜索查找更多账号。":
+    "Showing up to 100 users. Search to find another account.",
+  "此部署保留一名管理员。普通用户独立管理自己的设备与连接。":
+    "This deployment has one administrator. Each user manages their own devices and connections.",
+  唯一管理员: "Deployment owner",
+  管理账号: "Manage account",
+  删除用户: "Delete user",
+  确认删除用户: "Confirm user deletion",
+  "用户已删除，设备访问权限已撤销": "User deleted. Device access has been revoked.",
+  "一切就绪，连接你的日常。": "Everything is ready. Connect to your day.",
+  "有些服务需要你的关注。": "Some services need your attention.",
+  "从这里管理设备、访问权限和每一条家庭连接。": "Manage devices, access and every connection home.",
+  当前部署: "Current deployment",
+  "24 小时流量": "24-hour traffic",
+  在线连接: "Online connections",
+  全部连接: "All connections",
+  "过去 24 小时 · 按实际使用量排序": "Last 24 hours \u00b7 Ranked by usage",
+  还没有流量记录: "No traffic recorded yet",
+  "发布服务并访问后，这里会显示使用情况。": "Publish and visit a service to see its activity here.",
+  让下一台设备加入: "Connect your next device",
+  "创建用户，将账号交给设备使用者。客户端登录后会自动登记这台机器。":
+    "Create an account for the device owner. Signing in on the client registers the computer.",
+  "一台设备，一个独立的服务空间": "One device, one service workspace",
+  客户端版本: "Client version",
+  配置同步: "Configuration sync",
+  在这台设备上登录客户端以保持连接: "Sign in on this device to keep it connected",
+  "在家庭电脑上安装客户端，用当前账号登录，设备就会出现在这里。":
+    "Install the client on a home computer and sign in with this account to register it.",
+  "你的设备与服务，在这里相连。": "Your devices and services, connected here.",
+  "创建普通用户，让家人使用自己的账号接入。":
+    "Create an account so each family member can connect independently.",
+  下载桌面客户端: "Download desktop client",
+  "你的家，": "Your home,",
+  "始终在线。": "Always connected.",
+  "一条连接，三个位置": "One connection, three places",
+  家中的设备: "Devices at home",
+  你自己的服务器: "Your own server",
+  现在的你: "You, wherever you are",
+  "电脑 / NAS / Home Assistant": "Computer / NAS / Home Assistant",
+  "账号、访问策略、连接状态": "Accounts, access policies and connection status",
+  "手机、浏览器，或另一台电脑": "A phone, browser or another computer",
+  开始连接: "Get connected",
+  "每台设备，各司其职。": "The right app for every device.",
+  "下载 Windows / macOS / Linux →": "Download Windows / macOS / Linux \u2192",
+  "下载 Android APK →": "Download Android APK \u2192",
+  "Home Tunnel · 开源、自托管": "Home Tunnel \u00b7 Open source and self-hosted",
+  "家中的服务，": "Services at home,",
+  "随时在身边。": "always within reach.",
+  "一个入口，连接你的设备、服务与日常。": "One place for your devices, services and daily life.",
+  你的服务器: "Your server",
+  随处访问: "Connect anywhere",
+  "把家里的相册、NAS 和应用带在身边。通过自己的服务器，安全访问每一项家庭服务。":
+    "Keep your photos, NAS and home apps within reach through your own server.",
+  "登录后自动登记本机。发布本地服务，查看连接状态，复制访问地址。":
+    "Sign in to register this computer, publish services, check status and copy addresses.",
+  "让 NAS 和家庭主机持续运行。安装包内附命令行客户端和后台服务配置。":
+    "Keep a NAS or home server connected with the included command-line client and service configuration.",
+  "按设备查看服务、创建连接、调整设置。无需在手机上运行转发进程。":
+    "Find services by device, create connections and adjust settings from your phone.",
   "已保留非敏感修改，重新打开可继续编辑；密码需重新填写":
     "Non-sensitive edits are kept in this tab. Reopen to continue; enter passwords again.",
   "已关闭，密码不会保留": "Closed. Passwords are not retained.",
@@ -14,8 +75,8 @@ const zhToEn = {
   "GitHub 仓库": "GitHub repository",
   登录后台: "Admin sign in",
   登录控制台: "Sign in to console",
-  内部测试: "Internal testing",
-  "内部测试 · 自托管 Web / TCP / UDP": "Internal testing · Self-hosted Web / TCP / UDP",
+  正式版: "Official release",
+  "正式版 · 自托管 Web / TCP / UDP": "Official release · Self-hosted Web / TCP / UDP",
   "家庭私有服务，": "Private services at home,",
   安全穿透直达: "securely accessible anywhere",
   "无需家庭公网 IP 或路由器端口映射，受管发布 Web、通用 TCP 与固定端口 UDP 服务；RTSP-over-TCP 可直接使用通用 TCP 映射。":
@@ -23,14 +84,11 @@ const zhToEn = {
   选择客户端平台: "Choose a client platform",
   "Windows 图形客户端": "Windows desktop client",
   桌面图形客户端: "Desktop GUI client",
-  "Home Tunnel 5.0.1 Windows 图形客户端预览": "Home Tunnel 5.0.1 Windows desktop client preview",
   "Home Tunnel 桌面图形客户端开发预览": "Home Tunnel desktop GUI development preview",
   "Linux 客户端快速开始": "Linux client quick start",
   "Windows x64 EXE": "Windows x64 EXE",
-  "Windows EXE 为自签名 Experimental；安装时会提示未知发布者，请先核对 Release SHA-256。":
-    "The Windows EXE is self-signed Experimental software. Expect an unknown-publisher warning and verify the Release SHA-256 first.",
-  "当前为内部测试，客户端以源码构建为主。Windows / macOS / Linux 共用图形客户端，NAS 可使用 CLI 服务。":
-    "Internal testing uses source builds. Windows, macOS and Linux share the graphical client; NAS hosts can use the CLI service.",
+  "当前为正式版，客户端以源码构建为主。Windows / macOS / Linux 共用图形客户端，NAS 可使用 CLI 服务。":
+    "Official release uses source builds. Windows, macOS and Linux share the graphical client; NAS hosts can use the CLI service.",
   "Windows x64 图形客户端": "Windows x64 GUI client",
   "家里的电脑用同一套图形客户端；NAS 和无桌面主机用 Linux CLI 服务。":
     "Use the same graphical client on home computers; NAS and headless hosts use the Linux CLI service.",
@@ -75,7 +133,6 @@ const zhToEn = {
   按设备选择运行方式: "Choose how each device runs",
   "两种客户端都只接受控制中心签发的 HTTP/HTTPS、自定义域名与管理员精确授权的 TCP/UDP 端口。端口隧道默认关闭并绕过 HTTP 网关；应用必须自行认证加密，并在防火墙限源限速。不提供通用 FRP 命令行。":
     "Both clients accept only control-center-issued HTTP/HTTPS and custom-domain configurations plus exact administrator-authorized TCP/UDP ports. Raw-port tunnels are off by default and bypass the HTTP gateway; applications must authenticate and encrypt, with firewall source/rate limits. Neither client exposes a general-purpose FRP CLI.",
-  "自签名 / Experimental": "Self-signed / Experimental",
   "登录、连接管理与实时配置通知":
     "Sign-in, connection management, and real-time configuration updates",
   "系统托盘、开机启动与诊断": "System tray, startup, and diagnostics",
@@ -87,8 +144,6 @@ const zhToEn = {
   "适合 NAS、家庭服务器和常开的 Linux/macOS 主机；支持实时配置通知，不含 GUI 与自动更新。":
     "Designed for NAS devices, home servers, and always-on Linux/macOS hosts, with realtime configuration notifications but no GUI or automatic updates.",
   查看安装与运维说明: "View installation and operations guide",
-  "Linux Stable · macOS headless Beta · Windows x64 self-signed Experimental":
-    "Linux Stable · macOS headless Beta · Windows x64 self-signed Experimental",
   "返回 Home Tunnel 产品首页": "Back to the Home Tunnel home page",
   登录控制中心: "Sign in to Control Center",
   "使用管理员账号继续。": "Continue with an administrator account.",
@@ -108,7 +163,6 @@ const zhToEn = {
   保存新密码: "Save new password",
   返回产品首页: "Back to product home",
   主导航: "Main navigation",
-  "控制中心 v5.0.1": "Control Center v5.0.1",
   工作区: "Workspace",
   系统总览: "Overview",
   用户管理: "Users",

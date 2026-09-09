@@ -27,6 +27,7 @@ const users = [
     username: "lin",
     display_name: "林先生",
     role: "user",
+    version: 1,
     status: "active",
     password_state: "normal",
     device_count: 1,
@@ -39,6 +40,7 @@ const users = [
     username: "ops.demo",
     display_name: "家庭运维",
     role: "user",
+    version: 1,
     status: "active",
     password_state: "must_change",
     device_count: 1,
@@ -55,7 +57,7 @@ const devices = [
     name: "书房主机",
     status: "active",
     online: true,
-    client_version: "5.0.1",
+    client_version: "6.0.0",
     agent_version: "5.0.1",
     applied_config_version: 12,
     config_version: 12,
@@ -69,7 +71,7 @@ const devices = [
     name: "家庭服务器",
     status: "active",
     online: false,
-    client_version: "5.0.1",
+    client_version: "6.0.0",
     agent_version: "5.0.1",
     applied_config_version: 4,
     config_version: 5,
@@ -274,6 +276,14 @@ app.get("/api/v1/admin/traffic/summary", (_request, response) =>
     ],
   }),
 );
+app.delete("/api/v1/admin/users/:id", (request, response) => {
+  const index = users.findIndex((user) => user.id === request.params.id);
+  if (index < 0) return response.status(404).json({ error_code: "NOT_FOUND" });
+  if (request.body.expected_version !== users[index].version)
+    return response.status(409).json({ error_code: "VERSION_CONFLICT" });
+  users.splice(index, 1);
+  return response.status(204).end();
+});
 app.get("/api/v1/admin/users", (_request, response) => response.json({ items: users }));
 app.get("/api/v1/admin/devices", (_request, response) => response.json({ items: devices }));
 for (const role of ["admin", "client"]) {

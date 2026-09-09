@@ -59,8 +59,8 @@ after(async () => {
   await closeDatabase();
 });
 
-async function connect(): Promise<WebSocket> {
-  const socket = new WebSocket(origin, { headers: { authorization: `Bearer ${accessToken}` } });
+async function connect(token = accessToken): Promise<WebSocket> {
+  const socket = new WebSocket(origin, { headers: { authorization: `Bearer ${token}` } });
   socket.on("error", () => undefined);
   const connected = once(socket, "message");
   await once(socket, "open");
@@ -149,6 +149,52 @@ test("publishes and marks a recipient outbox event delivered", async () => {
   socket.close();
   await once(socket, "close");
   await waitForClientCount(0);
+});
+
+test("administrator device sockets only receive their own device events while management sees both", async () => {
+  const owner = "22222222-2222-4222-8222-222222222222";
+  const first = "33333333-3333-4333-8333-333333333333";
+  const second = "44444444-4444-4444-8444-444444444444";
+  const sessions = await transaction(async (client) => {
+    await client.query(
+      "INSERT INTO users(id,username,display_name,password_hash,password_state,role) VALUES(?,?,?,?,'normal','admin')",
+      [owner, "socket-owner", "Owner", "hash"],
+    );
+    for (const id of [first, second])
+      await client.query(
+        "INSERT INTO devices(id,user_id,name,install_id,fingerprint_hash,credential_hash) VALUES(?,?,?,?,?,?)",
+        [id, owner, id, id, id, id],
+      );
+    return [
+      await issueSession(client, { id: owner, token_version: 1 }, first),
+      await issueSession(client, { id: owner, token_version: 1 }, null),
+    ];
+  });
+  const local = await connect(sessions[0]!.accessToken);
+  const manager = await connect(sessions[1]!.accessToken);
+  const localIds: string[] = [],
+    managerIds: string[] = [];
+  local.on("message", (data) => localIds.push(JSON.parse(data.toString()).resource_id));
+  manager.on("message", (data) => managerIds.push(JSON.parse(data.toString()).resource_id));
+  const received = once(local, "message");
+  try {
+    await transaction(async (client) => {
+      for (const device of [second, first])
+        await client.query(
+          "INSERT INTO outbox_events(event_type,resource_type,resource_id,resource_version,recipient_user_id,recipient_device_id,payload) VALUES('connection.command','Connection',?,1,?,?,?)",
+          [device, owner, device, { action: "update" }],
+        );
+    });
+    await received;
+    assert.deepEqual(localIds, [first]);
+    // The manager's messages are on a separate socket; its last event is our barrier.
+    if (managerIds.length < 2) await once(manager, "message");
+    assert.deepEqual(managerIds, [second, first]);
+  } finally {
+    local.close();
+    manager.close();
+    await Promise.all([once(local, "close"), once(manager, "close")]);
+  }
 });
 
 test("accepts a same-origin cookie-authenticated upgrade", async () => {

@@ -32,5 +32,19 @@ class ReleasePolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "Unknown release stage"):
             module.validate_release_tag("v1.0.0", "1.0.0", "publc-release")
 
+    def test_public_asset_list_keeps_only_installable_deliverables(self):
+        self.assertEqual(module.public_asset_names("android", "6.0.0"), ["HomeTunnel-Android-6.0.0-arm64-v8a.apk"])
+        client = module.public_asset_names("client", "6.0.0")
+        self.assertEqual(len(client), 6)
+        self.assertTrue(all(name.endswith((".exe", ".zip", ".tar.gz")) for name in client))
+        self.assertEqual(module.public_asset_names("server", "6.0.0"), ["home-tunnel-server-6.0.0.tar.gz", "compose.release.yaml"])
+
+    def test_public_asset_list_keeps_only_installable_deliverables(self):
+        self.assertEqual(module.public_asset_names("android", "6.0.0"), ["HomeTunnel-Android-6.0.0-arm64-v8a.apk"])
+        client = module.public_asset_names("client", "6.0.0")
+        self.assertEqual(len(client), 6)
+        self.assertTrue(all(name.endswith((".exe", ".zip", ".tar.gz")) for name in client))
+        self.assertEqual(module.public_asset_names("server", "6.0.0"), ["home-tunnel-server-6.0.0.tar.gz", "compose.release.yaml"])
+
 if __name__ == "__main__":
     unittest.main()

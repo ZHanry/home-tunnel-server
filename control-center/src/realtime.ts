@@ -172,10 +172,11 @@ export function attachRealtime(
             for (const clientSocket of websocketServer.clients) {
               const live = clientSocket as LiveSocket;
               if (live.readyState !== WebSocket.OPEN || !live.identity) continue;
-              const isAdmin = live.identity.role === "admin";
+              const isAdmin = live.identity.role === "admin" && !live.identity.deviceId;
               const isRecipient =
                 (!event.recipient_user_id || event.recipient_user_id === live.identity.userId) &&
-                (!event.recipient_device_id ||
+                (!live.identity.deviceId ||
+                  !event.recipient_device_id ||
                   event.recipient_device_id === live.identity.deviceId);
               if (isAdmin || isRecipient) {
                 if (live.bufferedAmount > 1024 * 1024) {

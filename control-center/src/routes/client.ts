@@ -53,6 +53,44 @@ function clientGuard(request: Parameters<typeof requireActor>[0]) {
   return actor;
 }
 
+// A registered computer is restricted to its own resources. Unbound Web and
+// Android management sessions can manage all devices owned by their account.
+router.use(
+  "/client",
+  asyncHandler(async (request, _response, next) => {
+    const actor = requirePasswordNormal(request);
+    if (!actor.deviceId) {
+      next();
+      return;
+    }
+    const requestedOwner = request.body?.user_id ?? request.query.user_id;
+    if (requestedOwner && requestedOwner !== actor.userId)
+      throw new HttpError(403, "FORBIDDEN", "不能查询其他用户的资源");
+    const requestedDevice = request.body?.device_id ?? request.query.device_id;
+    if (requestedDevice && requestedDevice !== actor.deviceId)
+      throw new HttpError(404, "OWNERSHIP_MISMATCH", "设备不存在");
+    const connectionId =
+      /^\/connections\/([^/]+)/.exec(request.path)?.[1] ?? request.query.connection_id;
+    if (connectionId) {
+      const connection = await one<{ id: string }>(
+        "SELECT id FROM connections WHERE id=? AND user_id=? AND device_id=? AND deleted_at IS NULL",
+        [connectionId, actor.userId, actor.deviceId],
+      );
+      if (!connection) throw new HttpError(404, "OWNERSHIP_MISMATCH", "连接不存在");
+    }
+    const domainId = /^\/custom-domains\/([^/]+)/.exec(request.path)?.[1];
+    if (domainId) {
+      const domain = await one<{ id: string }>(
+        `SELECT cd.id FROM custom_domains cd JOIN connections c ON c.id=cd.connection_id
+       WHERE cd.id=? AND c.user_id=? AND c.device_id=? AND c.deleted_at IS NULL`,
+        [domainId, actor.userId, actor.deviceId],
+      );
+      if (!domain) throw new HttpError(404, "OWNERSHIP_MISMATCH", "域名不存在");
+    }
+    next();
+  }),
+);
+
 router.post(
   "/devices/register",
   asyncHandler(async (request, response) => {
@@ -82,6 +120,8 @@ router.post(
       let deviceId: string;
       let configVersion: number;
       let createdAt: Date;
+      if (actor.deviceId && existing.rows[0]?.id !== actor.deviceId)
+        throw new HttpError(403, "FORBIDDEN", "请使用账号密码登录后登记新设备");
       if (existing.rows[0]) {
         if (existing.rows[0].status !== "active")
           throw new HttpError(423, "DEVICE_REVOKED", "设备已撤销");
@@ -218,9 +258,9 @@ router.get(
     }>(
       `SELECT id,user_id,name,status,config_version,applied_config_version,client_version,agent_version,
               last_seen_at,lease_expires_at,created_at
-         FROM devices WHERE user_id=? AND revoked_at IS NULL
+         FROM devices WHERE user_id=? AND revoked_at IS NULL AND (? IS NULL OR id=?)
          ORDER BY last_seen_at DESC NULLS LAST, created_at DESC LIMIT 200`,
-      [actor.userId],
+      [actor.userId, actor.deviceId, actor.deviceId],
     );
     response.json({
       items: rows.map((row) => ({
@@ -239,8 +279,9 @@ router.get(
   asyncHandler(async (request, response) => {
     const actor = requirePasswordNormal(request);
     const rows = await query<ConnectionRow>(
-      `${clientConnectionSelect} WHERE c.user_id=? AND c.deleted_at IS NULL ORDER BY c.updated_at DESC`,
-      [actor.userId],
+      `${clientConnectionSelect} WHERE c.user_id=? AND c.deleted_at IS NULL
+       AND (? IS NULL OR c.device_id=?) ORDER BY c.updated_at DESC`,
+      [actor.userId, actor.deviceId, actor.deviceId],
     );
     const domains = await customDomainsByConnection(rows.map((row) => row.id));
     response.json({ items: rows.map((row) => publicConnection(row, domains.get(row.id) ?? [])) });
@@ -754,11 +795,11 @@ router.get(
       `SELECT connection_id,sum(upload_bytes) AS upload_bytes,
               sum(download_bytes) AS download_bytes,sum(request_count) AS request_count
          FROM (
-           SELECT connection_id,upload_bytes,download_bytes,request_count FROM traffic_samples WHERE user_id=?
+           SELECT connection_id,upload_bytes,download_bytes,request_count FROM traffic_samples WHERE user_id=? AND (? IS NULL OR device_id=?)
            UNION ALL
-           SELECT connection_id,upload_bytes,download_bytes,request_count FROM traffic_hourly WHERE user_id=?
+           SELECT connection_id,upload_bytes,download_bytes,request_count FROM traffic_hourly WHERE user_id=? AND (? IS NULL OR device_id=?)
          ) samples GROUP BY connection_id`,
-      [actor.userId, actor.userId],
+      [actor.userId, actor.deviceId, actor.deviceId, actor.userId, actor.deviceId, actor.deviceId],
     );
     response.json({
       items: rows.map((row) => ({

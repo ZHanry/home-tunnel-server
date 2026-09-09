@@ -1,5 +1,5 @@
-import { localizedApiError } from "./locale.js?v=5.0.1-modules2";
-import { state } from "./state.js?v=5.0.1-modules2";
+import { localizedApiError } from "./locale.js?v=6.0.0";
+import { state } from "./state.js?v=6.0.0";
 
 let refreshInFlight = null;
 
