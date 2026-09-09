@@ -155,6 +155,7 @@ jobs:
       env:
         RC_VERSION: ${{ needs.metadata.outputs.rc-version }}
         SMOKE_ARCH: ${{ matrix.arch }}
+        HOME_TUNNEL_SMOKE_CLIENT_CREATION: "1"
       run: |
         set -euo pipefail
         python3 scripts/fetch-client-baseline.py "$SMOKE_ARCH" release

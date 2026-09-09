@@ -630,6 +630,10 @@ def main() -> None:
     connection_ids: list[str] = []
     raw_connections: dict[str, dict[str, object]] = {}
     original_admin_hash: str | None = None
+    original_client_creation_policy: str | None = None
+    exercise_client_creation = os.environ.get("HOME_TUNNEL_SMOKE_CLIENT_CREATION") == "1"
+    if exercise_client_creation and os.environ.get("HOME_TUNNEL_CONTROL_CONTAINER") != "home-tunnel-release-control-center":
+        raise RuntimeError("Client-creation smoke is restricted to the isolated release stack")
 
     def sqlite(statements: list[dict[str, object]]) -> list[object]:
         bridge = r"""
@@ -702,6 +706,8 @@ try {
         ])
 
     def cleanup_database() -> None:
+        if original_client_creation_policy is not None:
+            sqlite([{"sql": "UPDATE deployment_settings SET value=? WHERE key='client_raw_tunnels_enabled'", "parameters": [original_client_creation_policy]}])
         if not user_id or not uuid.UUID(user_id):
             return
         sqlite([
@@ -801,15 +807,16 @@ try {
                 }, user_token, (201,))
                 connection_ids.append(connection["id"])
 
+            if exercise_client_creation:
+                original_client_creation_policy = str(sqlite_value("SELECT value FROM deployment_settings WHERE key='client_raw_tunnels_enabled'") or "false")
+                api("PATCH", "/api/v1/admin/settings", {"client_raw_tunnels_enabled": True}, admin_token)
+
             for label, proxy_type, remote_port, local_port in [
                 ("tcp_echo", "tcp", 11000, tcp_server.server_address[1]),
                 ("udp_echo", "udp", 11001, udp_server.server_address[1]),
                 ("rtsp_interleaved", "tcp", 11002, rtsp_server.server_address[1]),
             ]:
-                connection = api(
-                    "POST",
-                    "/api/v1/admin/connections",
-                    {
+                body = {
                         "user_id": user_id,
                         "device_id": device_id,
                         "name": f"Deployment {label.replace('_', ' ').upper()} Smoke",
@@ -821,10 +828,17 @@ try {
                         "local_port": local_port,
                         "enabled": True,
                         "bandwidth_limit_bps": None,
-                    },
-                    admin_token,
-                    (201,),
-                )
+                    }
+                if exercise_client_creation and label == "rtsp_interleaved":
+                    for field in ("user_id", "remote_port", "subdomain"):
+                        body.pop(field)
+                    body["application_protocol"] = "rtsp"
+                    connection = api("POST", "/api/v1/client/connections", body, user_token, (201,))
+                    remote_port = connection.get("remote_port")
+                    if not isinstance(remote_port, int) or not 11000 <= remote_port <= 11009 or connection.get("application_protocol") != "rtsp" or not str(connection.get("access_url", "")).startswith("rtsp://"):
+                        raise RuntimeError("Client RTSP creation did not return a valid allocated TCP endpoint")
+                else:
+                    connection = api("POST", "/api/v1/admin/connections", body, admin_token, (201,))
                 if (
                     connection.get("proxy_type") != proxy_type
                     or connection.get("remote_port") != remote_port

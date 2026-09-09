@@ -1,17 +1,17 @@
 {
   "repository": "ZHanry/home-tunnel-client",
-  "tag": "v6.0.0",
-  "version": "6.0.0",
+  "tag": "v6.1.0",
+  "version": "6.1.0",
   "packages": {
     "amd64": {
-      "file": "home-tunnel-linux-6.0.0-amd64.tar.gz",
-      "sha256": "a55141d2680732e6123796db9c84849cdc4518acf73b3ef1c76173b5779f715f",
-      "url": "https://github.com/ZHanry/home-tunnel-client/releases/download/v6.0.0/home-tunnel-linux-6.0.0-amd64.tar.gz"
+      "file": "home-tunnel-linux-6.1.0-amd64.tar.gz",
+      "sha256": "6fd1026c9c79e1f149770dd7d358b2c9337644dc66e108a8ec86c9841692bd7d",
+      "url": "https://github.com/ZHanry/home-tunnel-client/releases/download/v6.1.0/home-tunnel-linux-6.1.0-amd64.tar.gz"
     },
     "arm64": {
-      "file": "home-tunnel-linux-6.0.0-arm64.tar.gz",
-      "sha256": "630a30419a5dfbdb321e3f0482b0e635924af600b2308f0ebb4fc39644137a0d",
-      "url": "https://github.com/ZHanry/home-tunnel-client/releases/download/v6.0.0/home-tunnel-linux-6.0.0-arm64.tar.gz"
+      "file": "home-tunnel-linux-6.1.0-arm64.tar.gz",
+      "sha256": "5d1e332541cf0f9a61720d9ca776338f2a8825a81868f183c80fb942d739acc8",
+      "url": "https://github.com/ZHanry/home-tunnel-client/releases/download/v6.1.0/home-tunnel-linux-6.1.0-arm64.tar.gz"
     }
   }
 }
