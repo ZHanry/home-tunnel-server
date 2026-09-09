@@ -847,6 +847,10 @@ try {
                 raw_connections[label] = connection
                 connection_ids.append(connection["id"])
 
+            tcp_port = int(raw_connections["tcp_echo"]["remote_port"])
+            udp_port = int(raw_connections["udp_echo"]["remote_port"])
+            rtsp_port = int(raw_connections["rtsp_interleaved"]["remote_port"])
+
             sync_request = {
                 "device_id": device_id,
                 "last_config_version": 0,
@@ -1077,15 +1081,15 @@ try {
             )
             tcp_echo_roundtrip(
                 raw_connect_host,
-                11000,
+                tcp_port,
                 b"home-tunnel-tcp\x00\xff" + os.urandom(128 * 1024),
             )
             udp_echo_roundtrip(
                 raw_connect_host,
-                11001,
+                udp_port,
                 b"home-tunnel-udp\x00\xff" + os.urandom(1024),
             )
-            rtsp_interleaved_roundtrip(raw_connect_host, 11002)
+            rtsp_interleaved_roundtrip(raw_connect_host, rtsp_port)
             unknown_status, _ = fetch(f"https://{unknown_domain}/")
             if unknown_status < 400:
                 raise RuntimeError("Unassigned wildcard domain was unexpectedly routable")
@@ -1141,9 +1145,9 @@ try {
                 raise RuntimeError("Disabled raw connection remained enabled in client sync")
             start_frpc(sync_after_raw_disable, "ab")
             public_get(f"https://{https_domain}/", "home-tunnel-https")
-            rtsp_interleaved_roundtrip(raw_connect_host, 11002)
-            tcp_echo_denied(raw_connect_host, 11000)
-            udp_echo_denied(raw_connect_host, 11001)
+            rtsp_interleaved_roundtrip(raw_connect_host, rtsp_port)
+            tcp_echo_denied(raw_connect_host, tcp_port)
+            udp_echo_denied(raw_connect_host, udp_port)
 
             api(
                 "DELETE",
@@ -1151,7 +1155,7 @@ try {
                 token=admin_token,
                 expected=(204,),
             )
-            rtsp_interleaved_denied(raw_connect_host, 11002)
+            rtsp_interleaved_denied(raw_connect_host, rtsp_port)
 
             health = api("GET", "/api/v1/admin/system/health", token=admin_token)
             unhealthy = [item.get("component") for item in health["components"] if item.get("status") == "unhealthy"]
@@ -1181,9 +1185,9 @@ try {
                 "http_domain": http_domain,
                 "https_domain": https_domain,
                 "raw_endpoints": {
-                    "tcp": f"{raw_connect_host}:11000",
-                    "udp": f"{raw_connect_host}:11001",
-                    "rtsp": f"{raw_connect_host}:11002",
+                    "tcp": f"{raw_connect_host}:{tcp_port}",
+                    "udp": f"{raw_connect_host}:{udp_port}",
+                    "rtsp": f"{raw_connect_host}:{rtsp_port}",
                 },
             }, indent=2) + "\n", encoding="utf-8")
         finally:

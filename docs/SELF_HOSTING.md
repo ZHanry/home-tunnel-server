@@ -20,9 +20,9 @@
 推荐从 [Release](https://github.com/ZHanry/home-tunnel-server/releases/latest) 下载部署包。建立版本目录并解压：
 
 ```sh
-mkdir home-tunnel-server-6.1.0
-tar -xzf home-tunnel-server-6.1.0.tar.gz -C home-tunnel-server-6.1.0
-cd home-tunnel-server-6.1.0
+mkdir home-tunnel-server-6.1.1
+tar -xzf home-tunnel-server-6.1.1.tar.gz -C home-tunnel-server-6.1.1
+cd home-tunnel-server-6.1.1
 ```
 
 也可以使用源码：`git clone https://github.com/ZHanry/home-tunnel-server.git`，再进入 `home-tunnel-server` 目录。两种方式共用以下配置步骤。

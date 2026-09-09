@@ -1,4 +1,4 @@
-# Home Tunnel Server 6.1.0
+# Home Tunnel Server 6.1.1
 
 - 为客户端开放受控的 TCP/UDP 创建接口，端口从部署配置允许的范围内原子分配。
 - 增加 RTSP、SSH 和 RDP 应用预设元数据，RTSP 地址使用 rtsp:// 显示，底层仍由受管 TCP 隧道转发。
@@ -6,4 +6,6 @@
 - 返回传输能力和权限状态，旧版客户端保持兼容，设备间资源隔离继续生效。
 - 增加并发端口分配、端口耗尽与回收、权限和跨设备访问回归检查。
 
-此版本不会自动开放服务器防火墙或 Docker 端口。请保留现有配置，按 [自托管指南](https://github.com/ZHanry/home-tunnel-server/blob/v6.1.0/docs/SELF_HOSTING.md)启用所需的 TCP/UDP 范围，并使用客户端 6.1.0。已有连接保持原端口。
+此版本不会自动开放服务器防火墙或 Docker 端口。请保留现有配置，按 [自托管指南](https://github.com/ZHanry/home-tunnel-server/blob/v6.1.1/docs/SELF_HOSTING.md)启用所需的 TCP/UDP 范围，并使用客户端 6.1.0。已有连接保持原端口。
+
+- 发布联调、撤销验证和报告全部使用实际分配的 TCP/UDP/RTSP 端口，适配客户端自动分配流程。

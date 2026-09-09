@@ -72,10 +72,10 @@ test("public landing page stays available while Windows release metadata is abse
     );
     assert.doesNotMatch(landing.body.toString("utf8"), /home-tunnel\/releases\/latest\/download/);
     assert.match(landing.body.toString("utf8"), /home-tunnel-client status/);
-    assert.match(landing.body.toString("utf8"), /app\.js\?v=6\.1\.0/);
+    assert.match(landing.body.toString("utf8"), /app\.js\?v=6\.1\.1/);
     assert.match(landing.body.toString("utf8"), /type="module"/);
-    assert.match(landing.body.toString("utf8"), /console\.css\?v=6\.1\.0/);
-    assert.match(landing.body.toString("utf8"), /theme\.js\?v=6\.1\.0/);
+    assert.match(landing.body.toString("utf8"), /console\.css\?v=6\.1\.1/);
+    assert.match(landing.body.toString("utf8"), /theme\.js\?v=6\.1\.1/);
     assert.match(landing.body.toString("utf8"), /data-locale-toggle/);
     assert.doesNotMatch(landing.body.toString("utf8"), /实时同步正常|系统健康|受管请求路径/);
     assert.match(landing.body.toString("utf8"), /id="page-actions"/);
@@ -96,19 +96,19 @@ test("public landing page stays available while Windows release metadata is abse
     assert.equal(publicConfigValue.frps_port, 7000);
     assert.equal(publicConfigValue.frps_tls_certificate_pem, frpsCertificatePem);
 
-    const stylesheet = await request(origin + "/console.css?v=6.1.0");
+    const stylesheet = await request(origin + "/console.css?v=6.1.1");
     assert.equal(stylesheet.status, 200);
     assert.equal(stylesheet.headers["cache-control"], "public, max-age=31536000, immutable");
 
-    const themeScript = await request(origin + "/theme.js?v=6.1.0");
+    const themeScript = await request(origin + "/theme.js?v=6.1.1");
     assert.equal(themeScript.status, 200);
     assert.match(themeScript.body.toString("utf8"), /ht_locale/);
 
-    const applicationScript = await request(origin + "/app.js?v=6.1.0");
+    const applicationScript = await request(origin + "/app.js?v=6.1.1");
     assert.equal(applicationScript.status, 200);
-    assert.match(applicationScript.body.toString("utf8"), /\.\/modules\/api\.js\?v=6\.1\.0/);
-    assert.match(applicationScript.body.toString("utf8"), /\.\/modules\/locale\.js\?v=6\.1\.0/);
-    assert.match(applicationScript.body.toString("utf8"), /\.\/modules\/realtime\.js\?v=6\.1\.0/);
+    assert.match(applicationScript.body.toString("utf8"), /\.\/modules\/api\.js\?v=6\.1\.1/);
+    assert.match(applicationScript.body.toString("utf8"), /\.\/modules\/locale\.js\?v=6\.1\.1/);
+    assert.match(applicationScript.body.toString("utf8"), /\.\/modules\/realtime\.js\?v=6\.1\.1/);
     assert.match(applicationScript.body.toString("utf8"), /toLocaleString\(localeTag\(\)/);
     assert.equal(applicationScript.headers["cache-control"], "public, max-age=31536000, immutable");
     assert.match(applicationScript.body.toString("utf8"), /data-action="delete-device"/);
@@ -122,7 +122,7 @@ test("public landing page stays available while Windows release metadata is abse
     assert.match(applicationScript.body.toString("utf8"), /UDP（固定端口）/);
     assert.doesNotMatch(applicationScript.body.toString("utf8"), /data-action="revoke-device"/);
 
-    const localeModule = await request(origin + "/modules/locale.js?v=6.1.0");
+    const localeModule = await request(origin + "/modules/locale.js?v=6.1.1");
     assert.equal(localeModule.status, 200);
     assert.match(localeModule.body.toString("utf8"), /const zhToEn =/);
     assert.match(localeModule.body.toString("utf8"), /Switch to English/);
@@ -134,7 +134,7 @@ test("public landing page stays available while Windows release metadata is abse
     assert.match(localeModule.body.toString("utf8"), /record\.type === "characterData"/);
     assert.equal(localeModule.headers["cache-control"], "public, max-age=31536000, immutable");
 
-    const realtimeModule = await request(origin + "/modules/realtime.js?v=6.1.0");
+    const realtimeModule = await request(origin + "/modules/realtime.js?v=6.1.1");
     assert.equal(realtimeModule.status, 200);
     assert.match(realtimeModule.body.toString("utf8"), /config\.version\.changed/);
     assert.match(realtimeModule.body.toString("utf8"), /export function disconnectRealtime/);

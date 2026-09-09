@@ -2,7 +2,7 @@
   <img src="docs/assets/HomeTunnel.svg" alt="Home Tunnel" width="72" height="72">
   <h1>Home Tunnel Server</h1>
   <p><strong>The control center for accounts, devices and connections</strong></p>
-  <p><a href="https://github.com/ZHanry/home-tunnel-server/releases/latest"><img src="https://img.shields.io/badge/release-6.1.0-176653" alt="Release 6.1.0"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache-2.0"></a></p>
+  <p><a href="https://github.com/ZHanry/home-tunnel-server/releases/latest"><img src="https://img.shields.io/badge/release-6.1.1-176653" alt="Release 6.1.1"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache-2.0"></a></p>
   <p><a href="README.md">简体中文</a> · <a href="https://zhanry.github.io/home-tunnel/">Website</a></p>
 </div>
 
@@ -12,7 +12,7 @@ The 6.0 release rebuilds the Web console with top navigation, device cards and t
 
 ## Install and upgrade
 
-Download `home-tunnel-server-6.1.0.tar.gz` from [Releases](https://github.com/ZHanry/home-tunnel-server/releases/latest), then follow [self-hosting](docs/SELF_HOSTING.md). Linux amd64 / arm64, Docker Compose, a public host and DNS are required.
+Download `home-tunnel-server-6.1.1.tar.gz` from [Releases](https://github.com/ZHanry/home-tunnel-server/releases/latest), then follow [self-hosting](docs/SELF_HOSTING.md). Linux amd64 / arm64, Docker Compose, a public host and DNS are required.
 
 Read [upgrading](docs/UPGRADING.md) for existing deployments. The migration retains the earliest active administrator and converts additional administrators to ordinary users while preserving accounts and resources. Back up data and configuration first.
 
