@@ -1,6 +1,6 @@
 # 自托管部署指南
 
-本指南用于部署 Home Tunnel 6.0 正式版。请将示例域名、IP 和邮箱替换为自己的配置。已有部署请先阅读 [升级指南](UPGRADING.md)。
+本指南用于部署 Home Tunnel 6.2.0 正式版。请将示例域名、IP 和邮箱替换为自己的配置。已有部署请先阅读 [升级指南](UPGRADING.md)。
 
 ## 环境和 DNS
 
@@ -20,9 +20,9 @@
 推荐从 [Release](https://github.com/ZHanry/home-tunnel-server/releases/latest) 下载部署包。建立版本目录并解压：
 
 ```sh
-mkdir home-tunnel-server-6.1.1
-tar -xzf home-tunnel-server-6.1.1.tar.gz -C home-tunnel-server-6.1.1
-cd home-tunnel-server-6.1.1
+mkdir home-tunnel-server-6.2.0
+tar -xzf home-tunnel-server-6.2.0.tar.gz -C home-tunnel-server-6.2.0
+cd home-tunnel-server-6.2.0
 ```
 
 也可以使用源码：`git clone https://github.com/ZHanry/home-tunnel-server.git`，再进入 `home-tunnel-server` 目录。两种方式共用以下配置步骤。
@@ -59,6 +59,34 @@ cat deploy/secrets/bootstrap_admin_password
 在控制台创建一个指向本地 HTTP 服务的连接，验证访问、暂停、恢复和客户端重启。
 
 Android 的[正式 APK](https://github.com/ZHanry/home-tunnel-android/releases/latest)用于管理已经注册的设备。它不要求手机运行隧道进程。
+
+## 在管理员界面管理 TCP/UDP
+
+6.2.0 起，使用管理员账号打开 **系统设置 → 端口与协议**，分别设置 TCP、UDP 的启用状态、起始端口和结束端口，再点击「保存设置」。端口必须位于服务器预留的池内。页面显示已分配端口、范围内空闲端口和已启用连接数。
+
+设置保存在 SQLite，保存后立即用于客户端能力查询、自动分配、连接编辑、配置同步和 FRPS 接入校验，无需重启容器。普通用户还需勾选「允许普通用户自行创建 TCP/UDP 连接」；管理员可直接在自己的设备上创建。
+
+- 已经使用 `compose.tcp.yaml`、`compose.udp.yaml` 或 `compose.l4.yaml` 的部署：保留原覆盖文件和端口配置，升级后即可在页面管理。首次保存前沿用原来的启用状态和端口范围。
+- 尚未预留端口的部署：页面显示「端口池未准备」，需要先完成下面的一次性准备。无需手动编辑 `.env` 即可使用默认的 10 个端口。
+- 关闭协议或缩小范围若影响已启用连接，保存会被拒绝并提示连接数量。先在连接管理中暂停或调整这些连接，再保存。暂停的连接保留原公网端口；重新启用时必须满足当前范围。
+- 两个管理页面同时修改时，后保存的旧版本会被拒绝，刷新后重试。端口分配与范围修改在同一数据库事务序列中执行，避免端口分配竞态。
+
+### 首次准备端口池（一次性）
+
+标准 Release 部署在原命令中加入 `deploy/compose.ports.yaml`。例如，在含有 `compose.yaml` 的部署根目录中执行：
+
+```sh
+docker compose -f compose.yaml -f compose.release.yaml -f deploy/compose.ports.yaml config --quiet
+docker compose -f compose.yaml -f compose.release.yaml -f deploy/compose.ports.yaml up -d
+```
+
+该文件在服务器上预留 `10000–10009/TCP` 和 `10000–10009/UDP`，默认绑定所有 IPv4 接口。它只准备端口池，协议仍保持关闭，直到管理员在网页上启用。使用源码而非 Release 包时，保留自己原有的镜像或构建覆盖文件。已有其他 TCP/UDP 端口池请继续沿用，不要把这个文件与旧端口覆盖文件随意混用。
+
+在主机防火墙和云安全组中按需放行要使用的端口，然后返回页面刷新。端口池状态依据部署配置显示，不代表已检测到外网可以连接。网站后台不会自动修改云安全组。
+
+后续升级需一直保留这个覆盖文件。若默认端口已被其他服务占用，或需要扩容，可在部署环境中设置 `HOME_TUNNEL_MANAGED_PORT_START`、`HOME_TUNNEL_MANAGED_PORT_END`（以及可选的 `HOME_TUNNEL_MANAGED_BIND_ADDRESS`）再重新部署；网页不能分配池外端口。从 `deploy/` 目录运行 ARM64 专用部署时，覆盖文件名为 `compose.ports.yaml`。
+
+例如在网页中开启 TCP，起止均设为 `10002`，客户端选择「SSH · TCP」，本地目标为 `127.0.0.1:22`，则这条连接可以得到 `服务器公网地址:10002`。
 
 ## Optional general TCP and fixed-port UDP
 

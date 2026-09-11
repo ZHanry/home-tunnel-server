@@ -1,9 +1,38 @@
-import { state } from "./state.js?v=6.1.1";
+import { state } from "./state.js?v=6.2.0";
 
 const appShell = document.querySelector("#app-shell");
 
 const localeStorageKey = "ht_locale";
 const zhToEn = {
+  "端口与协议": "Ports and protocols",
+  "在服务器预留范围内配置，保存后立即应用，无需重启服务。": "Configure within the server port pool. Changes apply immediately without restarting services.",
+  "端口池未准备": "Port pool not prepared",
+  "已开启": "Enabled",
+  "已关闭": "Disabled",
+  "SSH、远程桌面、摄像头等": "SSH, remote desktop, cameras and more",
+  "固定端口的 UDP 服务": "Fixed-port UDP services",
+  "启用 TCP 连接": "Enable TCP connections",
+  "启用 UDP 连接": "Enable UDP connections",
+  "服务器预留范围": "Server port pool",
+  "未配置": "Not configured",
+  "起始端口": "Start port",
+  "结束端口": "End port",
+  "已分配": "Allocated",
+  "范围内空闲": "Available in range",
+  "已启用连接": "Enabled connections",
+  "部署范围已变化，请调整可用范围后保存。": "The deployment range has changed. Adjust the range and save.",
+  "关闭协议或缩小范围前，请先暂停或调整受影响的连接。暂停的连接仍保留原端口。": "Pause or adjust affected connections before disabling a protocol or narrowing its range. Paused connections retain their ports.",
+  "首次使用：准备服务器端口池": "First use: prepare the server port pool",
+  "服务器尚未预留所需端口。请先完成一次性部署，之后可在此管理开关和范围。": "The server has not reserved these ports. Complete the one-time setup, then manage protocols and ranges here.",
+  "标准部署可在原有启动命令中加入以下配置文件，默认准备 10000–10009 的 TCP/UDP 端口：": "For a standard deployment, add this file to the existing startup command to prepare TCP/UDP ports 10000–10009:",
+  "保留原有镜像配置；已有 TCP/UDP 部署请沿用原来的端口范围。": "Keep your image configuration. Existing TCP/UDP deployments should retain their port ranges.",
+  "还需在服务器防火墙和云安全组放行所用端口；此页面不代表外网连通性检测。": "Allow the ports in the host firewall and cloud security group. This page does not test external connectivity.",
+  "外网访问还需要服务器防火墙和云安全组放行相应端口。": "External access also requires the host firewall and cloud security group to allow these ports.",
+  "创建权限与命名": "Creation permissions and naming",
+  "管理普通用户的连接创建权限和公网子域命名。": "Manage regular users’ connection permissions and public subdomain names.",
+  "端口范围的修改同时适用于管理员和普通用户。": "Port range changes apply to administrators and regular users.",
+  "结束端口不能小于起始端口": "The end port must be greater than or equal to the start port",
+  "端口设置已被其他页面修改，请刷新后重试": "Port settings changed in another page. Refresh and try again",
   "允许普通用户自行创建 TCP/UDP 连接": "Allow regular users to create TCP/UDP connections",
   "客户端从已开放的端口范围自动分配。此开关仅影响新建权限，现有连接继续运行。管理员可在自己的设备上直接创建。":
     "Ports are assigned from the enabled range. This controls creation only; existing connections keep running. Administrators may create connections on their own devices.",

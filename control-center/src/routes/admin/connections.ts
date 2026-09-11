@@ -1,3 +1,4 @@
+import { transportCatalog } from "../../transport-settings.js";
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
@@ -22,7 +23,6 @@ import {
   requirePasswordNormal,
 } from "../../http.js";
 import { nullableBandwidth, nullableMonthlyQuota, parseBody } from "../../validation.js";
-import { config } from "../../config.js";
 import { adminConnectionSelect, customDomainsByConnection } from "../../connection-query.js";
 import { triggerQuotaEnforcement } from "../../quota.js";
 import { configuredAlertChannels, sendAlert } from "../../notifications.js";
@@ -77,29 +77,15 @@ router.get(
       [userId, userId, search, search, search, search, pageSize, (page - 1) * pageSize],
     );
     const domains = await customDomainsByConnection(rows.map((row) => row.id));
+    const transports = await transaction(transportCatalog);
     response.json({
       items: rows.map((row) => publicConnection(row, domains.get(row.id) ?? [])),
       total: Number(count?.total ?? 0),
       page,
       page_size: pageSize,
       total_pages: Math.max(1, Math.ceil(Number(count?.total ?? 0) / pageSize)),
-      transport_tunnels: {
-        tcp: {
-          enabled: config.transportTunnels.tcp.enabled,
-          port_start: config.transportTunnels.tcp.portStart,
-          port_end: config.transportTunnels.tcp.portEnd,
-        },
-        udp: {
-          enabled: config.transportTunnels.udp.enabled,
-          port_start: config.transportTunnels.udp.portStart,
-          port_end: config.transportTunnels.udp.portEnd,
-        },
-      },
-      tcp_tunnels: {
-        enabled: config.tcpTunnels.enabled,
-        port_start: config.tcpTunnels.portStart,
-        port_end: config.tcpTunnels.portEnd,
-      },
+      transport_tunnels: transports,
+      tcp_tunnels: transports.tcp,
     });
   }),
 );

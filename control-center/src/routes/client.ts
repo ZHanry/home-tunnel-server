@@ -38,6 +38,7 @@ import { parseBody } from "../validation.js";
 import { clientConnectionSelect, customDomainsByConnection } from "../connection-query.js";
 import { checkSubdomainAvailability, usernamePrefix } from "../subdomain-policy.js";
 import { allocateClientPort, clientConnectionCapabilities } from "../client-transports.js";
+import { transportSettings } from "../transport-settings.js";
 
 const router = Router();
 const domainVerificationLimiter = rateLimit({
@@ -499,16 +500,17 @@ router.post(
         [body.device_id],
       );
       const domains = await customDomainsByConnection(rows.map((row) => row.id));
+      const { transport_tunnels: transports } = await transaction(transportSettings);
       connections = rows.map((row) => {
         const proxyType = connectionTransport(row);
         const remotePort = connectionRemotePort(row);
         const deploymentEnabled =
           proxyType === "http" ||
-          (config.transportTunnels[proxyType].enabled &&
+          (transports[proxyType].enabled &&
             remotePort !== null &&
             Number.isInteger(remotePort) &&
-            remotePort >= config.transportTunnels[proxyType].portStart &&
-            remotePort <= config.transportTunnels[proxyType].portEnd);
+            remotePort >= transports[proxyType].port_start &&
+            remotePort <= transports[proxyType].port_end);
         return {
           ...publicConnection(
             {

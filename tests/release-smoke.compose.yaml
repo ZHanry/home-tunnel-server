@@ -19,7 +19,8 @@ services:
       TUNNEL_DOMAIN: tunnel.smoke.test
       PUBLIC_FRPS_HOST: frps.smoke.test
       PUBLIC_FRPS_PORT: "17000"
-      L4_TUNNEL_ENABLED: "true"
+      L4_PORT_POOL_ENABLED: "true"
+      L4_TUNNEL_ENABLED: "false"
       L4_PORT_START: "11000"
       L4_PORT_END: "11009"
       COOKIE_SECURE: "true"

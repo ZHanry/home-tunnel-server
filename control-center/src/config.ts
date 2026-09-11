@@ -201,13 +201,19 @@ const transportTunnels = {
   tcp: transportTunnelSettings("TCP"),
   udp: transportTunnelSettings("UDP"),
 };
+// A prepared pool can stay closed until an administrator enables it in the console.
+const commonPortPool = boolean("L4_PORT_POOL_ENABLED", false);
+const transportPortPools = {
+  tcp: boolean("TCP_PORT_POOL_ENABLED", commonPortPool),
+  udp: boolean("UDP_PORT_POOL_ENABLED", commonPortPool),
+};
 
 function rejectReservedTransportPorts(
   protocol: "TCP" | "UDP",
   settings: { enabled: boolean; portStart: number; portEnd: number },
   reservedPorts: number[],
 ) {
-  if (!settings.enabled) return;
+  if (!settings.enabled && !transportPortPools[protocol === "TCP" ? "tcp" : "udp"]) return;
   const conflict = reservedPorts.find(
     (reservedPort) => settings.portStart <= reservedPort && reservedPort <= settings.portEnd,
   );
@@ -277,6 +283,7 @@ export const config = {
   frpsHost: process.env.FRPS_HOST ?? "home-tunnel-frps",
   frpsPort: integer("FRPS_PORT", 7000),
   transportTunnels,
+  transportPortPools,
   // 代码与管理 API 的旧名称只映射 TCP，绝不隐式开放 UDP。
   tcpTunnels: transportTunnels.tcp,
   caddyHost: process.env.CADDY_HOST ?? "caddy",

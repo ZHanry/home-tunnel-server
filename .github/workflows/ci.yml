@@ -176,6 +176,8 @@ jobs:
         docker compose -f deploy/compose.yaml -f deploy/compose.tcp.yaml --env-file .env config --quiet
         docker compose -f deploy/compose.yaml -f deploy/compose.udp.yaml --env-file .env config --quiet
         docker compose -f deploy/compose.yaml -f deploy/compose.l4.yaml --env-file .env config --quiet
+    - name: Validate managed port pool deployment
+      run: python3 tests/check-port-pool.py
     - name: Validate RC-aware offline deployment scripts
       shell: pwsh
       run: |

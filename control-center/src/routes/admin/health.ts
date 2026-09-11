@@ -1,7 +1,8 @@
+import { transportCatalog } from "../../transport-settings.js";
 import { readFile } from "node:fs/promises";
 import { createConnection as createSocketConnection } from "node:net";
 import { Router } from "express";
-import { one, pool } from "../../db.js";
+import { one, pool, transaction } from "../../db.js";
 import { asyncHandler, requireAdmin, requirePasswordNormal } from "../../http.js";
 import { config } from "../../config.js";
 import { APP_VERSION } from "../../version.js";
@@ -105,27 +106,13 @@ router.get(
       COALESCE((SELECT sum(download_bytes) FROM traffic_samples WHERE bucket_start > home_tunnel_add_seconds(home_tunnel_now(), -86400)),'0') AS download_24h,
       (SELECT count(*) FROM runtime_states WHERE state='Error') AS high_errors`,
     );
+    const transports = await transaction(transportCatalog);
     response.json({
       ...summary,
       upload_24h: Number(summary?.upload_24h ?? 0),
       download_24h: Number(summary?.download_24h ?? 0),
-      transport_tunnels: {
-        tcp: {
-          enabled: config.transportTunnels.tcp.enabled,
-          port_start: config.transportTunnels.tcp.portStart,
-          port_end: config.transportTunnels.tcp.portEnd,
-        },
-        udp: {
-          enabled: config.transportTunnels.udp.enabled,
-          port_start: config.transportTunnels.udp.portStart,
-          port_end: config.transportTunnels.udp.portEnd,
-        },
-      },
-      tcp_tunnels: {
-        enabled: config.tcpTunnels.enabled,
-        port_start: config.tcpTunnels.portStart,
-        port_end: config.tcpTunnels.portEnd,
-      },
+      transport_tunnels: transports,
+      tcp_tunnels: transports.tcp,
       at: new Date().toISOString(),
     });
   }),

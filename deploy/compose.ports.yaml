@@ -1,0 +1,22 @@
+# Prepare a small TCP/UDP port pool once; enable protocols in Admin > Settings.
+# Both protocols stay disabled until the administrator saves their settings.
+# From the release root:
+# docker compose -f compose.yaml -f deploy/compose.ports.yaml up -d
+# Keep this file in subsequent update commands. Cloud/host firewall rules are separate.
+# To expand the pool, set HOME_TUNNEL_MANAGED_PORT_START/END before deploying.
+services:
+  control-center:
+    environment:
+      L4_PORT_POOL_ENABLED: "true"
+      L4_PORT_START: "${HOME_TUNNEL_MANAGED_PORT_START:-10000}"
+      L4_PORT_END: "${HOME_TUNNEL_MANAGED_PORT_END:-10009}"
+
+  frps:
+    environment:
+      PUBLIC_FRPS_PORT: "${HOME_TUNNEL_FRPS_PORT:-7000}"
+      L4_TUNNEL_ENABLED: "true"
+      L4_PORT_START: "${HOME_TUNNEL_MANAGED_PORT_START:-10000}"
+      L4_PORT_END: "${HOME_TUNNEL_MANAGED_PORT_END:-10009}"
+    ports:
+      - "${HOME_TUNNEL_MANAGED_BIND_ADDRESS:-0.0.0.0}:${HOME_TUNNEL_MANAGED_PORT_START:-10000}-${HOME_TUNNEL_MANAGED_PORT_END:-10009}:${HOME_TUNNEL_MANAGED_PORT_START:-10000}-${HOME_TUNNEL_MANAGED_PORT_END:-10009}/tcp"
+      - "${HOME_TUNNEL_MANAGED_BIND_ADDRESS:-0.0.0.0}:${HOME_TUNNEL_MANAGED_PORT_START:-10000}-${HOME_TUNNEL_MANAGED_PORT_END:-10009}:${HOME_TUNNEL_MANAGED_PORT_START:-10000}-${HOME_TUNNEL_MANAGED_PORT_END:-10009}/udp"

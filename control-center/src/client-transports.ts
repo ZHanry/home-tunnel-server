@@ -1,6 +1,6 @@
 import type { DatabaseClient } from "./db.js";
-import { config } from "./config.js";
 import { HttpError } from "./http.js";
+import { transportSettings } from "./transport-settings.js";
 
 export async function clientRawTunnelsEnabled(client: DatabaseClient): Promise<boolean> {
   const result = await client.query<{ value: string }>(
@@ -22,11 +22,12 @@ export async function setClientRawTunnelsEnabled(
 
 export async function clientConnectionCapabilities(client: DatabaseClient, role: string) {
   const allowed = role === "admin" || (await clientRawTunnelsEnabled(client));
+  const { transport_tunnels: settings } = await transportSettings(client);
   const transport = (type: "tcp" | "udp") => ({
-    enabled: config.transportTunnels[type].enabled,
-    can_create: allowed && config.transportTunnels[type].enabled,
-    port_start: config.transportTunnels[type].portStart,
-    port_end: config.transportTunnels[type].portEnd,
+    enabled: settings[type].enabled,
+    can_create: allowed && settings[type].enabled,
+    port_start: settings[type].port_start,
+    port_end: settings[type].port_end,
   });
   return { supported: true, tcp: transport("tcp"), udp: transport("udp"), automatic_ports: true };
 }
@@ -38,7 +39,7 @@ export async function allocateClientPort(
   role: string,
   type: "tcp" | "udp",
 ): Promise<number> {
-  const settings = config.transportTunnels[type];
+  const settings = (await transportSettings(client)).transport_tunnels[type];
   if (!settings.enabled)
     throw new HttpError(
       403,
@@ -53,15 +54,15 @@ export async function allocateClientPort(
     );
   const occupied = await client.query<{ remote_port: number }>(
     "SELECT remote_port FROM connections WHERE transport_type=? AND deleted_at IS NULL AND remote_port BETWEEN ? AND ? ORDER BY remote_port",
-    [type, settings.portStart, settings.portEnd],
+    [type, settings.port_start, settings.port_end],
   );
-  let candidate = settings.portStart;
+  let candidate = settings.port_start;
   for (const row of occupied.rows) {
     const port = Number(row.remote_port);
     if (port > candidate) break;
     if (port === candidate) candidate++;
   }
-  if (candidate > settings.portEnd)
+  if (candidate > settings.port_end)
     throw new HttpError(
       409,
       "PORT_POOL_EXHAUSTED",

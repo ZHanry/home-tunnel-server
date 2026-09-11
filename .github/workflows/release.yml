@@ -166,6 +166,7 @@ jobs:
         bash ./tests/run-release-smoke.sh
         mkdir -p integration
         cp release-smoke-evidence/release-smoke.json "integration/server-smoke-$SMOKE_ARCH.json"
+        cp release-smoke-evidence/e2e-smoke.json "integration/server-port-settings-$SMOKE_ARCH.json"
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
         name: server-smoke-${{ matrix.arch }}

@@ -1,4 +1,4 @@
-import { createConnectionsView } from "./modules/connections.js?v=6.1.1";
+import { createConnectionsView } from "./modules/connections.js?v=6.2.0";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -6,8 +6,8 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=6.1.1";
-import { api, refreshSession } from "./modules/api.js?v=6.1.1";
+} from "./modules/forms.js?v=6.2.0";
+import { api, refreshSession } from "./modules/api.js?v=6.2.0";
 import {
   componentLabel,
   configState,
@@ -16,10 +16,10 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=6.1.1";
-import { localeTag, updateDocumentMetadata } from "./modules/locale.js?v=6.1.1";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=6.1.1";
-import { state } from "./modules/state.js?v=6.1.1";
+} from "./modules/format.js?v=6.2.0";
+import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=6.2.0";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=6.2.0";
+import { state } from "./modules/state.js?v=6.2.0";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -83,7 +83,7 @@ function applyRoleChrome() {
     item.hidden = !isAdmin();
   });
   const brand = document.querySelector(".sidebar-brand .brand-copy small");
-  if (brand) brand.textContent = isAdmin() ? "控制中心 v6.1.1" : "我的工作区";
+  if (brand) brand.textContent = isAdmin() ? "控制中心 v6.2.0" : "我的工作区";
   const sessionCopy = document.querySelector(".sidebar-session small");
   if (sessionCopy) sessionCopy.textContent = isAdmin() ? "权限已验证" : "仅显示你的资源";
 }
@@ -540,10 +540,38 @@ async function renderSettings(renderId = state.renderId) {
   const data = await api("/api/v1/admin/settings");
   if (renderId !== state.renderId) return;
   const policy = data.subdomain_prefix_policy ?? "suggest";
+  const transports = data.transport_tunnels ?? {};
+  const portCard = (type) => {
+    const settings = transports[type] ?? {};
+    const ready = settings.deployment_ready === true;
+    const status = !ready ? "端口池未准备" : settings.enabled ? "已开启" : "已关闭";
+    return `<fieldset class="transport-card" ${ready ? "" : "disabled"} data-transport="${type}">
+      <legend>${type.toUpperCase()}</legend>
+      <div class="transport-heading"><span class="helper">${type === "tcp" ? "SSH、远程桌面、摄像头等" : "固定端口的 UDP 服务"}</span><span class="status-badge ${settings.enabled ? "ok" : ""}">${status}</span></div>
+      <label class="transport-toggle" for="${type}-enabled"><input id="${type}-enabled" name="${type}_enabled" type="checkbox" ${settings.configured_enabled ? "checked" : ""}>启用 ${type.toUpperCase()} 连接</label>
+      <p class="helper" id="${type}-pool"><span>服务器预留范围</span>：<strong>${ready ? `${settings.pool_start}–${settings.pool_end}` : "未配置"}</strong></p>
+      <div class="form-grid">
+        <div class="field"><label for="${type}-port-start">起始端口</label><input id="${type}-port-start" name="${type}_port_start" type="number" step="1" min="${settings.pool_start ?? 1}" max="${settings.pool_end ?? 65535}" value="${settings.port_start ?? ""}" aria-describedby="${type}-pool" required></div>
+        <div class="field"><label for="${type}-port-end">结束端口</label><input id="${type}-port-end" name="${type}_port_end" type="number" step="1" min="${settings.pool_start ?? 1}" max="${settings.pool_end ?? 65535}" value="${settings.port_end ?? ""}" aria-describedby="${type}-pool" required></div>
+      </div>
+      <div class="transport-usage"><span><span>已分配</span> <strong>${Number(settings.allocated_ports ?? 0)}</strong></span><span><span>范围内空闲</span> <strong>${Number(settings.available_ports ?? 0)}</strong></span><span><span>已启用连接</span> <strong>${Number(settings.active_connections ?? 0)}</strong></span></div>
+      ${ready && settings.range_available === false ? '<p class="form-error">部署范围已变化，请调整可用范围后保存。</p>' : ""}
+    </fieldset>`;
+  };
   viewContent.innerHTML = `
+    <form id="settings-form" class="form-stack" data-transport-version="${Number(data.transport_settings_version ?? 0)}">
     <section class="panel">
-      <div class="panel-header"><div><h3>子域命名策略</h3><span class="panel-subtle">默认建议带用户名前缀，避免多人抢同一个短名。强制后新建 HTTP 子域必须以用户名开头。</span></div></div>
-      <form id="settings-form" class="form-stack settings-form">
+      <div class="panel-header"><div><h3>端口与协议</h3><span class="panel-subtle">在服务器预留范围内配置，保存后立即应用，无需重启服务。</span></div></div>
+      <div class="settings-form form-stack">
+        <div class="transport-grid">${portCard("tcp")}${portCard("udp")}</div>
+        <p class="helper">关闭协议或缩小范围前，请先暂停或调整受影响的连接。暂停的连接仍保留原端口。</p>
+        ${["tcp", "udp"].some((type) => !transports[type]?.deployment_ready) ? `<details class="transport-setup"><summary>首次使用：准备服务器端口池</summary><p>服务器尚未预留所需端口。请先完成一次性部署，之后可在此管理开关和范围。</p><p>标准部署可在原有启动命令中加入以下配置文件，默认准备 10000–10009 的 TCP/UDP 端口：</p><code>-f deploy/compose.ports.yaml</code><p>保留原有镜像配置；已有 TCP/UDP 部署请沿用原来的端口范围。</p><p>还需在服务器防火墙和云安全组放行所用端口；此页面不代表外网连通性检测。</p></details>` : '<p class="helper">外网访问还需要服务器防火墙和云安全组放行相应端口。</p>'}
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-header"><div><h3>创建权限与命名</h3><span class="panel-subtle">管理普通用户的连接创建权限和公网子域命名。</span></div></div>
+      <div class="form-stack settings-form">
+        <div class="field"><label for="client-raw-tunnels"><input id="client-raw-tunnels" type="checkbox" name="client_raw_tunnels_enabled" ${data.client_raw_tunnels_enabled ? "checked" : ""}>允许普通用户自行创建 TCP/UDP 连接</label><p class="helper">客户端从已开放的端口范围自动分配。此开关仅影响新建权限，现有连接继续运行。管理员可在自己的设备上直接创建。</p></div>
         <div class="field">
           <label for="prefix-policy">新建子域</label>
           <select id="prefix-policy" name="subdomain_prefix_policy">
@@ -551,11 +579,20 @@ async function renderSettings(renderId = state.renderId) {
             <option value="suggest" ${policy === "suggest" ? "selected" : ""}>建议使用用户名前缀（默认）</option>
             <option value="enforce" ${policy === "enforce" ? "selected" : ""}>强制 {用户名}-{名称}</option>
           </select>
+          <p class="helper">默认建议带用户名前缀，避免多人抢同一个短名。强制后新建 HTTP 子域必须以用户名开头。</p>
         </div>
-        <div class="field"><label for="client-raw-tunnels"><input id="client-raw-tunnels" type="checkbox" name="client_raw_tunnels_enabled" ${data.client_raw_tunnels_enabled ? "checked" : ""}>允许普通用户自行创建 TCP/UDP 连接</label><p class="helper">客户端从已开放的端口范围自动分配。此开关仅影响新建权限，现有连接继续运行。管理员可在自己的设备上直接创建。</p><p class="helper">还需在部署配置中启用 TCP/UDP 并开放防火墙端口。RTSP 预设使用 TCP 传输。</p></div>
-        <button class="button button-primary" type="submit">保存设置</button>
-      </form>
-    </section>`;
+      </div>
+    </section>
+    <p id="settings-error" class="form-error" role="alert"></p>
+    <div class="actions"><button class="button button-primary" type="submit">保存设置</button><span class="helper">端口范围的修改同时适用于管理员和普通用户。</span></div>
+    </form>`;
+  for (const type of ["tcp", "udp"]) {
+    const start = document.querySelector(`#${type}-port-start`);
+    const end = document.querySelector(`#${type}-port-end`);
+    const validateRange = () => end.setCustomValidity(Number(start.value) > Number(end.value) ? t("结束端口不能小于起始端口", "The end port must be greater than or equal to the start port") : "");
+    start.addEventListener("input", validateRange);
+    end.addEventListener("input", validateRange);
+  }
 }
 
 async function renderAudit(renderId = state.renderId) {
@@ -1649,13 +1686,25 @@ viewContent.addEventListener("submit", async (event) => {
     const button = event.target.querySelector("button[type=submit]");
     if (button.disabled) return;
     setBusy(button, true);
+    const settingsError = document.querySelector("#settings-error");
+    settingsError.textContent = "";
     try {
       const form = new FormData(event.target);
+      const transports = {};
+      for (const type of ["tcp", "udp"]) {
+        if (!form.has(`${type}_port_start`)) continue;
+        transports[type] = {
+          enabled: form.has(`${type}_enabled`),
+          port_start: Number(form.get(`${type}_port_start`)),
+          port_end: Number(form.get(`${type}_port_end`)),
+        };
+      }
       await api("/api/v1/admin/settings", {
         method: "PATCH",
         body: JSON.stringify({
           subdomain_prefix_policy: form.get("subdomain_prefix_policy"),
           client_raw_tunnels_enabled: form.has("client_raw_tunnels_enabled"),
+          ...(Object.keys(transports).length ? { transport_tunnels: transports, transport_settings_version: Number(event.target.dataset.transportVersion) } : {}),
         }),
       });
       state.prefixPolicy = form.get("subdomain_prefix_policy");
@@ -1664,6 +1713,7 @@ viewContent.addEventListener("submit", async (event) => {
       toast("部署设置已保存");
       await renderSettings();
     } catch (error) {
+      settingsError.textContent = error.message;
       toast(error.message, "error");
     } finally {
       if (button.isConnected) setBusy(button, false);

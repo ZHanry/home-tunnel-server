@@ -23,6 +23,7 @@ if command -v cygpath >/dev/null 2>&1; then
   compose=(docker compose -f "$compose_file")
 fi
 external_stack=${HOME_TUNNEL_SMOKE_EXTERNAL_STACK:-0}
+export HOME_TUNNEL_SMOKE_PORT_SETTINGS=1
 allow_mutable_images=${HOME_TUNNEL_SMOKE_ALLOW_MUTABLE_IMAGES:-0}
 python_command=${PYTHON_COMMAND:-python3}
 containerized_driver=${HOME_TUNNEL_SMOKE_CONTAINERIZED_DRIVER:-}
@@ -196,6 +197,8 @@ if [[ "$containerized_driver" == 1 ]]; then
   [[ "$agent_relative" != "$agent" ]] || { echo "Managed Agent is outside the smoke root" >&2; exit 1; }
   MSYS_NO_PATHCONV=1 docker run --rm --user 0:0 --network "$driver_network" \
     -e HOME_TUNNEL_CONTROL_CONTAINER="$control_container" \
+    -e HOME_TUNNEL_SMOKE_PORT_SETTINGS=1 \
+    -e HOME_TUNNEL_SMOKE_CLIENT_CREATION="${HOME_TUNNEL_SMOKE_CLIENT_CREATION:-0}" \
     -v "$docker_workspace/deploy/scripts:/scripts:ro" \
     -v "$docker_smoke_root:/smoke" \
     -v "$docker_evidence_dir:/evidence" \

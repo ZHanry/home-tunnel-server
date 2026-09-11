@@ -9,6 +9,7 @@ import { alertDeliveryCounts } from "../notifications.js";
 import { getWebsocketClientCount } from "../realtime.js";
 import { constantTimeStringEqual, verifyLease } from "../security.js";
 import { parseBody } from "../validation.js";
+import { transportSettings } from "../transport-settings.js";
 
 const router = Router();
 const consoleDomain = new URL(config.publicBaseUrl).hostname.toLowerCase();
@@ -503,17 +504,19 @@ router.post(
       const remotePort = typeof rawRemotePort === "number" ? rawRemotePort : null;
       const remotePortAliasesAgree =
         !hasSnakeRemotePort || !hasCamelRemotePort || content.remote_port === content.remotePort;
-      const transportSettings =
-        proxyType === "tcp" || proxyType === "udp" ? config.transportTunnels[proxyType] : null;
+      const transportPolicy =
+        proxyType === "tcp" || proxyType === "udp"
+          ? (await transaction(transportSettings)).transport_tunnels[proxyType]
+          : null;
       const rawAllowed =
-        transportSettings !== null &&
+        transportPolicy !== null &&
         proxyAddressFieldsValid &&
         remotePortAliasesAgree &&
-        transportSettings.enabled &&
+        transportPolicy.enabled &&
         connection?.transport_type === proxyType &&
         Number.isInteger(remotePort) &&
-        remotePort! >= transportSettings.portStart &&
-        remotePort! <= transportSettings.portEnd &&
+        remotePort! >= transportPolicy.port_start &&
+        remotePort! <= transportPolicy.port_end &&
         remotePort === Number(connection.remote_port) &&
         customDomains.length === 0 &&
         requestedSubdomain === "";

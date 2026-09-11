@@ -632,6 +632,9 @@ def main() -> None:
     original_admin_hash: str | None = None
     original_client_creation_policy: str | None = None
     exercise_client_creation = os.environ.get("HOME_TUNNEL_SMOKE_CLIENT_CREATION") == "1"
+    exercise_port_settings = os.environ.get("HOME_TUNNEL_SMOKE_PORT_SETTINGS") == "1"
+    original_transport_policy = None
+    transport_policy_changed = False
     if exercise_client_creation and os.environ.get("HOME_TUNNEL_CONTROL_CONTAINER") != "home-tunnel-release-control-center":
         raise RuntimeError("Client-creation smoke is restricted to the isolated release stack")
 
@@ -706,6 +709,11 @@ try {
         ])
 
     def cleanup_database() -> None:
+        if transport_policy_changed:
+            if original_transport_policy is None:
+                sqlite([{"sql": "DELETE FROM deployment_settings WHERE key='transport_tunnels'"}])
+            else:
+                sqlite([{"sql": "UPDATE deployment_settings SET value=? WHERE key='transport_tunnels'", "parameters": [original_transport_policy]}])
         if original_client_creation_policy is not None:
             sqlite([{"sql": "UPDATE deployment_settings SET value=? WHERE key='client_raw_tunnels_enabled'", "parameters": [original_client_creation_policy]}])
         if not user_id or not uuid.UUID(user_id):
@@ -810,6 +818,28 @@ try {
             if exercise_client_creation:
                 original_client_creation_policy = str(sqlite_value("SELECT value FROM deployment_settings WHERE key='client_raw_tunnels_enabled'") or "false")
                 api("PATCH", "/api/v1/admin/settings", {"client_raw_tunnels_enabled": True}, admin_token)
+
+            if exercise_port_settings:
+                original_transport_policy = sqlite_value("SELECT value FROM deployment_settings WHERE key='transport_tunnels'")
+                before = api("GET", "/api/v1/admin/settings", token=admin_token)
+                for protocol in ("tcp", "udp"):
+                    if not before["transport_tunnels"][protocol]["deployment_ready"]:
+                        raise RuntimeError(f"{protocol} deployment pool is not prepared")
+                transport_policy_changed = True
+                applied = api("PATCH", "/api/v1/admin/settings", {
+                    "transport_settings_version": before["transport_settings_version"],
+                    "transport_tunnels": {
+                        protocol: {"enabled": True, "port_start": 11000, "port_end": 11008}
+                        for protocol in ("tcp", "udp")
+                    },
+                }, admin_token)
+                reread = api("GET", "/api/v1/admin/settings", token=admin_token)
+                if reread["transport_settings_version"] != applied["transport_settings_version"] or any(
+                    not reread["transport_tunnels"][protocol]["enabled"] or
+                    reread["transport_tunnels"][protocol]["port_end"] != 11008
+                    for protocol in ("tcp", "udp")
+                ):
+                    raise RuntimeError("Console port settings did not apply")
 
             for label, proxy_type, remote_port, local_port in [
                 ("tcp_echo", "tcp", 11000, tcp_server.server_address[1]),
@@ -1189,6 +1219,7 @@ try {
                     "udp": f"{raw_connect_host}:{udp_port}",
                     "rtsp": f"{raw_connect_host}:{rtsp_port}",
                 },
+                "console_port_settings": "passed" if exercise_port_settings else "not_requested",
             }, indent=2) + "\n", encoding="utf-8")
         finally:
             if frpc is not None and frpc.poll() is None:

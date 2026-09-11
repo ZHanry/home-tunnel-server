@@ -1527,6 +1527,34 @@ input[type="checkbox"] {
 .settings-form {
   padding: 24px;
 }
+.transport-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.transport-card {
+  min-width: 0;
+  margin: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.transport-card legend { padding: 0 8px; font-size: 20px; font-weight: 700; }
+.transport-heading { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin-bottom: 20px; }
+.transport-toggle { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 16px; }
+.transport-card:disabled input { opacity: 0.55; cursor: not-allowed; }
+.transport-usage { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 20px; color: var(--muted); font-size: 13px; }
+.transport-usage strong { color: var(--text); }
+.transport-setup { padding: 16px 20px; background: var(--surface-muted); border-radius: 8px; }
+.transport-setup summary { cursor: pointer; font-weight: 600; }
+.transport-setup p { margin: 12px 0; font-size: 14px; }
+.transport-setup code { overflow-wrap: anywhere; }
+#settings-error:empty { display: none; }
+@media (max-width: 800px) {
+  .transport-grid { grid-template-columns: 1fr; }
+  .settings-form { padding: 20px; }
+  .transport-card { padding: 16px; }
+}
 .account-metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

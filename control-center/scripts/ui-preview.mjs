@@ -151,6 +151,26 @@ const isUser = (request) => (request.headers.cookie ?? "").includes("preview_rol
 const isEmpty = (request) => (request.headers.cookie ?? "").includes("preview_scenario=empty");
 let prefixPolicy = "suggest";
 let clientRawTunnels = false;
+const initialTransports = Object.fromEntries(
+  ["tcp", "udp"].map((type) => [
+    type,
+    {
+      enabled: true,
+      configured_enabled: true,
+      deployment_ready: true,
+      range_available: true,
+      port_start: 10000,
+      port_end: 10099,
+      pool_start: 10000,
+      pool_end: 10099,
+      allocated_ports: 0,
+      available_ports: 100,
+      active_connections: 0,
+    },
+  ]),
+);
+let transportTunnels = structuredClone(initialTransports);
+let transportVersion = 0;
 const initialData = structuredClone({ users, devices, connections });
 const domains = [];
 
@@ -194,14 +214,34 @@ app.get("/api/v1/admin/settings", (_request, response) =>
   response.json({
     subdomain_prefix_policy: prefixPolicy,
     client_raw_tunnels_enabled: clientRawTunnels,
+    transport_tunnels: transportTunnels,
+    transport_settings_version: transportVersion,
   }),
 );
 app.patch("/api/v1/admin/settings", (request, response) => {
+  if (request.body.transport_tunnels) {
+    if (request.body.transport_settings_version !== transportVersion)
+      return response.status(409).json({
+        error_code: "TRANSPORT_SETTINGS_CONFLICT",
+        message: "端口设置已被其他页面修改，请刷新后重试",
+      });
+    for (const [type, policy] of Object.entries(request.body.transport_tunnels)) {
+      transportTunnels[type] = {
+        ...transportTunnels[type],
+        ...policy,
+        configured_enabled: policy.enabled,
+        available_ports: policy.port_end - policy.port_start + 1,
+      };
+    }
+    transportVersion++;
+  }
   prefixPolicy = request.body.subdomain_prefix_policy ?? prefixPolicy;
   clientRawTunnels = request.body.client_raw_tunnels_enabled ?? clientRawTunnels;
   response.json({
     subdomain_prefix_policy: prefixPolicy,
     client_raw_tunnels_enabled: clientRawTunnels,
+    transport_tunnels: transportTunnels,
+    transport_settings_version: transportVersion,
   });
 });
 app.get("/api/v1/client/devices", (request, response) =>
@@ -234,6 +274,8 @@ app.post("/__preview/reset", (_request, response) => {
   domains.splice(0);
   prefixPolicy = "suggest";
   clientRawTunnels = false;
+  transportTunnels = structuredClone(initialTransports);
+  transportVersion = 0;
   response.sendStatus(204);
 });
 app.post("/api/v1/auth/logout", (_request, response) => response.sendStatus(204));

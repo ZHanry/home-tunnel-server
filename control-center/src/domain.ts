@@ -5,6 +5,7 @@ import { config } from "./config.js";
 import { HttpError } from "./http.js";
 import { hashBasicPassword, normalizeSubdomain, parseCidr, validateSubdomain } from "./security.js";
 import { assertSubdomainPolicy } from "./subdomain-policy.js";
+import { transportSettings } from "./transport-settings.js";
 
 // Basic Auth 用户名：1..64，禁止控制字符；同时禁止冒号（Basic 凭据以首个
 // 冒号分隔 user:pass，含冒号的用户名无法无歧义还原）。
@@ -275,7 +276,7 @@ export async function createConnection(
   if (device.rows[0].status !== "active") throw new HttpError(423, "DEVICE_REVOKED", "设备已撤销");
   await assertSubdomainPolicy(client, userId, subdomain);
   const remotePort = requestedRemotePort(input);
-  validateProxySettings(input.proxy_type, remotePort, input.enabled);
+  await validateProxySettings(client, input.proxy_type, remotePort, input.enabled);
   if (input.application_protocol && input.proxy_type !== "tcp")
     throw new HttpError(400, "VALIDATION_ERROR", "RTSP、SSH 和 RDP 预设需要 TCP 传输");
   if (input.proxy_type !== "http") {
@@ -431,7 +432,13 @@ export async function updateConnection(
     const enabled = patch.enabled ?? current.enabled;
     const preserveExistingDisabledPort =
       enabled === false && proxyType === currentProxyType && !hasRemotePortPatch;
-    validateProxySettings(proxyType, remotePort, enabled, preserveExistingDisabledPort);
+    await validateProxySettings(
+      client,
+      proxyType,
+      remotePort,
+      enabled,
+      preserveExistingDisabledPort,
+    );
     if (proxyType !== "http") {
       const occupied = await client.query<{ id: string }>(
         `SELECT id FROM connections
@@ -548,19 +555,20 @@ export async function updateConnection(
   return { before: current, after };
 }
 
-function validateProxySettings(
+async function validateProxySettings(
+  client: DatabaseClient,
   proxyType: ProxyType,
   remotePort: number | null,
   enabled = true,
   preserveExistingDisabledPort = false,
-): void {
+): Promise<void> {
   if (proxyType === "http") {
     if (remotePort !== null)
       throw new HttpError(400, "VALIDATION_ERROR", "HTTP 连接不能设置公网远程端口");
     return;
   }
   const label = proxyType.toUpperCase();
-  const settings = config.transportTunnels[proxyType];
+  const settings = (await transportSettings(client)).transport_tunnels[proxyType];
   // 部署关闭 raw transport 或收窄端口范围后，管理员仍必须能停用既有连接。
   // 调用方只会在“协议未变、端口字段未触碰、最终 enabled=false”时开启此例外；
   // 端口仍需满足数据库级 1..65535 完整性约束。
@@ -574,17 +582,17 @@ function validateProxySettings(
     return;
   }
   if (!settings.enabled && enabled) {
-    throw new HttpError(403, `${label}_TUNNELS_DISABLED`, `部署未启用 ${label} L4 隧道`);
+    throw new HttpError(403, `${label}_TUNNELS_DISABLED`, `请管理员在系统设置中启用 ${label} 隧道`);
   }
   if (
     !Number.isInteger(remotePort) ||
-    remotePort! < settings.portStart ||
-    remotePort! > settings.portEnd
+    remotePort! < settings.port_start ||
+    remotePort! > settings.port_end
   ) {
     throw new HttpError(
       400,
       `${label}_PORT_NOT_ALLOWED`,
-      `${label} 远程端口必须位于 ${settings.portStart}-${settings.portEnd}`,
+      `${label} 远程端口必须位于 ${settings.port_start}-${settings.port_end}`,
     );
   }
 }
