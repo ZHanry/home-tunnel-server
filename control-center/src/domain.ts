@@ -63,7 +63,10 @@ export const connectionInputSchema = z.object({
 export const connectionPatchSchema = connectionInputSchema
   .extend({ enabled: z.boolean(), proxy_type: proxyTypeSchema })
   .partial()
-  .extend({ expected_version: z.number().int().positive().optional() });
+  .extend({
+    expected_version: z.number().int().positive().optional(),
+    expected_access_policy_version: z.number().int().positive().optional(),
+  });
 
 export type ConnectionInput = z.infer<typeof connectionInputSchema>;
 export type ConnectionPatch = z.infer<typeof connectionPatchSchema>;
@@ -274,6 +277,14 @@ export async function createConnection(
     throw new HttpError(404, "OWNERSHIP_MISMATCH", "设备不存在");
   }
   if (device.rows[0].status !== "active") throw new HttpError(423, "DEVICE_REVOKED", "设备已撤销");
+  const limits = (
+    await client.query<{ total: number; device_total: number }>(
+      "SELECT count(*) AS total,sum(CASE WHEN device_id=? THEN 1 ELSE 0 END) AS device_total FROM connections WHERE user_id=? AND deleted_at IS NULL",
+      [deviceId, userId],
+    )
+  ).rows[0];
+  if (Number(limits?.total ?? 0) >= 1000 || Number(limits?.device_total ?? 0) >= 250)
+    throw new HttpError(409, "RESOURCE_LIMIT", "每账号最多 1000 条连接，每设备最多 250 条连接");
   await assertSubdomainPolicy(client, userId, subdomain);
   const remotePort = requestedRemotePort(input);
   await validateProxySettings(client, input.proxy_type, remotePort, input.enabled);
@@ -393,6 +404,22 @@ export async function updateConnection(
     });
   }
   const accessPatch = Object.hasOwn(patch, "access") ? patch.access : undefined;
+  if (accessPatch && patch.expected_access_policy_version === undefined) {
+    throw new HttpError(
+      400,
+      "VALIDATION_ERROR",
+      "修改访问策略必须携带 expected_access_policy_version",
+    );
+  }
+  if (
+    accessPatch &&
+    Number(current.access_policy_version ?? 1) !== patch.expected_access_policy_version
+  ) {
+    throw new HttpError(409, "ACCESS_POLICY_VERSION_CONFLICT", "访问策略已被其他操作修改", {
+      current_access_policy_version: Number(current.access_policy_version ?? 1),
+      current: publicConnection(current),
+    });
+  }
   // 纯 ACL 编辑（patch 仅含 access）不递增 connections.version、不 bump 设备
   // config_version：门禁在网关侧执行，Agent 无需重配，隧道不会重连。空 patch
   // 保持既有“重新应用”语义，仍走 Agent 路径。
@@ -523,8 +550,8 @@ export async function updateConnection(
       `UPDATE connections SET
          access_ip_allowlist=?,access_basic_user=?,access_basic_hash=?,
          access_policy_version=access_policy_version+1,updated_at=home_tunnel_now()
-        WHERE id=? AND deleted_at IS NULL RETURNING access_policy_version`,
-      [allowlistJson, basicUser, basicHash, connectionId],
+        WHERE id=? AND access_policy_version=? AND deleted_at IS NULL RETURNING access_policy_version`,
+      [allowlistJson, basicUser, basicHash, connectionId, patch.expected_access_policy_version],
     );
     const accessPolicyVersion = Number(accessUpdated.rows[0]?.access_policy_version ?? 0);
     if (!accessPolicyVersion) throw new HttpError(409, "VERSION_CONFLICT", "连接已被其他操作修改");

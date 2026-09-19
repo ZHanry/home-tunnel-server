@@ -10,6 +10,8 @@ import { attachRealtime } from "./realtime.js";
 import { startDataMaintenance } from "./maintenance.js";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
+import { accountSecurityRouter } from "./routes/account-security.js";
+import { platformRouter } from "./routes/platform.js";
 import { clientRouter } from "./routes/client.js";
 import { internalRouter } from "./routes/internal.js";
 import { downloadRouter, publicRouter } from "./routes/public.js";
@@ -80,7 +82,9 @@ export async function createApplication(
 
   app.use(authenticate);
   app.use("/api/v1/auth", authRouter);
+  app.use("/api/v1/auth", accountSecurityRouter);
   app.use("/api/v1/admin", adminRouter);
+  app.use("/api/v1", platformRouter);
   app.use("/api/v1", clientRouter);
   app.use("/internal", internalRouter);
 

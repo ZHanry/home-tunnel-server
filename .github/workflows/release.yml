@@ -114,7 +114,7 @@ jobs:
         path: release
         merge-multiple: true
     - run: |
-        cp contracts/home-tunnel.v1.json release/
+        cp contracts/home-tunnel.v1.json contracts/openapi.v1.json contracts/api.schema.json release/
         cp deploy/frps/dependency.json release/frps-dependency.json
         cp deploy/frps/dependency.sigstore.json release/frps-dependency.json.sigstore.json
     - env:

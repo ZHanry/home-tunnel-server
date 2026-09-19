@@ -2,7 +2,14 @@
   "component": "server",
   "stage": "public-release",
   "api_major": 1,
-  "contract_ref": "api-v1.0.0",
-  "support_policy": "Official releases. Web and Android manage account-owned resources; registered desktop and CLI sessions are restricted to their device. Upgrade all components to 6.0.0 together.",
-  "version": "6.2.0"
+  "contract_ref": "api-v1.1.0",
+  "support_policy": "Stable 7.0 line. Upgrade the server, Web, desktop/CLI, Android and managed Agent together. 6.x clients are not supported with 7.0 pagination and security controls. FRP follows its separate upstream version.",
+  "version": "7.0.0",
+  "minimum_server": "7.0.0",
+  "tested_combination": {
+    "server": "7.0.0",
+    "client": "7.0.0",
+    "android": "7.0.0",
+    "agent": "7.0.0"
+  }
 }

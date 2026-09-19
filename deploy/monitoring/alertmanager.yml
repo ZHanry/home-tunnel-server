@@ -1,0 +1,16 @@
+route:
+  receiver: home-tunnel
+  group_by: [alertname]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+receivers:
+  - name: home-tunnel
+    webhook_configs:
+      - url: http://control-center:8080/internal/monitoring/alerts
+        send_resolved: true
+        max_alerts: 100
+        http_config:
+          http_headers:
+            X-Home-Tunnel-Key:
+              files: [/run/secrets/internal_service_key]

@@ -1,11 +1,12 @@
 import { transportCatalog } from "../../transport-settings.js";
-import { readFile } from "node:fs/promises";
+import { externalBackupHealth } from "../../external-backup.js";
 import { createConnection as createSocketConnection } from "node:net";
 import { Router } from "express";
 import { one, pool, transaction } from "../../db.js";
 import { asyncHandler, requireAdmin, requirePasswordNormal } from "../../http.js";
 import { config } from "../../config.js";
 import { APP_VERSION } from "../../version.js";
+import { localBackupHealth } from "../../backup.js";
 
 const router = Router();
 
@@ -56,31 +57,28 @@ async function gatewayHealth(): Promise<Record<string, unknown>> {
 }
 
 async function backupHealth(): Promise<Record<string, unknown>> {
-  try {
-    const status = JSON.parse(await readFile(config.backupStatusFile, "utf8")) as {
-      status?: string;
-      completed_at?: string;
-      sha256?: string;
-      size_bytes?: number;
-    };
-    const completedAt = status.completed_at ? Date.parse(status.completed_at) : Number.NaN;
-    const ageSeconds = Number.isFinite(completedAt)
-      ? Math.max(0, Math.round((Date.now() - completedAt) / 1000))
-      : null;
-    return {
-      component: "backup",
-      status:
-        status.status === "healthy" && ageSeconds != null && ageSeconds <= 36 * 60 * 60
+  const local = await localBackupHealth();
+  const external = await externalBackupHealth();
+  const offsite = external.backup;
+  const externalHealthy =
+    offsite.status === "healthy" &&
+    offsite.scope === "offsite" &&
+    offsite.restore_verified &&
+    external.restore.status === "healthy";
+  return {
+    component: "backup",
+    status:
+      external.required || offsite.configured
+        ? externalHealthy
           ? "healthy"
-          : "degraded",
-      completed_at: status.completed_at,
-      age_seconds: ageSeconds,
-      size_bytes: status.size_bytes,
-      sha256_prefix: status.sha256?.slice(0, 12),
-    };
-  } catch {
-    return { component: "backup", status: "unknown", message: "尚无可验证的备份状态" };
-  }
+          : "degraded"
+        : local.status,
+    scope: externalHealthy ? "offsite" : "local_snapshot",
+    local_snapshot: local,
+    offsite,
+    restore: external.restore,
+    message: external.required ? "异机备份和完整恢复验证均需成功" : "本机快照与异机副本分别记录",
+  };
 }
 
 router.get(

@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { config } from "../config.js";
 import { asyncHandler, HttpError } from "../http.js";
+import { apiCapabilities } from "../api-capabilities.js";
 
 type ReleaseMetadata = {
   version: string;
@@ -64,6 +65,11 @@ function releaseEtag(release: ReleaseMetadata): string {
 }
 
 const publicRouter = Router();
+
+publicRouter.get("/capabilities", (_request, response) => {
+  response.setHeader("cache-control", "public, max-age=300, must-revalidate");
+  response.json(apiCapabilities);
+});
 
 publicRouter.get("/config", (_request, response) => {
   response.setHeader("cache-control", "public, max-age=300, must-revalidate");

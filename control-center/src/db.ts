@@ -4,8 +4,10 @@ import { chmodSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash, randomUUID } from "node:crypto";
+import { Worker } from "node:worker_threads";
 import {
   DatabaseSync,
+  backup,
   type SQLInputValue,
   type SQLOutputValue,
   type StatementSync,
@@ -367,13 +369,33 @@ export async function bootstrapAdmin(): Promise<void> {
   });
 }
 
-// Writes a consistent point-in-time snapshot of the whole database to
-// targetPath via VACUUM INTO. Runs on the shared mutex so it never interleaves
-// with an open transaction; VACUUM INTO itself must not run inside one.
+// File-backed snapshots run on a separate connection and worker: SQLite's
+// online backup API handles concurrent WAL writes without blocking API traffic.
 export async function backupDatabase(targetPath: string): Promise<void> {
   assertNotInTransaction("backupDatabase()");
-  await mutex.run(async () => {
-    database.exec(`VACUUM INTO '${targetPath.replaceAll("'", "''")}'`);
+  if (databasePath === ":memory:") {
+    await mutex.run(async () => {
+      await backup(database, targetPath, { rate: 256 });
+    });
+    return;
+  }
+  await new Promise<void>((resolve, reject) => {
+    const worker = new Worker(new URL("./backup-worker.js", import.meta.url), {
+      workerData: { source: databasePath, destination: targetPath },
+    });
+    const timeout = setTimeout(() => {
+      void worker.terminate();
+      reject(new Error("Database backup exceeded five minutes"));
+    }, 300_000);
+    worker.once("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    worker.once("exit", (code) => {
+      clearTimeout(timeout);
+      if (code === 0) resolve();
+      else reject(new Error(`Backup worker exited ${code}`));
+    });
   });
 }
 

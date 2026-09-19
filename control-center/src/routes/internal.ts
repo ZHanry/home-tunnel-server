@@ -1,11 +1,13 @@
+import { externalBackupHealth } from "../external-backup.js";
 import { Router, type Response } from "express";
 import { z } from "zod";
 import { backupLastSuccessAt } from "../backup.js";
+import { httpDurationMetrics } from "../http.js";
 import { config } from "../config.js";
 import { databaseEvents, one, query, transaction } from "../db.js";
 import { parseStoredAllowlist } from "../domain.js";
 import { asyncHandler, HttpError, httpRequestCounts } from "../http.js";
-import { alertDeliveryCounts } from "../notifications.js";
+import { alertDeliveryCounts, configuredAlertChannels, sendAlert } from "../notifications.js";
 import { getWebsocketClientCount } from "../realtime.js";
 import { constantTimeStringEqual, verifyLease } from "../security.js";
 import { parseBody } from "../validation.js";
@@ -13,6 +15,57 @@ import { transportSettings } from "../transport-settings.js";
 
 const router = Router();
 const consoleDomain = new URL(config.publicBaseUrl).hostname.toLowerCase();
+
+router.post(
+  "/monitoring/alerts",
+  asyncHandler(async (request, response) => {
+    requireInternalKey(request.header("x-home-tunnel-key"));
+    const body = parseBody(
+      z.object({
+        alerts: z
+          .array(
+            z.object({
+              status: z.enum(["firing", "resolved"]),
+              fingerprint: z.string().max(128),
+              labels: z.object({
+                alertname: z.string().min(1).max(120),
+                severity: z.string().max(32).optional(),
+              }),
+              annotations: z.object({
+                summary: z.string().max(500),
+                description: z.string().max(2000).optional(),
+              }),
+            }),
+          )
+          .max(100),
+      }),
+      request.body,
+    );
+    const channels = configuredAlertChannels();
+    if (!channels.webhook && !channels.telegram)
+      throw new HttpError(409, "NO_ALERT_CHANNEL", "请先配置 Webhook 或 Telegram 告警通道");
+    const results = [];
+    for (const alert of body.alerts) {
+      const result = await sendAlert({
+        event_type: `monitoring.${alert.status}`,
+        severity:
+          alert.status === "resolved"
+            ? "info"
+            : alert.labels.severity === "critical"
+              ? "critical"
+              : "warning",
+        title: `${alert.status}: ${alert.annotations.summary}`,
+        message: alert.annotations.description ?? alert.labels.alertname,
+        subject_id: alert.fingerprint,
+        details: { alert: alert.labels.alertname, status: alert.status },
+      });
+      results.push({ delivered: result.delivered, deduplicated: result.deduplicated });
+    }
+    if (results.some((result) => !result.delivered && !result.deduplicated))
+      throw new HttpError(503, "ALERT_DELIVERY_FAILED", "告警通道暂不可用，请重试");
+    response.json({ accepted: results.length });
+  }),
+);
 
 router.get(
   "/tls/allow",
@@ -641,8 +694,18 @@ router.get(
     );
     const requests = httpRequestCounts();
     const alerts = alertDeliveryCounts();
-    const backupTimestampSeconds = Math.floor(backupLastSuccessAt() / 1000);
+    const backupTimestampSeconds = Math.floor((await backupLastSuccessAt()) / 1000);
+    const external = await externalBackupHealth();
     const lines = [
+      "# TYPE home_tunnel_offsite_backup_required gauge",
+      `home_tunnel_offsite_backup_required ${external.required ? 1 : 0}`,
+      "# TYPE home_tunnel_offsite_backup_healthy gauge",
+      `home_tunnel_offsite_backup_healthy ${external.backup.status === "healthy" && external.backup.scope === "offsite" && external.backup.restore_verified ? 1 : 0}`,
+      "# TYPE home_tunnel_offsite_backup_last_success_timestamp_seconds gauge",
+      `home_tunnel_offsite_backup_last_success_timestamp_seconds ${external.backup.last_success_timestamp_seconds}`,
+      "# TYPE home_tunnel_restore_last_success_timestamp_seconds gauge",
+      `home_tunnel_restore_last_success_timestamp_seconds ${external.restore.last_success_timestamp_seconds}`,
+      ...httpDurationMetrics(),
       "# HELP home_tunnel_up Control center process is serving requests.",
       "# TYPE home_tunnel_up gauge",
       "home_tunnel_up 1",

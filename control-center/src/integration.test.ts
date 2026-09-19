@@ -1,3 +1,4 @@
+import { validateApiResponse } from "./api-contract-test-helper.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
@@ -66,6 +67,8 @@ export async function runIntegrationSuite(): Promise<void> {
         ? await response.json()
         : await response.text();
     }
+    if (contentType.includes("application/json") || response.status === 204)
+      validateApiResponse(method, path, response.status, payload);
     return { status: response.status, payload, headers: response.headers };
   }
 
@@ -387,6 +390,7 @@ export async function runIntegrationSuite(): Promise<void> {
       "PATCH",
       `/api/v1/client/connections/${connectionId}`,
       {
+        expected_access_policy_version: 1,
         access: { ip_allowlist: ["not-a-cidr"] },
       },
       userToken,
@@ -398,6 +402,7 @@ export async function runIntegrationSuite(): Promise<void> {
       "PATCH",
       `/api/v1/client/connections/${connectionId}`,
       {
+        expected_access_policy_version: 1,
         access: { basic_auth: { username: "svc", password: "short" } },
       },
       userToken,
@@ -408,6 +413,7 @@ export async function runIntegrationSuite(): Promise<void> {
       "PATCH",
       `/api/v1/client/connections/${connectionId}`,
       {
+        expected_access_policy_version: 1,
         access: { basic_auth: { username: "svc:bad", password: "long enough pass" } },
       },
       userToken,
@@ -432,6 +438,7 @@ export async function runIntegrationSuite(): Promise<void> {
       "PATCH",
       `/api/v1/client/connections/${connectionId}`,
       {
+        expected_access_policy_version: 1,
         access: {
           ip_allowlist: ["203.0.113.0/24", "2001:db8::/64"],
           basic_auth: { username: "svc", password: "gate pass 42!" },
@@ -513,6 +520,7 @@ export async function runIntegrationSuite(): Promise<void> {
       "PATCH",
       `/api/v1/client/connections/${connectionId}`,
       {
+        expected_access_policy_version: 2,
         access: { basic_auth: null },
       },
       userToken,
@@ -532,6 +540,7 @@ export async function runIntegrationSuite(): Promise<void> {
       "PATCH",
       `/api/v1/client/connections/${connectionId}`,
       {
+        expected_access_policy_version: 3,
         access: { ip_allowlist: null },
       },
       userToken,

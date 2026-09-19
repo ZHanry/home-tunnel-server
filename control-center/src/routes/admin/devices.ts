@@ -11,6 +11,8 @@ import {
 } from "../../http.js";
 import { adminGuard } from "./shared.js";
 
+import { pagination, pageInfo } from "../../pagination.js";
+
 const router = Router();
 
 router.get(
@@ -20,6 +22,12 @@ router.get(
     requirePasswordNormal(request);
     const userId = String(request.query.user_id ?? "");
     const status = String(request.query.status ?? "");
+    const { page, page_size, offset, search } = pagination(request.query);
+    const count = await one<{ total: number }>(
+      `SELECT count(*) AS total FROM devices d JOIN users u ON u.id=d.user_id
+      WHERE u.deleted_at IS NULL AND (?='' OR d.user_id=?) AND (?='' OR d.status=?) AND (?='' OR instr(lower(d.name || d.tags),lower(?))>0)`,
+      [userId, userId, status, status, search, search],
+    );
     const rows = await query<{
       id: string;
       user_id: string;
@@ -33,17 +41,24 @@ router.get(
       last_seen_at: Date | null;
       lease_expires_at: Date | null;
       created_at: Date;
+      tags: string;
+      favorite: number;
+      metadata_version: number;
     }>(
       `SELECT d.id,d.user_id,u.username,d.name,d.status,d.config_version,
-            d.applied_config_version,d.client_version,d.agent_version,d.last_seen_at,d.lease_expires_at,d.created_at
+            d.applied_config_version,d.client_version,d.agent_version,d.last_seen_at,d.lease_expires_at,d.created_at,d.tags,d.favorite,d.metadata_version
        FROM devices d JOIN users u ON u.id=d.user_id
-      WHERE u.deleted_at IS NULL AND (?='' OR d.user_id=?) AND (?='' OR d.status=?)
-      ORDER BY d.last_seen_at DESC NULLS LAST,d.created_at DESC LIMIT 200`,
-      [userId, userId, status, status],
+      WHERE u.deleted_at IS NULL AND (?='' OR d.user_id=?) AND (?='' OR d.status=?) AND (?='' OR instr(lower(d.name || d.tags),lower(?))>0)
+      ORDER BY d.created_at DESC,d.id DESC LIMIT ? OFFSET ?`,
+      [userId, userId, status, status, search, search, page_size, offset],
     );
     response.json({
+      ...pageInfo(page, page_size, Number(count?.total ?? 0)),
       items: rows.map((row) => ({
         ...row,
+        tags: JSON.parse(row.tags),
+        favorite: Boolean(row.favorite),
+        metadata_version: Number(row.metadata_version),
         config_version: Number(row.config_version),
         applied_config_version: Number(row.applied_config_version),
         online: row.last_seen_at ? Date.now() - row.last_seen_at.getTime() < 90_000 : false,

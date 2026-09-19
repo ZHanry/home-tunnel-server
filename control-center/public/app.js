@@ -1,4 +1,5 @@
-import { createConnectionsView } from "./modules/connections.js?v=6.2.0";
+import { createConnectionsView } from "./modules/connections.js?v=7.0.0";
+import { createAccountSecurityView } from "./modules/account-security.js?v=7.0.0";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -6,8 +7,9 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=6.2.0";
-import { api, refreshSession } from "./modules/api.js?v=6.2.0";
+} from "./modules/forms.js?v=7.0.0";
+import { createDevicesView } from "./modules/devices.js?v=7.0.0";
+import { api, refreshSession, allPages } from "./modules/api.js?v=7.0.0";
 import {
   componentLabel,
   configState,
@@ -16,10 +18,10 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=6.2.0";
-import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=6.2.0";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=6.2.0";
-import { state } from "./modules/state.js?v=6.2.0";
+} from "./modules/format.js?v=7.0.0";
+import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=7.0.0";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=7.0.0";
+import { state } from "./modules/state.js?v=7.0.0";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -39,9 +41,13 @@ const modalEyebrow = document.querySelector("#modal-eyebrow");
 const modalError = document.querySelector("#modal-error");
 const toastRegion = document.querySelector("#toast-region");
 const skipLink = document.querySelector("#skip-link");
+const { renderSecurity } = createAccountSecurityView({api,state,viewContent,escapeHtml,formatDate,openModal,field,modal,showSecret,toast,renderAccount});
+
+const { renderDevices } = createDevicesView({api,state,devicesPath,viewContent,escapeHtml,statusBadge,configState,formatDate,emptyState,isAdmin});
 
 const { renderConnections } = createConnectionsView({
   api,
+  allPages,
   state,
   isAdmin,
   connectionsPath,
@@ -71,7 +77,7 @@ const viewMeta = {
 const userViewMeta = {
   dashboard: ["我的工作区", "只显示你的设备与隧道"],
   devices: ["我的设备", "已登记的机器"],
-  connections: ["我的隧道", "HTTP 自助开通"],
+  connections: ["我的隧道", "按权限自助开通"],
 };
 
 function isAdmin() {
@@ -83,7 +89,7 @@ function applyRoleChrome() {
     item.hidden = !isAdmin();
   });
   const brand = document.querySelector(".sidebar-brand .brand-copy small");
-  if (brand) brand.textContent = isAdmin() ? "控制中心 v6.2.0" : "我的工作区";
+  if (brand) brand.textContent = isAdmin() ? "控制中心 v7.0.0" : "我的工作区";
   const sessionCopy = document.querySelector(".sidebar-session small");
   if (sessionCopy) sessionCopy.textContent = isAdmin() ? "权限已验证" : "仅显示你的资源";
 }
@@ -431,8 +437,8 @@ function annotateOwnedConnections(connections, devices) {
 
 async function renderUserDashboard(renderId) {
   const [devicesPayload, connectionsPayload, trafficPayload] = await Promise.all([
-    api("/api/v1/client/devices"),
-    api("/api/v1/client/connections"),
+    allPages("/api/v1/client/devices"),
+    allPages("/api/v1/client/connections"),
     api("/api/v1/client/traffic/summary"),
   ]);
   if (renderId !== state.renderId) return;
@@ -509,13 +515,6 @@ async function renderUsers(renderId = state.renderId) {
     state.userSearch = document.querySelector("#user-search").value.trim();
     void renderView("users");
   });
-}
-
-async function renderDevices(renderId = state.renderId) {
-  const data = await api(devicesPath());
-  if (renderId !== state.renderId) return;
-  state.devices = data.items;
-  viewContent.innerHTML = `<div class="section-intro"><p><strong>${state.devices.filter((d) => d.online && d.status === "active").length}</strong> 台在线 · ${state.devices.length} 台设备</p><span>一台设备，一个独立的服务空间</span></div><section class="device-grid">${state.devices.length ? state.devices.map((device) => `<article class="panel device-tile"><div class="device-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="13" rx="2"/><path d="M8 21h8m-4-5v5"/></svg>${statusBadge(device.status === "active" && device.online ? "active" : device.status === "active" ? "Offline" : device.status)}</div><h3 data-no-translate>${escapeHtml(device.name)}</h3><p class="cell-secondary" data-no-translate>${escapeHtml(device.username ?? state.me.username)}</p><dl><dt>配置同步</dt><dd>${configState(device)}</dd><dt>最后在线</dt><dd>${formatDate(device.last_seen_at)}</dd><dt>客户端版本</dt><dd data-no-translate>${escapeHtml(device.client_version ?? "—")}</dd></dl><footer>${isAdmin() ? `<button class="button button-danger button-small" data-action="delete-device" data-id="${device.id}" data-name="${escapeHtml(device.name)}" aria-label="删除设备 ${escapeHtml(device.name)}">删除设备</button>` : `<span class="cell-secondary">在这台设备上登录客户端以保持连接</span>`}</footer></article>`).join("") : emptyState("还没有注册设备", "在家庭电脑上安装客户端，用当前账号登录，设备就会出现在这里。")}</section>`;
 }
 
 // 访问控制徽章：只依据 access_basic_auth_enabled / access_ip_allowlist 展示
@@ -765,7 +764,7 @@ function openModal({
       rememberDraft();
       modalError.textContent = error.message;
       if (!showFieldErrors(modalForm, error)) modalError.focus({ preventScroll: true });
-      if (error.code === "VERSION_CONFLICT" && modal.conflictResource) {
+      if (["VERSION_CONFLICT", "ACCESS_POLICY_VERSION_CONFLICT"].includes(error.code) && modal.conflictResource) {
         const reload = document.createElement("button");
         reload.type = "button";
         reload.className = "button button-secondary";
@@ -858,12 +857,13 @@ async function renderAccount(renderId) {
   if (renderId !== state.renderId) return;
   state.me = me;
   viewContent.innerHTML = `<section class="panel account-panel"><div class="panel-header"><div><h3 data-no-translate>${escapeHtml(me.display_name)}</h3><p class="panel-subtle">我的账号与使用额度</p></div><button class="button button-secondary" data-action="change-password">修改密码</button></div><div class="account-metrics"><div><span>本月 Web 流量</span><strong>${formatBytes(me.month_to_date_bytes)}</strong></div><div><span>月度配额</span><strong>${me.monthly_quota_bytes == null ? "不限额" : formatBytes(me.monthly_quota_bytes)}</strong></div><div><span>账号共享带宽</span><strong>${formatBps(me.bandwidth_limit_bps)}</strong></div></div><p class="helper">每月按 UTC 自然月重置。下次重置：${formatDate(me.quota_resets_at)}。TCP/UDP 不经过 Web 网关，不包含在这里的流量与配额统计中。</p></section>`;
+  await renderSecurity(renderId);
 }
 
 function changePassword() {
   openModal({
     title: "修改密码",
-    body: `<p class="helper">密码修改后所有账号会话会退出，请使用新密码重新登录。</p>${field("current_password", "当前密码", "", { type: "password" })}${field("new_password", "新密码", "", { type: "password", minlength: 12, helper: "至少 12 个字符，且不能包含用户名" })}${field("confirm_password", "确认新密码", "", { type: "password", minlength: 12 })}`,
+    body: `<p class="helper">密码修改后所有账号会话会退出，请使用新密码重新登录。</p>${field("current_password", "当前密码", "", { type: "password" })}${field("new_password", "新密码", "", { type: "password", minlength: 12, helper: "至少 12 个字符，且不能包含用户名" })}${field("confirm_password", "确认新密码", "", { type: "password", minlength: 12 })}${field("mfa_code", "动态码或恢复码（已启用时必填）", "", { type: "password", required: false })}`,
     onSubmit: async (form) => {
       if (form.get("new_password") !== form.get("confirm_password"))
         throw new Error("两次输入的新密码不一致");
@@ -874,6 +874,7 @@ function changePassword() {
           body: JSON.stringify({
             current_password: form.get("current_password"),
             new_password: form.get("new_password"),
+            mfa_code: form.get("mfa_code") || undefined,
           }),
         },
         false,
@@ -1072,7 +1073,9 @@ function proxyTypeOptions(selected = "http") {
 
 async function openCreateConnection() {
   if (!isAdmin()) {
-    const payload = await api("/api/v1/client/devices");
+    const payload = await allPages("/api/v1/client/devices");
+    const catalog=await api("/api/v1/client/connections?page_size=1");
+    const allowed=type=>type==="http"||catalog.capabilities?.[type]?.can_create===true;
     state.devices = payload.items.filter((item) => item.status === "active");
     if (!state.devices.length) {
       toast("请先在家里的电脑上安装客户端并登录同一账号", "error");
@@ -1086,7 +1089,7 @@ async function openCreateConnection() {
       )
       .join("");
     openModal({
-      title: "创建 HTTP 隧道",
+      title: "创建隧道",
       eyebrow: "我的连接",
       body: `<div class="form-grid"><div class="field"><label for="modal-device_id">设备</label><select id="modal-device_id" name="device_id">${deviceOptions}</select></div>${field("name", "连接名称")}${field(
         "subdomain",
@@ -1097,18 +1100,21 @@ async function openCreateConnection() {
           .replace(/^-+|-+$/g, "")
           .slice(0, 40)}-app`,
         { helper: `公网地址为 子域.${state.tunnelDomain}。被占用时会给出可用建议。` },
-      )}<input name="proxy_type" type="hidden" value="http"><div class="field" id="modal-local-scheme-field"><label for="modal-local_scheme">本地协议</label><select id="modal-local_scheme" name="local_scheme"><option value="http">http</option><option value="https">https</option></select></div>${field("local_host", "本地地址", "127.0.0.1")}${field("local_port", "本地端口", "8080", { type: "number", min: 1, max: 65535 })}<div id="modal-http-options" class="field full"><div class="form-grid">${accessFormFields()}</div></div><div class="field full"><label><input name="enabled" type="checkbox" checked> 创建后立即启用</label><p class="helper">普通用户只能自助创建 HTTP/HTTPS。TCP/UDP 由管理员分配精确公网端口。</p></div></div>`,
+      )}<div class="field"><label for="modal-client-preset">协议与用途</label><select name="preset" id="modal-client-preset">${["http","tcp","udp","ssh","rdp","rtsp"].map(preset=>`<option value="${preset}" ${allowed(["ssh","rdp","rtsp"].includes(preset)?"tcp":preset)?"":"disabled"}>${preset.toUpperCase()}</option>`).join("")}</select><p class="helper">不可选表示服务端未开放或账号无权限；TCP/UDP 端口自动分配。</p></div><div class="field" id="modal-local-scheme-field"><label for="modal-local_scheme">本地协议</label><select id="modal-local_scheme" name="local_scheme"><option value="http">http</option><option value="https">https</option></select></div>${field("local_host", "本地地址", "127.0.0.1")}${field("local_port", "本地端口", "8080", { type: "number", min: 1, max: 65535 })}<div id="modal-http-options" class="field full"><div class="form-grid">${accessFormFields()}</div></div><div class="field full"><label><input name="enabled" type="checkbox" checked> 创建后立即启用</label><p class="helper">原始 TCP/UDP 不经过 HTTP 门禁，目标应用必须提供认证与加密。</p></div></div>`,
       submitLabel: "创建连接",
       onSubmit: async (form) => {
-        const access = collectAccessPatch(form);
+        const preset=String(form.get("preset"));
+        const proxyType=["ssh","rdp","rtsp"].includes(preset)?"tcp":preset;
+        const access = proxyType==="http"?collectAccessPatch(form):undefined;
         await api("/api/v1/client/connections", {
           method: "POST",
           body: JSON.stringify({
             device_id: form.get("device_id"),
             name: form.get("name"),
-            subdomain: form.get("subdomain"),
-            proxy_type: "http",
-            local_scheme: form.get("local_scheme"),
+            ...(proxyType==="http"?{subdomain:form.get("subdomain")} : {}),
+            proxy_type: proxyType,
+            ...(["ssh","rdp","rtsp"].includes(preset)?{application_protocol:preset}:{}),
+            local_scheme: proxyType==="http"?form.get("local_scheme"):"http",
             local_host: form.get("local_host"),
             local_port: Number(form.get("local_port")),
             enabled: form.get("enabled") === "on",
@@ -1122,10 +1128,26 @@ async function openCreateConnection() {
     });
     bindAccessModeToggle();
     bindSubdomainAvailability();
+    const presetNode=modalBody.querySelector("#modal-client-preset");
+    const applyPreset=()=>{
+      const raw=presetNode.value!=="http";
+      for(const selector of ["#modal-subdomain","#modal-local_scheme"]) {
+        const input=modalBody.querySelector(selector);input.disabled=raw;input.required=!raw;input.closest(".field").hidden=raw;
+      }
+      modalBody.querySelector("#modal-http-options").hidden=raw;
+      if(!raw)bindAccessModeToggle();
+      else modalBody.querySelectorAll("#modal-http-options input, #modal-http-options select, #modal-http-options textarea").forEach(input=>{input.disabled=true;input.required=false;});
+      const defaults={ssh:22,rdp:3389,rtsp:554};
+      if(defaults[presetNode.value])modalBody.querySelector("#modal-local_port").value=defaults[presetNode.value];
+    };
+    presetNode.addEventListener("change",()=>{
+      modalBody.querySelectorAll("#modal-http-options input, #modal-http-options select, #modal-http-options textarea").forEach(input=>input.disabled=false);
+      applyPreset();
+    });applyPreset();
     return;
   }
   if (!state.users.length) state.users = (await api("/api/v1/admin/users")).items;
-  state.devices = (await api("/api/v1/admin/devices")).items.filter(
+  state.devices = (await allPages("/api/v1/admin/devices")).items.filter(
     (item) => item.status === "active",
   );
   if (!state.devices.length) {
@@ -1356,7 +1378,7 @@ function openEditConnection(connectionId) {
               local_host: form.get("local_host"),
               local_port: Number(form.get("local_port")),
               enabled: form.get("enabled") === "on",
-              ...(access ? { access } : {}),
+              ...(access ? { access, expected_access_policy_version: connection.access_policy_version } : {}),
             }),
           ),
         });
@@ -1404,7 +1426,7 @@ function openEditConnection(connectionId) {
             enabled: form.get("enabled") === "on",
             bandwidth_limit_bps:
               proxyType === "http" && mbps ? Math.round(Number(mbps) * 1_000_000) : null,
-            ...(access ? { access } : {}),
+            ...(access ? { access, expected_access_policy_version: connection.access_policy_version } : {}),
           }),
         ),
       });
@@ -1537,6 +1559,30 @@ appShell.addEventListener("click", async (event) => {
     if (action === "connection-page") {
       state.connectionQuery.page = Math.max(1, Number(button.dataset.page));
       await renderView("connections");
+    }
+    if(action==="device-page") {state.deviceQuery.page=Math.max(1,Number(button.dataset.page));await renderView("devices");}
+    if(action==="device-metadata") {
+      const device=state.devices.find(item=>item.id===button.dataset.id);if(!device)return;
+      openModal({title:`标签与收藏 · ${device.name}`,draftId:`metadata:${device.id}`,
+        body:`${field("tags","标签（逗号分隔，最多 12 个）",(device.tags??[]).join(", "),{required:false})}<label><input type="checkbox" name="favorite" ${device.favorite?"checked":""}>收藏此设备</label>`,
+        onSubmit:async form=>{
+          const tags=[...new Set(String(form.get("tags")).split(/[,，]/).map(tag=>tag.trim()).filter(Boolean))];
+          await api(`${devicesPath()}/${device.id}/metadata`,{method:"PATCH",body:JSON.stringify({tags,favorite:form.get("favorite")==="on",expected_metadata_version:device.metadata_version})});
+          modal.close("saved");await renderDevices();
+        }});
+    }
+    if(action==="batch-connections") {
+      const ids=new Set([...viewContent.querySelectorAll("[data-select-connection]:checked")].map(input=>input.value));
+      const items=state.connections.filter(item=>ids.has(item.id));if(!items.length){toast("请先选择连接","error");return;}
+      const enabled=button.dataset.enabled==="true";
+      openModal({title:enabled?"批量恢复连接":"批量暂停连接",draftId:"batch-connections",
+        body:`<p>本次将${enabled?"恢复":"暂停"}以下 ${items.length} 条连接。每项独立执行，冲突项保留服务器上的新修改。</p><ul>${items.map(item=>`<li>${escapeHtml(item.username)} / ${escapeHtml(item.device_name)} / ${escapeHtml(item.name)}</li>`).join("")}</ul>`,submitLabel:"确认执行",
+        onSubmit:async()=>{
+          const data=await api(`${connectionsPath()}/batch`,{method:"POST",body:JSON.stringify({enabled,items:items.map(item=>({id:item.id,expected_version:item.version}))})});
+          modalBody.innerHTML=`<h3>逐项结果</h3><ul>${data.results.map(result=>`<li>${escapeHtml(items.find(item=>item.id===result.id)?.name??result.id)}：${result.status===200?"成功":escapeHtml(result.error_code)}</li>`).join("")}</ul>`;
+          modalFooter.innerHTML='<button class="button button-primary" type="button" data-batch-done>关闭</button>';
+          modalFooter.querySelector("[data-batch-done]").onclick=()=>modal.close("done");await renderConnections();
+        }});
     }
     if (action === "change-password") changePassword();
     if (action === "connection-details") showConnectionDetails(button.dataset.id);
@@ -1787,6 +1833,7 @@ loginForm.addEventListener("submit", async (event) => {
         body: JSON.stringify({
           username: form.get("username"),
           password: form.get("password"),
+          mfa_code: form.get("mfa_code") || undefined,
           client_type: "web",
         }),
       },
@@ -1794,6 +1841,7 @@ loginForm.addEventListener("submit", async (event) => {
     );
     state.csrf = result.csrf_token;
     document.querySelector("#login-password").value = "";
+    document.querySelector("#login-mfa").value = "";
     if (result.password_change_required) {
       loginForm.classList.add("hidden");
       passwordForm.classList.remove("hidden");
@@ -1847,6 +1895,7 @@ passwordForm.addEventListener("submit", async (event) => {
         method: "POST",
         body: JSON.stringify({
           current_password: pendingCurrentPassword ?? form.get("current_password"),
+          mfa_code: form.get("mfa_code") || undefined,
           new_password: form.get("new_password"),
         }),
       },

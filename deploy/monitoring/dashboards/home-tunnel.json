@@ -1,0 +1,306 @@
+{
+  "uid": "home-tunnel",
+  "title": "Home Tunnel",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "tags": [
+    "home-tunnel"
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Control center",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "home-tunnel-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "home_tunnel_up",
+          "refId": "A",
+          "legendFormat": "{{class}}{{channel}}{{enabled}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Devices offline",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "home-tunnel-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "home_tunnel_devices_offline_total",
+          "refId": "A",
+          "legendFormat": "{{class}}{{channel}}{{enabled}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Last local snapshot",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "home-tunnel-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "home_tunnel_backup_last_success_timestamp_seconds * 1000",
+          "refId": "A",
+          "legendFormat": "{{class}}{{channel}}{{enabled}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Off-host backup healthy",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "home-tunnel-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "home_tunnel_offsite_backup_healthy",
+          "refId": "A",
+          "legendFormat": "{{class}}{{channel}}{{enabled}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Connections",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "home-tunnel-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "home_tunnel_connections_total",
+          "refId": "A",
+          "legendFormat": "{{class}}{{channel}}{{enabled}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "HTTP p95 latency",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "home-tunnel-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by(le)(rate(home_tunnel_http_request_duration_seconds_bucket[5m])))",
+          "refId": "A",
+          "legendFormat": "{{class}}{{channel}}{{enabled}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "HTTP request rate",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "home-tunnel-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by(class)(rate(home_tunnel_http_requests_total[5m]))",
+          "refId": "A",
+          "legendFormat": "{{class}}{{channel}}{{enabled}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "HTTPS certificate days remaining",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "home-tunnel-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "(probe_ssl_earliest_cert_expiry - time()) / 86400",
+          "refId": "A",
+          "legendFormat": "{{class}}{{channel}}{{enabled}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Last full restore verification",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "home-tunnel-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "home_tunnel_restore_last_success_timestamp_seconds * 1000",
+          "refId": "A",
+          "legendFormat": "{{class}}{{channel}}{{enabled}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Alert delivery errors",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "home-tunnel-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by(channel)(increase(home_tunnel_alerts_sent_total{result=\"error\"}[1h]))",
+          "refId": "A",
+          "legendFormat": "{{class}}{{channel}}{{enabled}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {}
+    }
+  ]
+}

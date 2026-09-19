@@ -1,0 +1,37 @@
+services:
+  control-center:
+    environment:
+      OFFSITE_BACKUP_REQUIRED: 'true'
+  backup:
+    profiles: [backup]
+    build:
+      context: ./deploy/backup
+    environment:
+      RESTIC_REPOSITORY: ${HOME_TUNNEL_BACKUP_REPOSITORY:?set encrypted offsite repository}
+      RESTIC_PASSWORD_FILE: /run/secrets/backup_repository_password
+      AWS_ACCESS_KEY_ID: ${HOME_TUNNEL_BACKUP_AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${HOME_TUNNEL_BACKUP_AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${HOME_TUNNEL_BACKUP_AWS_REGION:-us-east-1}
+      BACKUP_HOST: ${HOME_TUNNEL_BACKUP_HOST:-home-tunnel}
+    secrets: [backup_repository_password]
+    volumes:
+      - sqlite-data:/source/data:ro
+      - ./:/source/config:ro
+      - home-tunnel-status:/status
+      - backup-work:/work
+      - ${HOME_TUNNEL_RESTORE_DIRECTORY:-./restore}:/restore
+    tmpfs: [/tmp:size=32m,noexec,nosuid,nodev]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [edge]
+    mem_limit: 384m
+    cpus: '0.5'
+    pids_limit: 64
+
+volumes:
+  backup-work:
+
+secrets:
+  backup_repository_password:
+    file: ${HOME_TUNNEL_BACKUP_PASSWORD_FILE:?set password file OUTSIDE this repository}

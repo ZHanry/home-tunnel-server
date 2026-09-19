@@ -1,4 +1,4 @@
-"""Build, verify and publish a component; keep engineering evidence in Actions."""
+"""Build, verify and publish a component; preserve sealed engineering evidence in Releases."""
 from pathlib import Path
 import hashlib
 import json
@@ -70,7 +70,7 @@ def required_assets(directory):
     elif COMPONENT == "android":
         expected = [f"HomeTunnel-Android-{version}-arm64-v8a.apk", f"HomeTunnel-Android-{version}.aab", "android-release-evidence.json"]
     else:
-        expected = ["image-control-center.json", "image-traffic-gateway.json", "home-tunnel.v1.json"]
+        expected = ["image-control-center.json", "image-traffic-gateway.json", "home-tunnel.v1.json", "openapi.v1.json", "api.schema.json"]
         for name in ("control-center", "traffic-gateway"):
             record = json.loads((directory / f"image-{name}.json").read_text())
             if record["revision"] != SHA or not re.fullmatch(r"sha256:[a-f0-9]{64}", record["digest"]):
@@ -94,7 +94,7 @@ def seal():
         import tarfile
         archive = directory/f'home-tunnel-server-{local_version()}.tar.gz'
         with tarfile.open(archive, 'w:gz') as bundle:
-            for entry in ['compose.yaml', '.env.example', 'README.md', 'LICENSE', 'deploy', 'docs/SELF_HOSTING.md', 'docs/UPGRADING.md']:
+            for entry in ['compose.yaml', '.env.example', 'README.md', 'README.en.md', 'LICENSE', 'deploy', 'docs', 'contracts']:
                 bundle.add(ROOT/entry, arcname=entry, filter=lambda item: None if '__pycache__' in item.name or item.name.endswith('.pyc') else item)
             bundle.add(directory/'compose.release.yaml',arcname='compose.release.yaml')
     lines=[]
@@ -145,18 +145,22 @@ def publish(stable=False):
     import shutil
     public = ROOT/'release-public'
     public.mkdir(exist_ok=True)
-    selected=public_asset_names(COMPONENT,local_version())
+    # Publish the exact sealed set, including SBOMs, scan results and signatures.
+    # Keeping the signed checksum manifest unchanged makes evidence independently verifiable.
+    selected=sorted(path.name for path in directory.iterdir() if path.is_file())
+    missing=set(public_asset_names(COMPONENT,local_version()))-set(selected)
+    if missing: raise SystemExit(f'Missing public deliverables: {missing}')
     for name in selected:
         shutil.copyfile(directory/name,public/name)
-    checksums=''.join(f"{hashlib.sha256((public/name).read_bytes()).hexdigest()}  {name}\n" for name in selected)
-    if COMPONENT != 'android':
-        (public/'SHA256SUMS.txt').write_text(checksums,encoding='utf-8')
+    packages=public_asset_names(COMPONENT,local_version())
+    downloads='\n'.join(f'- [{name}](https://github.com/{REPO}/releases/download/{TAG}/{name})' for name in packages)
+    checksums=''.join(f"{hashlib.sha256((public/name).read_bytes()).hexdigest()}  {name}\n" for name in packages)
     title=f'Home Tunnel {COMPONENT} {local_version()}' + ('' if stable else f' ({TAG.rsplit("-",1)[1]})')
     notes=ROOT/'release-notes.md'
     summary=(ROOT/'docs/RELEASE_NOTES.md').read_text(encoding='utf-8')
     run_url=f"https://github.com/{REPO}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
-    notes.write_text(summary + f"\n\nSource: `{SHA}`. [Build, verification and signing evidence]({run_url}).\n\n" +
-        ("APK SHA-256: `" + checksums.split()[0] + "`\n" if COMPONENT == 'android' else "Package checksums are in SHA256SUMS.txt.\n"),encoding='utf-8')
+    notes.write_text(summary + "\n\n## Downloads\n\n" + downloads + "\n\n```text\n" + checksums + "```\n" + f"\n\nSource: `{SHA}`. [Build, verification and signing evidence]({run_url}).\n\n" +
+        "Packages and durable verification evidence are covered by SHA256SUMS.txt and its Sigstore bundle.\n",encoding='utf-8')
     created=False
     try:
         run('gh','release','create',TAG,'--repo',REPO,'--verify-tag','--target',SHA,'--draft','--title',title,'--notes-file',str(notes))

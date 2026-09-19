@@ -26,9 +26,10 @@ after(async () => {
   await rm(backupDirectory, { recursive: true, force: true });
 });
 
-test("scheduled backups stay disabled for in-memory databases", () => {
+test("scheduled backups stay disabled for in-memory databases", async () => {
+  await db.migrate();
   assert.equal(backup.backupsEnabled(), false);
-  assert.equal(backup.backupLastSuccessAt(), 0);
+  assert.equal(await backup.backupLastSuccessAt(), 0);
 });
 
 test("runDatabaseBackup writes a snapshot that DatabaseSync can open", async () => {
@@ -36,7 +37,8 @@ test("runDatabaseBackup writes a snapshot that DatabaseSync can open", async () 
   const result = await backup.runDatabaseBackup(new Date("2026-08-12T01:00:00Z"));
   assert.equal(result.path, join(backupDirectory, "control-center-20260812T010000Z.sqlite3"));
   assert.equal(result.deletedCount, 0);
-  assert.ok(backup.backupLastSuccessAt() > 0);
+  assert.ok((await backup.backupLastSuccessAt()) > 0);
+  assert.equal((await backup.localBackupHealth()).status, "healthy");
 
   const snapshot = new DatabaseSync(result.path);
   try {

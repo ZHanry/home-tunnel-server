@@ -232,6 +232,63 @@ jobs:
     - name: Verify the patched FRP build dependency locks
       run: |
         python3 scripts/verify-frp-security.py
+  platform-operations:
+    name: API, encrypted recovery and monitoring
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      with:
+        node-version: 24.19.0
+    - name: Build services and validate the complete API snapshot
+      run: |
+        npm install -g pnpm@11.19.0
+        pnpm --dir control-center install --frozen-lockfile
+        pnpm --dir control-center run build
+        python3 scripts/generate-api-spec.py --check
+        python3 -m unittest discover -s deploy/scripts -p 'test_*.py'
+    - name: Install checksum-verified Restic
+      run: |
+        set -euo pipefail
+        mkdir -p "$RUNNER_TEMP/restic"
+        cd "$RUNNER_TEMP/restic"
+        curl --fail --location --proto '=https' -O https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_linux_amd64.bz2
+        curl --fail --location --proto '=https' -O https://github.com/restic/restic/releases/download/v0.19.1/SHA256SUMS
+        grep '  restic_0.19.1_linux_amd64.bz2$' SHA256SUMS | sha256sum -c -
+        bunzip2 restic_0.19.1_linux_amd64.bz2
+        chmod +x restic_0.19.1_linux_amd64
+        echo "RESTIC_BINARY=$RUNNER_TEMP/restic/restic_0.19.1_linux_amd64" >> "$GITHUB_ENV"
+    - name: Encrypted backup, clean-volume restore and real administrator login
+      run: |
+        set -euo pipefail
+        export TEST_RESTORE_BUNDLE_PATH="$RUNNER_TEMP/ht-restored-bundle"
+        node --test deploy/backup/runner.test.mjs
+        python3 deploy/scripts/import-restore.py --bundle "$TEST_RESTORE_BUNDLE_PATH" --verify-only
+        python3 deploy/scripts/import-restore.py --bundle "$TEST_RESTORE_BUNDLE_PATH" --destination "$RUNNER_TEMP/ht-restored-project" --project ht-restore-ci
+        python3 tests/verify-restored-volume.py
+        if python3 deploy/scripts/import-restore.py --bundle "$TEST_RESTORE_BUNDLE_PATH" --destination "$RUNNER_TEMP/ht-second-project" --project ht-restore-ci; then
+          echo 'Restore must reject an existing volume' >&2
+          exit 1
+        fi
+    - name: Validate monitoring configuration with upstream tools
+      run: |
+        set -euo pipefail
+        mkdir -p deploy/secrets
+        printf 'HOME_TUNNEL_TUNNEL_DOMAIN=tunnel.home.test\nHOME_TUNNEL_CONSOLE_HOST=console.home.test\nHOME_TUNNEL_PUBLIC_BASE_URL=https://console.home.test\nHOME_TUNNEL_FRPS_PUBLIC_HOST=frps.home.test\nHOME_TUNNEL_ACME_EMAIL=admin@home.test\n' > .env
+        printf '%064d' 0 > deploy/secrets/internal_service_key
+        python3 deploy/scripts/prepare-monitoring.py
+        docker run --rm --entrypoint /bin/promtool -v "$PWD/deploy/monitoring:/etc/prometheus:ro" -v "$PWD/deploy/secrets/internal_service_key:/run/secrets/internal_service_key:ro" prom/prometheus:v3.14.0 check config /etc/prometheus/prometheus.generated.yml
+        docker run --rm --entrypoint /bin/amtool -v "$PWD/deploy/monitoring:/etc/alertmanager:ro" -v "$PWD/deploy/secrets/internal_service_key:/run/secrets/internal_service_key:ro" prom/alertmanager:v0.34.1 check-config /etc/alertmanager/alertmanager.yml
+        docker run --rm -v "$PWD/deploy/monitoring/blackbox.yml:/config.yml:ro" prom/blackbox-exporter:v0.28.0 --config.file=/config.yml --config.check
+        docker compose -f compose.yaml -f deploy/compose.monitoring.yaml --profile monitoring config --quiet
+    - name: Exercise encrypted backup through HTTPS S3
+      run: |
+        python3 -m venv "$RUNNER_TEMP/s3-tests"
+        "$RUNNER_TEMP/s3-tests/bin/pip" install 'moto[server]==5.1.12'
+        "$RUNNER_TEMP/s3-tests/bin/python" tests/backup-s3.py
+    - name: Clean temporary restore volume
+      if: ${{ always() }}
+      run: docker volume rm ht-restore-ci_sqlite-data || true
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
@@ -242,6 +299,7 @@ jobs:
     - dependency-review
     - deployment
     - repository
+    - platform-operations
     steps:
     - name: Require all component checks
       env:

@@ -57,8 +57,8 @@ const devices = [
     name: "书房主机",
     status: "active",
     online: true,
-    client_version: "6.0.0",
-    agent_version: "5.0.1",
+    client_version: "7.0.0",
+    agent_version: "7.0.0",
     applied_config_version: 12,
     config_version: 12,
     last_seen_at: new Date(now - 12_000).toISOString(),
@@ -71,8 +71,8 @@ const devices = [
     name: "家庭服务器",
     status: "active",
     online: false,
-    client_version: "6.0.0",
-    agent_version: "5.0.1",
+    client_version: "7.0.0",
+    agent_version: "7.0.0",
     applied_config_version: 4,
     config_version: 5,
     last_seen_at: new Date(now - 3_600_000).toISOString(),
@@ -182,6 +182,14 @@ app.get("/api/v1/public/releases/latest", (_request, response) =>
     error: { code: "RELEASE_UNAVAILABLE", message: "Windows 安装包暂不可用" },
   }),
 );
+app.get("/api/v1/auth/session", (_request, response) =>
+  response.status(401).json({ error_code: "AUTH_REQUIRED", message: "Refresh preview session" }),
+);
+app.get("/api/v1/auth/mfa", (_request, response) =>
+  response.json({ enabled: false, recovery_codes_remaining: 0 }),
+);
+app.get("/api/v1/auth/sessions", (_request, response) => response.json({ items: [] }));
+app.get("/api/v1/client/enrollment-codes", (_request, response) => response.json({ items: [] }));
 app.post("/api/v1/auth/refresh", (_request, response) =>
   response.json({ csrf_token: "local-ui-preview" }),
 );

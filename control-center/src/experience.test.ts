@@ -178,11 +178,32 @@ test("5.0 owner-aware validation, partial policies and complete pagination", asy
       },
     );
     await t.test("251 connections remain discoverable through complete pagination", async () => {
+      const extraLogin = await call("POST", "/api/v1/auth/login", {
+        username: "lin",
+        password: userPassword,
+        client_type: "linux",
+      });
+      const extra = await call(
+        "POST",
+        "/api/v1/devices/register",
+        {
+          name: "Second pagination device",
+          install_id: "pagination-second",
+          fingerprint_hash: "cd".repeat(32),
+        },
+        extraLogin.data.access_token,
+      );
+      assert.equal(extra.status, 201);
       for (let i = 0; i < 250; i++) {
         const created = await call(
           "POST",
           "/api/v1/admin/connections",
-          { ...input, name: `Service ${i}`, subdomain: `lin-service-${i}` },
+          {
+            ...input,
+            device_id: i === 249 ? extra.data.device_id : input.device_id,
+            name: `Service ${i}`,
+            subdomain: `lin-service-${i}`,
+          },
           admin,
         );
         assert.equal(created.status, 201);
