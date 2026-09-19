@@ -38,4 +38,6 @@ session races, stale ACL writes and persistent backup health.
 The supported stack is server/Web, client/Agent and Android **7.0.0**; upgrade
 together. FRP remains independently versioned at 0.70.1. CI validates service
 tests, browser flows, deployment, API responses, recovery and security. Release
-assets retain image digests, checksums, SBOMs and verification evidence.
+assets retain image digests, checksums and integration evidence. Image SBOMs and
+build provenance are stored as attestations on the pinned GHCR image digests;
+see the [verification guide](docs/RELEASING.md).
