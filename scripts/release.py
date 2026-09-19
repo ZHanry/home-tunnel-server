@@ -152,12 +152,14 @@ def publish(stable=False):
     if missing: raise SystemExit(f'Missing public deliverables: {missing}')
     for name in selected:
         shutil.copyfile(directory/name,public/name)
-    checksums=''.join(f"{hashlib.sha256((public/name).read_bytes()).hexdigest()}  {name}\n" for name in selected)
+    packages=public_asset_names(COMPONENT,local_version())
+    downloads='\n'.join(f'- [{name}](https://github.com/{REPO}/releases/download/{TAG}/{name})' for name in packages)
+    checksums=''.join(f"{hashlib.sha256((public/name).read_bytes()).hexdigest()}  {name}\n" for name in packages)
     title=f'Home Tunnel {COMPONENT} {local_version()}' + ('' if stable else f' ({TAG.rsplit("-",1)[1]})')
     notes=ROOT/'release-notes.md'
     summary=(ROOT/'docs/RELEASE_NOTES.md').read_text(encoding='utf-8')
     run_url=f"https://github.com/{REPO}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
-    notes.write_text(summary + f"\n\nSource: `{SHA}`. [Build, verification and signing evidence]({run_url}).\n\n" +
+    notes.write_text(summary + "\n\n## Downloads\n\n" + downloads + "\n\n```text\n" + checksums + "```\n" + f"\n\nSource: `{SHA}`. [Build, verification and signing evidence]({run_url}).\n\n" +
         "Packages and durable verification evidence are covered by SHA256SUMS.txt and its Sigstore bundle.\n",encoding='utf-8')
     created=False
     try:
