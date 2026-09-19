@@ -1,0 +1,13 @@
+[Unit]
+Description=Home Tunnel encrypted off-host backup and full restore verification
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/home-tunnel-server
+# The backup reads the database volume selected by this Compose project.
+ExecStart=/usr/bin/docker compose -f compose.yaml -f deploy/compose.backup.yaml --profile backup run --rm --no-deps backup backup
+TimeoutStartSec=90min
+UMask=0077
+Nice=10

@@ -7,6 +7,7 @@ const batchSize = 5_000;
 const maximumBatchesPerRun = 20;
 
 type MaintenanceStats = {
+  enrollment_codes_deleted: number;
   traffic_samples_archived: number;
   traffic_hourly_deleted: number;
   audit_events_deleted: number;
@@ -175,6 +176,9 @@ export async function runDataMaintenance(now = new Date()): Promise<MaintenanceS
   const outboxCutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   return {
+    enrollment_codes_deleted: await deleteByIds("enrollment_codes", "expires_at < ?", [
+      sessionCutoff,
+    ]),
     traffic_samples_archived: await archiveTrafficSamples(trafficCutoff),
     traffic_hourly_deleted: await deleteTrafficHourly(hourlyCutoff),
     audit_events_deleted: await deleteByIds("audit_events", "created_at < ?", [auditCutoff]),

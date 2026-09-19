@@ -1,0 +1,48 @@
+groups:
+  - name: home-tunnel
+    rules:
+      - alert: HomeTunnelControlUnavailable
+        expr: up{job="home-tunnel"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: 'Control center is unreachable', description: 'Check control-center logs and Docker health. Do not expose internal ports.'}
+      - alert: HomeTunnelPublicHttpsUnavailable
+        expr: probe_success{job="console-https"} == 0
+        for: 3m
+        labels: {severity: critical}
+        annotations: {summary: 'Console HTTPS probe failed', description: 'Check DNS, Caddy, public firewall, certificate and route.'}
+      - alert: HomeTunnelCertificateExpiring
+        expr: (probe_ssl_earliest_cert_expiry{job="console-https"} - time()) < 14 * 86400
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: 'Console certificate expires within 14 days', description: 'Check Caddy ACME renewal logs and inbound TCP 80/443.'}
+      - alert: HomeTunnelSnapshotStale
+        expr: time() - home_tunnel_backup_last_success_timestamp_seconds > 36 * 3600
+        for: 30m
+        labels: {severity: warning}
+        annotations: {summary: 'Local SQLite snapshot is missing or stale', description: 'Check snapshot jobs, storage and integrity validation.'}
+      - alert: HomeTunnelOffsiteBackupFailed
+        expr: home_tunnel_offsite_backup_required == 1 and home_tunnel_offsite_backup_healthy == 0
+        for: 30m
+        labels: {severity: critical}
+        annotations: {summary: 'Required off-host backup is missing, stale or failed', description: 'Inspect the backup timer and repository access, then run backup and verify.'}
+      - alert: HomeTunnelRestoreVerificationStale
+        expr: home_tunnel_offsite_backup_required == 1 and (time() - home_tunnel_restore_last_success_timestamp_seconds > 36 * 3600)
+        for: 30m
+        labels: {severity: warning}
+        annotations: {summary: 'Full restore verification is overdue', description: 'Run the encrypted backup verifier; a snapshot alone is insufficient.'}
+      - alert: HomeTunnelDevicesOffline
+        expr: home_tunnel_devices_offline_total > 0
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: 'One or more devices are offline', description: 'Use the device list and run doctor on the affected home host.'}
+      - alert: HomeTunnelControlLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(home_tunnel_http_request_duration_seconds_bucket[5m]))) > 1
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: 'Control-center p95 latency exceeds one second', description: 'Check CPU, SQLite I/O and backup workload.'}
+      - alert: HomeTunnelNotificationFailed
+        expr: increase(home_tunnel_alerts_sent_total{result="error"}[15m]) > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: 'A configured notification channel failed', description: 'Check channel configuration, then use the administrator alert test endpoint.'}

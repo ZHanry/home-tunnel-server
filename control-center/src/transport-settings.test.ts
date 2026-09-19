@@ -1,3 +1,4 @@
+import { validateApiResponse } from "./api-contract-test-helper.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { once } from "node:events";
@@ -67,10 +68,9 @@ test("console port policies apply to allocation, sync and FRPS, survive restart 
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-    return {
-      status: response.status,
-      data: response.status === 204 ? null : await response.json(),
-    };
+    const data = response.status === 204 ? null : await response.json();
+    validateApiResponse(method, path, response.status, data);
+    return { status: response.status, data };
   }
   const settings = "/api/v1/admin/settings";
   const policy = (enabled = true, start = 32101, end = 32103) => ({

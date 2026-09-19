@@ -1,4 +1,4 @@
-"""Build, verify and publish a component; keep engineering evidence in Actions."""
+"""Build, verify and publish a component; preserve sealed engineering evidence in Releases."""
 from pathlib import Path
 import hashlib
 import json
@@ -145,18 +145,20 @@ def publish(stable=False):
     import shutil
     public = ROOT/'release-public'
     public.mkdir(exist_ok=True)
-    selected=public_asset_names(COMPONENT,local_version())
+    # Publish the exact sealed set, including SBOMs, scan results and signatures.
+    # Keeping the signed checksum manifest unchanged makes evidence independently verifiable.
+    selected=sorted(path.name for path in directory.iterdir() if path.is_file())
+    missing=set(public_asset_names(COMPONENT,local_version()))-set(selected)
+    if missing: raise SystemExit(f'Missing public deliverables: {missing}')
     for name in selected:
         shutil.copyfile(directory/name,public/name)
     checksums=''.join(f"{hashlib.sha256((public/name).read_bytes()).hexdigest()}  {name}\n" for name in selected)
-    if COMPONENT != 'android':
-        (public/'SHA256SUMS.txt').write_text(checksums,encoding='utf-8')
     title=f'Home Tunnel {COMPONENT} {local_version()}' + ('' if stable else f' ({TAG.rsplit("-",1)[1]})')
     notes=ROOT/'release-notes.md'
     summary=(ROOT/'docs/RELEASE_NOTES.md').read_text(encoding='utf-8')
     run_url=f"https://github.com/{REPO}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
     notes.write_text(summary + f"\n\nSource: `{SHA}`. [Build, verification and signing evidence]({run_url}).\n\n" +
-        ("APK SHA-256: `" + checksums.split()[0] + "`\n" if COMPONENT == 'android' else "Package checksums are in SHA256SUMS.txt.\n"),encoding='utf-8')
+        "Packages and durable verification evidence are covered by SHA256SUMS.txt and its Sigstore bundle.\n",encoding='utf-8')
     created=False
     try:
         run('gh','release','create',TAG,'--repo',REPO,'--verify-tag','--target',SHA,'--draft','--title',title,'--notes-file',str(notes))

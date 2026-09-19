@@ -35,7 +35,7 @@ globalThis.MutationObserver = class {
 
 const [{ api }, { state }] = await Promise.all([
   import("../public/modules/api.js"),
-  import("../public/modules/state.js?v=6.2.0"),
+  import("../public/modules/state.js?v=7.0.0"),
 ]);
 
 function jsonResponse(status, body) {
@@ -62,6 +62,8 @@ test("concurrent 401 responses share one refresh-token rotation", async () => {
   let refreshCalls = 0;
 
   globalThis.fetch = async (path, options = {}) => {
+    if (path === "/api/v1/auth/session")
+      return jsonResponse(401, { error_code: "SESSION_REVOKED" });
     if (path === "/api/v1/auth/refresh") {
       refreshCalls += 1;
       refreshStarted.resolve();

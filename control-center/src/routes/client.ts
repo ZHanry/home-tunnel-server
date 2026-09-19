@@ -40,6 +40,8 @@ import { checkSubdomainAvailability, usernamePrefix } from "../subdomain-policy.
 import { allocateClientPort, clientConnectionCapabilities } from "../client-transports.js";
 import { transportSettings } from "../transport-settings.js";
 
+import { pagination, pageInfo } from "../pagination.js";
+
 const router = Router();
 const domainVerificationLimiter = rateLimit({
   windowMs: 60_000,
@@ -142,6 +144,14 @@ router.post(
           ],
         );
       } else {
+        const count = (
+          await client.query<{ total: number }>(
+            "SELECT count(*) AS total FROM devices WHERE user_id=? AND revoked_at IS NULL",
+            [actor.userId],
+          )
+        ).rows[0];
+        if (Number(count?.total ?? 0) >= 1000)
+          throw new HttpError(409, "RESOURCE_LIMIT", "账号最多登记 1000 台设备");
         deviceId = randomUUID();
         configVersion = 1;
         createdAt = new Date();
@@ -245,29 +255,37 @@ router.get(
   "/client/devices",
   asyncHandler(async (request, response) => {
     const actor = requirePasswordNormal(request);
+    const { page, page_size, offset, search } = pagination(request.query);
+    const params = [actor.userId, actor.deviceId, actor.deviceId, search, search];
+    const where =
+      "user_id=? AND revoked_at IS NULL AND (? IS NULL OR id=?) AND (?='' OR instr(lower(name || tags),lower(?))>0)";
+    const count = await one<{ total: number }>(
+      `SELECT count(*) AS total FROM devices WHERE ${where}`,
+      params,
+    );
     const rows = await query<{
       id: string;
-      user_id: string;
       name: string;
-      status: string;
-      config_version: string;
-      applied_config_version: string;
-      client_version: string | null;
-      agent_version: string | null;
+      config_version: number;
+      applied_config_version: number;
+      tags: string;
+      favorite: number;
+      metadata_version: number;
       last_seen_at: Date | null;
-      lease_expires_at: Date | null;
-      created_at: Date;
     }>(
       `SELECT id,user_id,name,status,config_version,applied_config_version,client_version,agent_version,
-              last_seen_at,lease_expires_at,created_at
-         FROM devices WHERE user_id=? AND revoked_at IS NULL AND (? IS NULL OR id=?)
-         ORDER BY last_seen_at DESC NULLS LAST, created_at DESC LIMIT 200`,
-      [actor.userId, actor.deviceId, actor.deviceId],
+       last_seen_at,lease_expires_at,created_at,tags,favorite,metadata_version
+       FROM devices WHERE ${where} ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?`,
+      [...params, page_size, offset],
     );
     response.json({
+      ...pageInfo(page, page_size, Number(count?.total ?? 0)),
       items: rows.map((row) => ({
         ...row,
         username: actor.username,
+        tags: JSON.parse(row.tags),
+        favorite: Boolean(row.favorite),
+        metadata_version: Number(row.metadata_version),
         config_version: Number(row.config_version),
         applied_config_version: Number(row.applied_config_version),
         online: row.last_seen_at ? Date.now() - row.last_seen_at.getTime() < 90_000 : false,
@@ -280,16 +298,24 @@ router.get(
   "/client/connections",
   asyncHandler(async (request, response) => {
     const actor = requirePasswordNormal(request);
+    const { page, page_size, offset, search } = pagination(request.query);
+    const params = [actor.userId, actor.deviceId, actor.deviceId, search, search, search];
+    const where =
+      "c.user_id=? AND c.deleted_at IS NULL AND (? IS NULL OR c.device_id=?) AND (?='' OR instr(lower(c.name),lower(?))>0 OR instr(lower(c.subdomain),lower(?))>0)";
+    const count = await one<{ total: number }>(
+      `SELECT count(*) AS total FROM connections c WHERE ${where}`,
+      params,
+    );
     const rows = await query<ConnectionRow>(
-      `${clientConnectionSelect} WHERE c.user_id=? AND c.deleted_at IS NULL
-       AND (? IS NULL OR c.device_id=?) ORDER BY c.updated_at DESC`,
-      [actor.userId, actor.deviceId, actor.deviceId],
+      `${clientConnectionSelect} WHERE ${where} ORDER BY c.created_at DESC,c.id DESC LIMIT ? OFFSET ?`,
+      [...params, page_size, offset],
     );
     const domains = await customDomainsByConnection(rows.map((row) => row.id));
     const capabilities = await transaction((client) =>
       clientConnectionCapabilities(client, actor.role),
     );
     response.json({
+      ...pageInfo(page, page_size, Number(count?.total ?? 0)),
       items: rows.map((row) => publicConnection(row, domains.get(row.id) ?? [])),
       capabilities,
     });

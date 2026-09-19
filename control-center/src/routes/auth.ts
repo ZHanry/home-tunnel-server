@@ -25,6 +25,8 @@ import {
   verifyPassword,
 } from "../security.js";
 import { parseBody } from "../validation.js";
+import { derivedToken, sessionCsrf } from "../protected-secrets.js";
+import { verifyMfa } from "../mfa.js";
 
 type UserRow = {
   id: string;
@@ -80,6 +82,7 @@ router.post(
       z.object({
         username: z.string().min(1).max(128),
         password: z.string().min(1).max(256),
+        mfa_code: z.string().max(128).optional(),
         client_type: clientTypeSchema.default("windows"),
       }),
       request.body,
@@ -115,7 +118,14 @@ router.post(
       throw new HttpError(423, "TEMPORARY_PASSWORD_EXPIRED", "临时密码已过期，请联系管理员重置");
     }
     const session = await transaction(async (client) => {
-      const issued = await issueSession(client, user, null);
+      await verifyMfa(client, user.id, body.mfa_code);
+      const issued = await issueSession(
+        client,
+        user,
+        null,
+        body.client_type,
+        request.header("user-agent"),
+      );
       await audit(
         client,
         request,
@@ -173,7 +183,13 @@ router.post(
     if (device.status !== "active") throw new HttpError(423, "USER_DISABLED", "账号已禁用");
     if (device.device_status !== "active") throw new HttpError(423, "DEVICE_REVOKED", "设备已撤销");
     const session = await transaction(async (client) => {
-      const issued = await issueSession(client, device, device.device_id);
+      const issued = await issueSession(
+        client,
+        device,
+        device.device_id,
+        "device",
+        request.header("user-agent"),
+      );
       await client.query(
         "UPDATE devices SET last_seen_at=home_tunnel_now(),updated_at=home_tunnel_now() WHERE id=?",
         [device.device_id],
@@ -209,6 +225,11 @@ router.post(
     const presented = body.refresh_token ?? parseCookies(request).ht_refresh;
     if (!presented) throw new HttpError(401, "SESSION_REVOKED", "刷新令牌缺失");
     const presentedHash = tokenHash(presented);
+    const fingerprint = derivedToken(
+      "refresh-fingerprint",
+      request.ip ?? "",
+      request.header("user-agent") ?? "",
+    );
     const limit = refreshLimiter.take(`${request.ip}:${presentedHash}`);
     if (!limit.allowed) {
       response.setHeader("retry-after", String(limit.retryAfterSeconds));
@@ -226,17 +247,58 @@ router.post(
         refresh_expires_at: Date;
         revoked_at: Date | null;
         status: "active" | "disabled";
+        client_type: string;
+        access_token_hash: string;
+        access_expires_at: Date;
+        refresh_retry_until_at: Date | null;
+        refresh_fingerprint: string | null;
       }>(
         `SELECT s.id,s.user_id,s.token_family,s.token_version,
                 u.token_version AS user_token_version,s.refresh_token_hash,
-                s.previous_refresh_token_hash,s.refresh_expires_at,s.revoked_at,u.status
+                s.previous_refresh_token_hash,s.refresh_expires_at,s.revoked_at,u.status,
+                s.client_type,s.access_token_hash,s.access_expires_at,s.refresh_retry_until_at,s.refresh_fingerprint
            FROM sessions s JOIN users u ON u.id=s.user_id
           WHERE s.refresh_token_hash=? OR s.previous_refresh_token_hash=?`,
         [presentedHash, presentedHash],
       );
       const session = selected.rows[0];
       if (!session) throw new HttpError(401, "SESSION_REVOKED", "刷新令牌无效");
+      if (
+        session.revoked_at ||
+        session.refresh_expires_at.getTime() <= Date.now() ||
+        session.status !== "active" ||
+        session.token_version !== session.user_token_version
+      ) {
+        throw new HttpError(401, "SESSION_REVOKED", "会话已过期或被撤销");
+      }
       if (session.previous_refresh_token_hash === presentedHash) {
+        // Browsers share cookies across tabs. A short, fingerprint-bound retry
+        // returns the SAME rotation after a race/lost response; it never extends
+        // the retry window. Native sessions and later replays remain fail-closed.
+        if (
+          session.client_type === "web" &&
+          body.client_type === "web" &&
+          parseCookies(request).ht_refresh === presented &&
+          session.refresh_retry_until_at &&
+          session.refresh_retry_until_at.getTime() > Date.now() &&
+          session.refresh_fingerprint === fingerprint
+        ) {
+          const accessToken = derivedToken("refresh-access", session.id, presentedHash);
+          const refreshToken = derivedToken("refresh-token", session.id, presentedHash);
+          if (
+            constantTimeStringEqual(tokenHash(accessToken), session.access_token_hash) &&
+            constantTimeStringEqual(tokenHash(refreshToken), session.refresh_token_hash)
+          ) {
+            return {
+              replayed: false as const,
+              accessToken,
+              refreshToken,
+              csrfToken: sessionCsrf(session.id),
+              accessExpiresAt: session.access_expires_at,
+              refreshExpiresAt: session.refresh_expires_at,
+            };
+          }
+        }
         await client.query(
           "UPDATE sessions SET revoked_at=COALESCE(revoked_at,home_tunnel_now()) WHERE token_family=?",
           [session.token_family],
@@ -256,27 +318,23 @@ router.post(
         );
         return { replayed: true as const };
       }
-      if (
-        session.revoked_at ||
-        session.refresh_expires_at.getTime() <= Date.now() ||
-        session.status !== "active" ||
-        session.token_version !== session.user_token_version
-      ) {
-        throw new HttpError(401, "SESSION_REVOKED", "会话已过期或被撤销");
-      }
-      const accessToken = opaqueToken();
-      const refreshToken = opaqueToken();
-      const csrfToken = opaqueToken(24);
+
+      const accessToken = derivedToken("refresh-access", session.id, presentedHash);
+      const refreshToken = derivedToken("refresh-token", session.id, presentedHash);
+      const csrfToken = sessionCsrf(session.id);
       const accessExpiresAt = new Date(Date.now() + config.accessTokenSeconds * 1000);
       await client.query(
         `UPDATE sessions SET previous_refresh_token_hash=refresh_token_hash,
              refresh_token_hash=?, access_token_hash=?, csrf_token_hash=?,
-             access_expires_at=?, updated_at=home_tunnel_now() WHERE id=?`,
+             access_expires_at=?, refresh_retry_until_at=?, refresh_fingerprint=?,
+             updated_at=home_tunnel_now() WHERE id=?`,
         [
           tokenHash(refreshToken),
           tokenHash(accessToken),
           tokenHash(csrfToken),
           accessExpiresAt,
+          new Date(Date.now() + 30_000),
+          fingerprint,
           session.id,
         ],
       );
@@ -372,6 +430,7 @@ router.post(
       z.object({
         current_password: z.string().min(1).max(256),
         new_password: z.string().min(12).max(256),
+        mfa_code: z.string().max(128).optional(),
       }),
       request.body,
     );
@@ -387,6 +446,7 @@ router.post(
     }
     const newHash = await hashPassword(body.new_password);
     await transaction(async (client) => {
+      await verifyMfa(client, actor.userId, body.mfa_code);
       await client.query(
         `UPDATE users SET password_hash=?,password_state='normal',temporary_password_expires_at=NULL,
              token_version=token_version+1,version=version+1,updated_at=home_tunnel_now() WHERE id=?`,

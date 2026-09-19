@@ -1,14 +1,18 @@
-# Home Tunnel Server 6.2.0
+# Home Tunnel 7.0.0
 
-管理员现在可以在 **系统设置 → 端口与协议** 中开启 TCP/UDP、设置端口范围并查看分配用量。服务器预留端口池后，日常调整不再需要编辑 `.env` 或重启服务。
+All first-party components and the managed Agent now use 7.0.0. Upgrade the server,
+desktop/CLI and Android together; FRP remains at its independent 0.70.1 version.
 
-- 配置持久保存，立即用于客户端自动分配、连接创建/编辑、客户端同步及隧道服务接入校验。
-- 保留现有部署的启用状态和端口范围；管理员首次保存后使用网页策略。
-- 关闭协议或缩小范围会先检查已启用连接，有冲突时明确提示并保留现有配置；暂停的连接保留公网端口。
-- 增加范围边界校验、管理页面并发修改保护、原子分配校验及审计记录。
-- 提供 `deploy/compose.ports.yaml`，一次性准备默认 `10000–10009` 的 TCP/UDP 端口池，无需手动编辑 `.env`。协议由管理员在网页中明确启用。
-- 手机布局、深色模式及中英文界面同步支持。
+- Fix Web multi-tab refresh, stale access-policy writes and persistent backup health.
+- Reject unverified/incomplete desktop updates and use stable semantic versions.
+- Add full REST OpenAPI/JSON Schema and capability-driven Android transport controls.
+- Add TOTP/recovery codes, session management and single-use enrollment codes.
+- Add OS credential protection, redacted diagnostics and host-only admin recovery.
+- Add encrypted off-host backup, verified fresh-volume restore, preflight/NAS
+  templates, monitoring and alert rules.
+- Add encrypted Android server profiles, tags/favorites and per-item batch operations.
+- Publish checksums, SBOMs, provenance and verification evidence as durable assets.
 
-**升级后使用：** 已启用 TCP/UDP 部署配置的管理员可直接进入系统设置。原来只使用 Web 的部署仍需完成一次性端口池准备，并在主机防火墙和云安全组放行所需端口；网页不会修改云安全组或扩展 Docker 已发布范围。完整步骤见[部署指南](https://github.com/ZHanry/home-tunnel-server/blob/v6.2.0/docs/SELF_HOSTING.md)。
-
-兼容[桌面与 CLI 客户端 6.1.1](https://github.com/ZHanry/home-tunnel-client/releases/tag/v6.1.1)，无需为此功能更新客户端。升级时保留原镜像固定配置、端口覆盖文件、数据库和密钥。
+Windows/macOS have no publisher certificates configured and are explicitly unsigned;
+their signing/notarization workflow is ready. Android retains its release signing
+identity. Read the migration and platform-security guides before upgrading.

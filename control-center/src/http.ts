@@ -3,6 +3,7 @@ import type { NextFunction, Request, RequestHandler, Response } from "express";
 import type { DatabaseClient } from "./db.js";
 import { config } from "./config.js";
 import { one } from "./db.js";
+import { sessionCsrf } from "./protected-secrets.js";
 import {
   constantTimeStringEqual,
   opaqueToken,
@@ -40,6 +41,24 @@ const httpResponseClassCounts: Record<"2xx" | "3xx" | "4xx" | "5xx", number> = {
   "4xx": 0,
   "5xx": 0,
 };
+const durationBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
+const durationCounts = durationBuckets.map(() => 0);
+let durationCount = 0,
+  durationSum = 0;
+
+export function httpDurationMetrics(): string[] {
+  return [
+    "# HELP home_tunnel_http_request_duration_seconds HTTP response duration in seconds.",
+    "# TYPE home_tunnel_http_request_duration_seconds histogram",
+    ...durationBuckets.map(
+      (le, index) =>
+        `home_tunnel_http_request_duration_seconds_bucket{le="${le}"} ${durationCounts[index]}`,
+    ),
+    `home_tunnel_http_request_duration_seconds_bucket{le="+Inf"} ${durationCount}`,
+    `home_tunnel_http_request_duration_seconds_count ${durationCount}`,
+    `home_tunnel_http_request_duration_seconds_sum ${durationSum}`,
+  ];
+}
 
 // Process-local counters for /internal/metrics; they reset on restart, which
 // is the normal Prometheus counter contract.
@@ -53,8 +72,14 @@ export function requestContext(
   next: NextFunction,
 ): void {
   const candidate = request.header("x-request-id");
+  const started = performance.now();
   request.requestId = candidate && /^[0-9a-f-]{36}$/i.test(candidate) ? candidate : randomUUID();
   response.once("finish", () => {
+    const elapsed = (performance.now() - started) / 1000;
+    durationCount += 1;
+    durationSum += elapsed;
+    for (let index = 0; index < durationBuckets.length; index += 1)
+      if (elapsed <= durationBuckets[index]!) durationCounts[index]! += 1;
     const statusClass = Math.floor(response.statusCode / 100);
     if (statusClass >= 2 && statusClass <= 5) {
       httpResponseClassCounts[`${statusClass}xx` as keyof typeof httpResponseClassCounts] += 1;
@@ -172,7 +197,12 @@ export const authenticate: RequestHandler = asyncHandler(async (request, _respon
   );
   if (!session) {
     if (
-      ["/api/v1/auth/login", "/api/v1/auth/device", "/api/v1/auth/refresh"].includes(request.path)
+      [
+        "/api/v1/auth/login",
+        "/api/v1/auth/device",
+        "/api/v1/auth/refresh",
+        "/api/v1/auth/enroll",
+      ].includes(request.path)
     ) {
       next();
       return;
@@ -241,19 +271,21 @@ export async function issueSession(
   client: DatabaseClient,
   user: { id: string; token_version: string | number },
   deviceId: string | null,
+  clientType = "unknown",
+  userAgent = "",
 ): Promise<IssuedSession> {
   const sessionId = randomUUID();
   const family = randomUUID();
   const accessToken = opaqueToken();
   const refreshToken = opaqueToken();
-  const csrfToken = opaqueToken(24);
+  const csrfToken = sessionCsrf(sessionId);
   const accessExpiresAt = new Date(Date.now() + config.accessTokenSeconds * 1000);
   const refreshExpiresAt = new Date(Date.now() + config.refreshTokenSeconds * 1000);
   await client.query(
     `INSERT INTO sessions(
        id,user_id,device_id,token_family,token_version,access_token_hash,refresh_token_hash,
-       csrf_token_hash,access_expires_at,refresh_expires_at)
-     VALUES(?,?,?,?,?,?,?,?,?,?)`,
+       csrf_token_hash,access_expires_at,refresh_expires_at,client_type,user_agent)
+     VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       sessionId,
       user.id,
@@ -265,6 +297,8 @@ export async function issueSession(
       tokenHash(csrfToken),
       accessExpiresAt,
       refreshExpiresAt,
+      clientType,
+      userAgent.slice(0, 256),
     ],
   );
   return {

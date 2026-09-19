@@ -1,3 +1,30 @@
+# 升级到 7.0.0
+
+服务端/Web、桌面/CLI、Android 和自有 Agent 统一升级到 7.0.0。新的分页、MFA 和
+访问策略版本语义不支持把 6.x 客户端作为混合组合继续使用。FRP 仍为 0.70.1。
+
+1. 在维护窗口备份 SQLite、`.env`、所有部署秘密和 Compose 文件，验证管理员可登录。
+2. 下载并核验完整 7.0.0 Release 部署包，保留原项目名/数据卷/域名/密钥/端口池。
+   不要运行向导覆盖已有秘密。保留 `compose.release.yaml` 和原来使用的 overlay。
+3. `docker compose ... config --quiet`，然后 pull/up。迁移 012 增加安全、标签和
+   持久维护记录；保留账号、设备与连接。日志和健康检查通过后升级全部客户端。
+4. Android 使用原签名直接升级，单账号状态自动迁移；桌面使用同版完整 Agent 包。
+5. 验证登录、改密、三标签页、设备在线、现有公网地址、端口策略、暂停/恢复及
+   访问策略。再按需启用 MFA、接入码、异机备份和监控，并做一次恢复演练。
+
+回退必须停止 7.0 服务，恢复**升级前**数据库与匹配的配置/镜像；仅换旧镜像不能
+撤销数据库迁移、恢复已消费凭据或回滚账号安全操作。保留新版本后的业务变更记录。
+
+[备份与恢复](disaster-recovery.md) · [API 兼容性](API.md) · [签名状态](https://github.com/ZHanry/home-tunnel-client/blob/main/docs/PLATFORM_SECURITY.md)
+
+English: upgrade the entire first-party stack together. Preserve deployment keys,
+project/volume names and overlays, and verify the pre-upgrade backup before migrating.
+Rollback requires the old database and matching configuration, not just old images.
+
+---
+
+## 历史升级说明
+
 # 升级到 6.2.0
 
 6.2.0 增加管理员网页端口管理，与桌面/CLI 客户端 6.1.1 兼容，无需为此功能重装客户端。

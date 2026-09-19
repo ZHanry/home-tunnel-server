@@ -1,3 +1,4 @@
+import { validateApiResponse } from "./api-contract-test-helper.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { once } from "node:events";
@@ -68,10 +69,9 @@ test("client transports require permission, allocate ports atomically and preser
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-    return {
-      status: response.status,
-      data: response.status === 204 ? null : await response.json(),
-    };
+    const data = response.status === 204 ? null : await response.json();
+    validateApiResponse(method, "/api/v1" + path, response.status, data);
+    return { status: response.status, data };
   }
   const input = (device: string, type = "tcp") => ({
     device_id: device,

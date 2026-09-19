@@ -1,6 +1,6 @@
 # 自托管部署指南
 
-本指南用于部署 Home Tunnel 6.2.0 正式版。请将示例域名、IP 和邮箱替换为自己的配置。已有部署请先阅读 [升级指南](UPGRADING.md)。
+本指南用于部署 Home Tunnel 7.0.0 正式版。请将示例域名、IP 和邮箱替换为自己的配置。已有部署请先阅读 [升级指南](UPGRADING.md)。
 
 ## 环境和 DNS
 
@@ -20,9 +20,9 @@
 推荐从 [Release](https://github.com/ZHanry/home-tunnel-server/releases/latest) 下载部署包。建立版本目录并解压：
 
 ```sh
-mkdir home-tunnel-server-6.2.0
-tar -xzf home-tunnel-server-6.2.0.tar.gz -C home-tunnel-server-6.2.0
-cd home-tunnel-server-6.2.0
+mkdir home-tunnel-server-7.0.0
+tar -xzf home-tunnel-server-7.0.0.tar.gz -C home-tunnel-server-7.0.0
+cd home-tunnel-server-7.0.0
 ```
 
 也可以使用源码：`git clone https://github.com/ZHanry/home-tunnel-server.git`，再进入 `home-tunnel-server` 目录。两种方式共用以下配置步骤。
@@ -204,3 +204,7 @@ SQLite 位于 `sqlite-data` 卷的 `/data/home-tunnel.db`，Caddy 的状态使�
 端口由服务端在允许范围内自动分配，客户端不能指定范围外端口。关闭自助创建授权不会停掉已建立的连接。HTTP/HTTPS 的原有创建流程保持兼容。
 
 RTSP 预设使用 TCP 交错传输，播放器应开启 RTSP over TCP，并在分配地址后补上摄像头流路径。动态 RTP/RTCP UDP 协商不属于该预设的自动转发范围。
+
+## 7.0 运维入口
+
+[向导与预检](NAS.md) · [账号安全](ACCOUNT_SECURITY.md) · [异机备份与恢复](disaster-recovery.md) · [监控](MONITORING.md) · [API 与兼容性](API.md)

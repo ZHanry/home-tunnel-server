@@ -1,4 +1,4 @@
-import { state } from "./state.js?v=6.2.0";
+import { state } from "./state.js?v=7.0.0";
 
 const appShell = document.querySelector("#app-shell");
 

@@ -1,35 +1,41 @@
-<div align="center">
-  <img src="docs/assets/HomeTunnel.svg" alt="Home Tunnel" width="72" height="72">
-  <h1>Home Tunnel Server</h1>
-  <p><strong>The control center for accounts, devices and connections</strong></p>
-  <p><a href="https://github.com/ZHanry/home-tunnel-server/releases/latest"><img src="https://img.shields.io/badge/release-6.2.0-176653" alt="Release 6.2.0"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache-2.0"></a></p>
-  <p><a href="README.md">简体中文</a> · <a href="https://zhanry.github.io/home-tunnel/">Website</a></p>
-</div>
+<img src="control-center/public/HomeTunnel.svg" alt="" width="64" height="64">
 
-6.1.0 adds bounded automatic TCP/UDP port assignment for clients, with administrator-controlled self-service permission.
+# Home Tunnel Server
 
-The 6.0 release rebuilds the Web console with top navigation, device cards and task-focused management pages. This repository owns the control center, traffic gateway and Caddy / FRPS deployment.
+**Control plane, access policies and tunnel server**
 
-6.2.0 adds **Settings → Ports and protocols**. Administrators can enable TCP/UDP, choose ranges within a prepared server pool, and inspect usage. Changes apply immediately; regular-user creation permission remains separate.
+[![Stable 7.0.0](https://img.shields.io/badge/stable-7.0.0-176653)](https://github.com/ZHanry/home-tunnel-server/releases/tag/v7.0.0) [![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-## Install and upgrade
+[简体中文](README.md) · [Website](https://zhanry.github.io/home-tunnel/en/) · [Downloads](https://github.com/ZHanry/home-tunnel/blob/main/docs/DOWNLOADS.md) · [Quick start](https://github.com/ZHanry/home-tunnel/blob/main/docs/GETTING_STARTED.md)
 
-Download `home-tunnel-server-6.2.0.tar.gz` from [Releases](https://github.com/ZHanry/home-tunnel-server/releases/latest), then follow [self-hosting](docs/SELF_HOSTING.md). Linux amd64 / arm64, Docker Compose, a public host and DNS are required.
 
-Read [upgrading](docs/UPGRADING.md) for existing deployments. The migration retains the earliest active administrator and converts additional administrators to ordinary users while preserving accounts and resources. Back up data and configuration first.
+Deploy the Web console, API, traffic gateway, FRPS and Caddy on your own public
+Linux host. The [client repository](https://github.com/ZHanry/home-tunnel-client)
+owns desktop/CLI tunnel execution.
 
-## Features
+## Deploy 7.0.0
 
-- A new overview of actual service activity, device status and Web traffic, with actionable component health.
-- One administrator per deployment. Regular users manage their own resources.
-- Account deletion revokes sessions and device credentials and removes connections, preserving historical audit and traffic records.
-- Device sessions are restricted to local connections, domains, traffic and realtime events.
-- HTTP / HTTPS, general TCP and fixed UDP ports; custom domains, access policies, quotas, bandwidth limits and backups.
+Use Linux amd64/arm64, your domain and Docker Compose v2; start with a 2 GiB memory
+budget. Verify the release archive's SHA-256, extract it, then run:
 
-![6.0 console](docs/assets/dashboard.jpg)
+```sh
+python3 deploy/scripts/setup-wizard.py --write
+python3 deploy/scripts/preflight.py
+docker compose -f compose.yaml -f compose.release.yaml up -d
+```
 
-## Development
+The wizard asks for your actual DNS, public host and ACME email and refuses to
+overwrite existing secrets. Change the bootstrap administrator password at first
+login. [Detailed deployment](docs/SELF_HOSTING.md) · [Upgrade](docs/UPGRADING.md).
 
-The control center uses Node.js 24.19+, TypeScript and SQLite. Run `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm test` and `pnpm test:browser` there. Gateway source is in `traffic-gateway/`; protocol contracts are in `contracts/`.
+HTTP/HTTPS and controlled TCP/UDP pools; user/device isolation, traffic policies,
+HTTP access protection, TOTP/recovery codes, session revocation, one-time enrollment,
+paginated catalogs, tags/favorites and per-item batch operations. 7.0 fixes Web
+session races, stale ACL writes and persistent backup health.
 
-[Architecture](docs/ARCHITECTURE.md) · [Security](docs/SECURITY_MODEL.md) · [Releasing](docs/RELEASING.md) · [Release notes](docs/RELEASE_NOTES.md) · [Project hub](https://github.com/ZHanry/home-tunnel)
+[Account security](docs/ACCOUNT_SECURITY.md) · [Encrypted backup and recovery](docs/disaster-recovery.md) · [Monitoring](docs/MONITORING.md) · [NAS/preflight](docs/NAS.md) · [API/OpenAPI](docs/API.md)
+
+The supported stack is server/Web, client/Agent and Android **7.0.0**; upgrade
+together. FRP remains independently versioned at 0.70.1. CI validates service
+tests, browser flows, deployment, API responses, recovery and security. Release
+assets retain image digests, checksums, SBOMs and verification evidence.

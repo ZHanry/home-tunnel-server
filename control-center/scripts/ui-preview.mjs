@@ -182,6 +182,14 @@ app.get("/api/v1/public/releases/latest", (_request, response) =>
     error: { code: "RELEASE_UNAVAILABLE", message: "Windows 安装包暂不可用" },
   }),
 );
+app.get("/api/v1/auth/session", (_request, response) =>
+  response.status(401).json({ error_code: "AUTH_REQUIRED", message: "Refresh preview session" }),
+);
+app.get("/api/v1/auth/mfa", (_request, response) =>
+  response.json({ enabled: false, recovery_codes_remaining: 0 }),
+);
+app.get("/api/v1/auth/sessions", (_request, response) => response.json({ items: [] }));
+app.get("/api/v1/client/enrollment-codes", (_request, response) => response.json({ items: [] }));
 app.post("/api/v1/auth/refresh", (_request, response) =>
   response.json({ csrf_token: "local-ui-preview" }),
 );

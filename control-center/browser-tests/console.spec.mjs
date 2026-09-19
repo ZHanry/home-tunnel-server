@@ -231,7 +231,7 @@ test("standard user can access account limits and edit raw targets without error
 }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.route("**/api/v1/client/connections", async (route) => {
+  await page.route("**/api/v1/client/connections?**", async (route) => {
     const data = await (await route.fetch()).json();
     data.items[0].proxy_type = "tcp";
     data.items[0].local_port = 22;
