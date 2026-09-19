@@ -10,3 +10,5 @@ a887a90f577c0273c663a6116bbbcb01473f1a4e:control-center/src/experience.test.ts:g
 # WebSocket handshake test nonces are public protocol data, not authentication keys.
 5ead0b06189e2a73dc5a893aeff33664e0ab7a40:traffic-gateway/src/server.e2e.test.ts:generic-api-key:448
 c6276b78b9834fbdf93e4c83e41e2e29db5d585a:traffic-gateway/src/server.e2e.test.ts:generic-api-key:709
+# Historical in-memory recovery test password; current test generates it randomly.
+e91146c853290f1f8bc8981eda8b574d43ce4117:control-center/src/recovery-capacity.test.ts:generic-api-key:26

@@ -23,7 +23,7 @@ test("offline recovery revokes sessions; paginated 10/100/1000 resource baseline
   const address = server.address();
   assert.ok(address && typeof address !== "string");
   const origin = `http://127.0.0.1:${address.port}`;
-  const password = "Capacity-Owner-C9-safe";
+  const password = `Capacity-${randomUUID()}-safe`;
   async function call(method: string, path: string, token?: string, body?: unknown) {
     const response = await fetch(origin + "/api/v1" + path, {
       method,

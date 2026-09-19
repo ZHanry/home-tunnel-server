@@ -59,10 +59,12 @@ def main():
         for file in (destination/'deploy/secrets').iterdir():file.chmod(0o644)
     subprocess.run(['docker','volume','create',volume],check=True,capture_output=True)
     # The target is a newly created Docker volume. No existing volume is erased.
-    subprocess.run(['docker','run','--rm','--network','none','--cap-drop','ALL','--cap-add','CHOWN',
-        '--mount',f'type=volume,source={volume},target=/target',
-        '--mount',f'type=bind,source={bundle / "database.sqlite3"},target=/source/database.sqlite3,readonly',
-        'alpine:3.23','sh','-ec','test -z "$(ls -A /target)"; cp /source/database.sqlite3 /target/home-tunnel.db; chown 10001:10001 /target /target/home-tunnel.db; chmod 700 /target; chmod 600 /target/home-tunnel.db'],check=True)
+    # Stream the verified file as the host owner, without a privileged host bind.
+    # Set permissions before transferring ownership: CHOWN does not imply FOWNER.
+    with (bundle/'database.sqlite3').open('rb') as source:
+        subprocess.run(['docker','run','--rm','-i','--network','none','--cap-drop','ALL','--cap-add','CHOWN',
+            '--mount',f'type=volume,source={volume},target=/target',
+            'alpine:3.23','sh','-ec','test -z "$(ls -A /target)"; cat > /target/home-tunnel.db; chmod 700 /target; chmod 600 /target/home-tunnel.db; chown 10001:10001 /target /target/home-tunnel.db'],stdin=source,check=True)
     print('Restored into a new project. Inspect .env and DNS, then start from the destination with docker compose up -d. Login, device reconnection and public tunnel checks must follow.')
 
 if __name__=='__main__':main()

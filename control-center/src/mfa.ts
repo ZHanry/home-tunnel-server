@@ -1,10 +1,25 @@
-import { createHmac, randomBytes } from "node:crypto";
+import { createHmac, randomBytes, scrypt } from "node:crypto";
 import type { DatabaseClient } from "./db.js";
 import { HttpError } from "./http.js";
 import { openSecret } from "./protected-secrets.js";
-import { constantTimeStringEqual, opaqueToken, tokenHash } from "./security.js";
+import { constantTimeStringEqual, opaqueToken } from "./security.js";
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+async function recoveryHash(userId: string, code: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    scrypt(
+      code,
+      `home-tunnel:recovery:v1:${userId}`,
+      32,
+      { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 },
+      (error, derived) => {
+        if (error) reject(error);
+        else resolve(derived.toString("hex"));
+      },
+    );
+  });
+}
 
 export function newTotpSecret(): string {
   let bits = 0,
@@ -84,7 +99,7 @@ export async function verifyMfa(
   }
   const recovery = await client.query(
     "UPDATE mfa_recovery_codes SET used_at=home_tunnel_now() WHERE user_id=? AND code_hash=? AND used_at IS NULL RETURNING code_hash",
-    [userId, tokenHash(code)],
+    [userId, await recoveryHash(userId, code)],
   );
   if (recovery.rowCount) return;
   throw new HttpError(401, "MFA_INVALID", "动态码无效、已使用或已过期");
@@ -99,7 +114,7 @@ export async function replaceRecoveryCodes(
   for (const code of codes)
     await client.query("INSERT INTO mfa_recovery_codes(user_id,code_hash) VALUES(?,?)", [
       userId,
-      tokenHash(code),
+      await recoveryHash(userId, code),
     ]);
   return codes;
 }
