@@ -55,6 +55,31 @@ def validate_environment(values):
         if not hostname.fullmatch(frps):errors.append("HOME_TUNNEL_FRPS_PUBLIC_HOST: invalid host")
     return errors
 
+def published_bindings(configuration):
+    """Read effective Compose ports, including selected overlays, without logging secrets."""
+    bindings=set()
+    for service in configuration.get('services',{}).values():
+        for mapping in service.get('ports',[]):
+            if not isinstance(mapping,dict):raise ValueError('Unsupported Compose port format')
+            if 'published' not in mapping:continue
+            protocol=mapping.get('protocol','tcp')
+            if protocol not in ('tcp','udp'):raise ValueError('Unsupported port protocol')
+            address=mapping.get('host_ip') or '0.0.0.0'
+            ipaddress.ip_address(address)
+            match=re.fullmatch(r'(\d+)(?:-(\d+))?',str(mapping['published']))
+            if not match:raise ValueError('Invalid published port')
+            start=int(match[1]);end=int(match[2] or match[1])
+            if not 1<=start<=end<=65535 or end-start>99:raise ValueError('A published range must contain 1–100 ports')
+            for port in range(start,end+1):bindings.add((address,port,protocol))
+    return sorted(bindings)
+
+def probe_binding(address,port,protocol):
+    family=socket.AF_INET6 if ipaddress.ip_address(address).version==6 else socket.AF_INET
+    kind=socket.SOCK_STREAM if protocol=='tcp' else socket.SOCK_DGRAM
+    with socket.socket(family,kind) as probe:
+        if family==socket.AF_INET6:probe.setsockopt(socket.IPPROTO_IPV6,socket.IPV6_V6ONLY,1)
+        probe.bind((address,port))
+
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root",type=Path,default=ROOT)
@@ -63,7 +88,7 @@ def main(argv=None):
     parser.add_argument("--skip-network",action="store_true",help="Explicitly skip DNS checks, useful for offline preparation")
     parser.add_argument("--json",action="store_true")
     parser.add_argument("-f","--file",action="append",default=[],help="Compose overlay, relative to deployment root")
-    args=parser.parse_args(argv);root=args.root.resolve();checks=[]
+    args=parser.parse_args(argv);root=args.root.resolve();checks=[];bindings=None
     def record(name,status,detail):checks.append({"check":name,"status":status,"detail":detail})
     try:values=load_environment(root/".env")
     except (OSError,ValueError) as error:record("configuration","failed",str(error));values={}
@@ -81,21 +106,24 @@ def main(argv=None):
     if os.name=="posix" and secret_root.exists() and secret_root.stat().st_mode & 0o077:record("secret-permissions","failed","chmod 700 deploy/secrets; keep files readable by container UID 10001")
     if shutil.which("docker"):
         env={**os.environ,**values}
-        for label,command in [("docker",["docker","info","--format","{{.OSType}}"]),("compose",["docker","compose","version","--short"]),("compose-config",["docker","compose","-f","compose.yaml",*[part for file in args.file for part in ("-f",file)],"config","--quiet"])]:
+        for label,command in [("docker",["docker","info","--format","{{.OSType}}"]),("compose",["docker","compose","version","--short"]),("compose-config",["docker","compose","-f","compose.yaml",*[part for file in args.file for part in ("-f",file)],"config","--format","json"])]:
             try:
                 result=subprocess.run(command,cwd=root,env=env,capture_output=True,text=True,timeout=30,check=False)
                 ok=result.returncode==0 and (label!="docker" or result.stdout.strip()=="linux")
                 record(label,"passed" if ok else "failed","Available and valid" if ok else "Check Docker Linux engine, Compose v2, selected overlays and required environment fields")
+                if label=='compose-config' and ok:
+                    try:bindings=published_bindings(json.loads(result.stdout))
+                    except (ValueError,TypeError):record('port-mappings','failed','Cannot validate published ports; check protocols, addresses and ranges of at most 100 ports')
             except (OSError,subprocess.TimeoutExpired):record(label,"failed","Command unavailable or timed out")
     else:record("docker","failed","Install Docker Engine and Compose v2")
     if not args.existing:
-        ports=[(80,socket.SOCK_STREAM),(443,socket.SOCK_STREAM),(443,socket.SOCK_DGRAM)]
-        if values.get("HOME_TUNNEL_FRPS_PORT","7000").isdigit():ports.append((int(values.get("HOME_TUNNEL_FRPS_PORT","7000")),socket.SOCK_STREAM))
-        for port,kind in ports:
-            try:
-                with socket.socket(socket.AF_INET,kind) as probe:probe.bind(("0.0.0.0",port))
-                record(f"port-{port}-{'tcp' if kind==socket.SOCK_STREAM else 'udp'}","passed","Local bind available; verify cloud firewall and router separately")
-            except OSError:record(f"port-{port}","failed","Port in use or bind permission denied; check existing reverse proxy/NAS services")
+        if bindings is None:record('published-ports','skipped','Resolve Compose configuration before checking its published ports')
+        else:
+            for address,port,protocol in bindings:
+                try:
+                    probe_binding(address,port,protocol)
+                    record(f"port-{port}-{protocol}","passed","Local bind available; verify cloud firewall and router separately")
+                except OSError:record(f"port-{port}-{protocol}","failed","Port in use, address unavailable or bind permission denied; check existing reverse proxy/NAS services")
     if args.skip_network:record("dns","skipped","DNS checks explicitly skipped")
     elif values and not validate_environment(values):
         socket.setdefaulttimeout(5)

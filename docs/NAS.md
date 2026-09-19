@@ -16,7 +16,9 @@ python3 deploy/scripts/preflight.py -f deploy/compose.ports.yaml
 
 向导不覆盖已有配置；预检不执行 `.env` 的 shell 内容，不打印秘密。它检查 HTTPS
 同源地址、DNS、端口池范围、所需秘密文件、文件权限、可写目录、磁盘空间、Docker
-Linux 引擎、Compose 配置和本地端口冲突。`--expected-ip` 可核对 DNS；
+Linux 引擎、Compose 配置和本地端口冲突。端口检测读取选定 overlay 合并后的配置，
+逐个检测 TCP/UDP 发布端口（含端口池），使用对应的 IPv4/IPv6 绑定地址。
+`--expected-ip` 可核对 DNS；
 `--skip-network` 明确跳过 DNS。预检不能证明云安全组或路由器允许公网入站。
 
 | 家庭环境 | 客户端部署方式 | 限制 |
