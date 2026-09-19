@@ -54,7 +54,8 @@ python3 scripts/generate-api-spec.py --check
 ```
 
 Node 24.19.0；traffic-gateway 使用相同命令单独检查。CI 包含浏览器回归、
-部署验证、契约响应校验、恢复测试和安全扫描。Release 保留镜像摘要、SBOM/证明与
-校验清单；发布需先通过主分支质量门禁。
+部署验证、契约响应校验、恢复测试和安全扫描。Release 保留镜像摘要、校验清单与
+联调报告；镜像 SBOM 和构建证明附在对应的 GHCR 不可变镜像摘要上。
+发布需先通过主分支质量门禁，验证方法见[发布指南](docs/RELEASING.md)。
 
 [项目入口](https://github.com/ZHanry/home-tunnel) · [贡献](CONTRIBUTING.md) · [安全报告](SECURITY.md)
