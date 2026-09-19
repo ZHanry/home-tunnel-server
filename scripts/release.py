@@ -70,7 +70,7 @@ def required_assets(directory):
     elif COMPONENT == "android":
         expected = [f"HomeTunnel-Android-{version}-arm64-v8a.apk", f"HomeTunnel-Android-{version}.aab", "android-release-evidence.json"]
     else:
-        expected = ["image-control-center.json", "image-traffic-gateway.json", "home-tunnel.v1.json"]
+        expected = ["image-control-center.json", "image-traffic-gateway.json", "home-tunnel.v1.json", "openapi.v1.json", "api.schema.json"]
         for name in ("control-center", "traffic-gateway"):
             record = json.loads((directory / f"image-{name}.json").read_text())
             if record["revision"] != SHA or not re.fullmatch(r"sha256:[a-f0-9]{64}", record["digest"]):
@@ -94,7 +94,7 @@ def seal():
         import tarfile
         archive = directory/f'home-tunnel-server-{local_version()}.tar.gz'
         with tarfile.open(archive, 'w:gz') as bundle:
-            for entry in ['compose.yaml', '.env.example', 'README.md', 'LICENSE', 'deploy', 'docs/SELF_HOSTING.md', 'docs/UPGRADING.md']:
+            for entry in ['compose.yaml', '.env.example', 'README.md', 'README.en.md', 'LICENSE', 'deploy', 'docs', 'contracts']:
                 bundle.add(ROOT/entry, arcname=entry, filter=lambda item: None if '__pycache__' in item.name or item.name.endswith('.pyc') else item)
             bundle.add(directory/'compose.release.yaml',arcname='compose.release.yaml')
     lines=[]

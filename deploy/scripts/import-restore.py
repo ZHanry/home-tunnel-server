@@ -61,10 +61,11 @@ def main():
     # The target is a newly created Docker volume. No existing volume is erased.
     # Stream the verified file as the host owner, without a privileged host bind.
     # Set permissions before transferring ownership: CHOWN does not imply FOWNER.
+    # Transfer the directory last so root can still traverse its owner-only mode.
     with (bundle/'database.sqlite3').open('rb') as source:
         subprocess.run(['docker','run','--rm','-i','--network','none','--cap-drop','ALL','--cap-add','CHOWN',
             '--mount',f'type=volume,source={volume},target=/target',
-            'alpine:3.23','sh','-ec','test -z "$(ls -A /target)"; cat > /target/home-tunnel.db; chmod 700 /target; chmod 600 /target/home-tunnel.db; chown 10001:10001 /target /target/home-tunnel.db'],stdin=source,check=True)
+            'alpine:3.23','sh','-ec','test -z "$(ls -A /target)"; cat > /target/home-tunnel.db; chmod 700 /target; chmod 600 /target/home-tunnel.db; chown 10001:10001 /target/home-tunnel.db; chown 10001:10001 /target'],stdin=source,check=True)
     print('Restored into a new project. Inspect .env and DNS, then start from the destination with docker compose up -d. Login, device reconnection and public tunnel checks must follow.')
 
 if __name__=='__main__':main()

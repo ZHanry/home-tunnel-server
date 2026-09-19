@@ -19,7 +19,8 @@ sh deploy/scripts/recover-admin.sh -f compose.yaml
 
 ## 加密异机备份（标准根目录 Compose）
 
-准备独立主机上的 HTTPS S3 兼容 bucket 或 Restic 支持的远端。将高熵仓库密码
+标准备份镜像支持独立主机上的 HTTPS S3 兼容 bucket。其他 Restic 后端需要单独验证；
+SFTP、rclone 等依赖额外客户端工具，默认镜像不包含它们。将高熵仓库密码
 保存在部署目录外的 root-only 文件，另留离线副本；备份包不包含解密自己的密码。
 在 `.env` 设置下列字段，示例值必须替换，不要提交文件：
 
