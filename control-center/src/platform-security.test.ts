@@ -80,6 +80,14 @@ test("7.0 session races, enrollment, MFA and optimistic policy writes", async (t
       client_type: "linux",
     });
     const token = login.data.access_token;
+    assert.ok(
+      (
+        await db.one<{ rd_verified_at: Date }>(
+          "SELECT rd_verified_at FROM sessions WHERE access_token_hash=?",
+          [(await import("./security.js")).tokenHash(token)],
+        )
+      )?.rd_verified_at,
+    );
     await t.test(
       "web tabs share CSRF and retry the same rotation; later replay revokes",
       async () => {
@@ -291,6 +299,22 @@ test("7.0 session races, enrollment, MFA and optimistic policy writes", async (t
           mfa_code: confirm.data.recovery_codes[0],
         });
         assert.equal(recovered.status, 200);
+        assert.ok(
+          (
+            await db.one<{ rd_verified_at: Date }>(
+              "SELECT rd_verified_at FROM sessions WHERE access_token_hash=?",
+              [(await import("./security.js")).tokenHash(recovered.data.access_token)],
+            )
+          )?.rd_verified_at,
+        );
+        assert.equal(
+          (
+            await db.one<{ count: number }>(
+              "SELECT count(*) AS count FROM sessions WHERE device_id IS NOT NULL AND rd_verified_at IS NOT NULL",
+            )
+          )?.count,
+          0,
+        );
         assert.equal(
           (await call("POST", "/auth/login", { ...body, mfa_code: confirm.data.recovery_codes[0] }))
             .data.error_code,
