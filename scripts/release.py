@@ -70,7 +70,8 @@ def required_assets(directory):
     elif COMPONENT == "android":
         expected = [f"HomeTunnel-Android-{version}-arm64-v8a.apk", f"HomeTunnel-Android-{version}.aab", "android-release-evidence.json"]
     else:
-        expected = ["image-control-center.json", "image-traffic-gateway.json", "home-tunnel.v1.json", "openapi.v1.json", "api.schema.json"]
+        expected = ["image-control-center.json", "image-traffic-gateway.json", "home-tunnel.v1.json", "openapi.v1.json", "api.schema.json",
+                    "remote-desktop.v1.json", "remote-authorization-vectors.json", "REMOTE_PROTOCOL.md"]
         for name in ("control-center", "traffic-gateway"):
             record = json.loads((directory / f"image-{name}.json").read_text())
             if record["revision"] != SHA or not re.fullmatch(r"sha256:[a-f0-9]{64}", record["digest"]):
@@ -137,6 +138,11 @@ def publish(stable=False):
     directory=ROOT/'release'
     stable = re.fullmatch(r"v\d+\.\d+\.\d+", TAG) is not None
     identity=verify(directory,TAG)
+    if COMPONENT == 'server':
+        for arch in ('amd64', 'arm64'):
+            report = json.loads((directory / f'stun-runtime-{arch}.json').read_text())
+            if report.get('status') != 'passed' or report.get('repository_revision') != SHA:
+                raise SystemExit('The exact tagged STUN deployment must pass its isolated runtime check')
     if COMPONENT=='server' and stable:
         for name in ('control-center','traffic-gateway'):
             record=json.loads((directory/f'image-{name}.json').read_text())
