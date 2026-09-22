@@ -60,6 +60,7 @@ export type RdIdentity = {
 };
 export type Session = DatabaseRow & {
   id: string;
+  session_request_id: string;
   owner_user_id: string;
   host_endpoint_id: string;
   controller_endpoint_id: string;
@@ -1049,6 +1050,7 @@ export async function sessionView(row: Session, participant?: string) {
   const base = {
     id: row.id,
     session_id: row.id,
+    session_request_id: row.session_request_id,
     host_endpoint_id: row.host_endpoint_id,
     controller_endpoint_id: row.controller_endpoint_id,
     state: row.state,
@@ -1277,7 +1279,7 @@ export async function createSession(
         now = nowIso(),
         deadline = afterSeconds(60);
       await db.query(
-        "INSERT INTO rd_sessions(id,owner_user_id,host_endpoint_id,controller_endpoint_id,controller_parent_session_id,user_token_version,grant_id,grant_version,permissions_json,display_id,state,restore_epoch,approval_expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,'pending_approval',?,?,?,?)",
+        "INSERT INTO rd_sessions(id,owner_user_id,host_endpoint_id,controller_endpoint_id,controller_parent_session_id,user_token_version,grant_id,grant_version,permissions_json,display_id,state,restore_epoch,approval_expires_at,created_at,updated_at,session_request_id) VALUES(?,?,?,?,?,?,?,?,?,?,'pending_approval',?,?,?,?,?)",
         [
           id,
           host.owner_user_id,
@@ -1293,6 +1295,7 @@ export async function createSession(
           deadline,
           now,
           now,
+          key,
         ],
       );
       await db.query(
@@ -1339,6 +1342,7 @@ async function signedAuthorization(db: DatabaseClient, row: Session, renew: bool
     server_instance_id: state.server_instance_id,
     restore_epoch: state.restore_epoch,
     session_id: row.id,
+    session_request_id: row.session_request_id,
     connection_epoch: row.connection_epoch,
     owner_user_id: row.owner_user_id,
     controller_endpoint_id: controller.id,

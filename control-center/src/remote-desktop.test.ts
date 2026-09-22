@@ -399,6 +399,20 @@ test("four distinct windows atomically reserve slots; one host has one controlle
   assert.equal(authorized.state, "authorized");
   assert.ok("ticket_jws" in authorized && authorized.ticket_jws);
   assert.equal(
+    crypto.verifyJws(authorized.ticket_jws as string, crypto.serverPublicKey(), "ht-rd-ticket+jwt")
+      .session_request_id,
+    first.grant.requestId,
+  );
+  assert.equal(
+    crypto.verifyJws(
+      (authorized as { lease_jws: string }).lease_jws,
+      crypto.serverPublicKey(),
+      "ht-rd-lease+jwt",
+    ).session_request_id,
+    first.grant.requestId,
+  );
+  assert.equal(authorized.session_request_id, first.grant.requestId);
+  assert.equal(
     crypto.verifyJws(
       (authorized as { lease_jws: string }).lease_jws,
       crypto.serverPublicKey(),

@@ -2842,6 +2842,11 @@
           "type": "string",
           "format": "uuid"
         },
+        "session_request_id": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 128
+        },
         "host_endpoint_id": {
           "type": "string",
           "format": "uuid"
