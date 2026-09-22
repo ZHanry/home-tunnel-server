@@ -3,6 +3,7 @@ import { generateKeyPairSync, sign, type KeyObject } from "node:crypto";
 import test from "node:test";
 import type { KeysetManifest } from "./keyset.js";
 process.env.NODE_ENV = "test";
+process.env.SQLITE_PATH = ":memory:";
 process.env.INTERNAL_SERVICE_KEY = "11".repeat(32);
 process.env.FRPS_PLUGIN_KEY = "22".repeat(32);
 process.env.LEASE_SIGNING_KEY = "33".repeat(32);

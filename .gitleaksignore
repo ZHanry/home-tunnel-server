@@ -12,3 +12,9 @@ a887a90f577c0273c663a6116bbbcb01473f1a4e:control-center/src/experience.test.ts:g
 c6276b78b9834fbdf93e4c83e41e2e29db5d585a:traffic-gateway/src/server.e2e.test.ts:generic-api-key:709
 # Historical in-memory recovery test password; current test generates it randomly.
 e91146c853290f1f8bc8981eda8b574d43ce4117:control-center/src/recovery-capacity.test.ts:generic-api-key:26
+# Public-only offline keyset rotation proofs: signatures over public keys for a
+# fixture UUID. The generating private keys were discarded; these are neither
+# bearer credentials nor grants for any deployed service. Exact historical hits only.
+96694d805e648ea665d8bc22e58254207488df2a:control-center/test-fixtures/rd-keyset-vectors.json:jwt:56
+96694d805e648ea665d8bc22e58254207488df2a:control-center/test-fixtures/rd-keyset-vectors.json:jwt:91
+96694d805e648ea665d8bc22e58254207488df2a:control-center/test-fixtures/rd-keyset-vectors.json:jwt:92
