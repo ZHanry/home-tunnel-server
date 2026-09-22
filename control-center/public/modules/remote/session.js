@@ -57,7 +57,7 @@ export class RemoteSession {
     const claims = await verifyJws(jws, key.public_jwk, type, { kid: key.kid });
     const now = Date.now() / 1000;
     if (claims.iss !== location.origin || claims.aud !== audience || claims.server_instance_id !== this.api.keys.server_instance_id || claims.restore_epoch !== this.api.keys.restore_epoch || claims.session_id !== this.id || claims.connection_epoch !== this.epoch || claims.owner_user_id !== this.api.userId || claims.controller_endpoint_id !== this.api.identity.endpointId || claims.host_endpoint_id !== this.snapshot.host_endpoint_id || claims.controller_jkt !== this.api.identity.jkt || claims.host_jkt !== this.hostThumbprint || !Number.isSafeInteger(claims.exp) || !Number.isSafeInteger(claims.nbf) || claims.nbf > now + 30 || claims.exp <= now || !Array.isArray(claims.permissions) || claims.permissions.some((permission) => !this.permissions.has(permission)) || !claims.permissions.includes("view")) throw new RemoteError("RD_PROOF_INVALID");
-    if (new Set(claims.permissions).size !== this.permissions.size || [...this.permissions].some((permission) => !claims.permissions.includes(permission)) || (this.ticket && (claims.grant_id !== this.ticket.grant_id || claims.grant_version !== this.ticket.grant_version || claims.user_token_version !== this.ticket.user_token_version))) throw new RemoteError("RD_GRANT_CHANGED");
+    if (claims.session_request_id !== this.snapshot.session_request_id || new Set(claims.permissions).size !== this.permissions.size || [...this.permissions].some((permission) => !claims.permissions.includes(permission)) || (this.ticket && (claims.grant_id !== this.ticket.grant_id || claims.grant_version !== this.ticket.grant_version || claims.user_token_version !== this.ticket.user_token_version))) throw new RemoteError("RD_GRANT_CHANGED");
     return claims;
   }
   async authorize() {
@@ -66,6 +66,7 @@ export class RemoteSession {
     this.ticket = await this.serverClaims(this.snapshot.ticket_jws, "ht-rd-ticket+jwt", "ht-rd-start");
     const grant = await verifyJws(this.snapshot.grant_jws, this.snapshot.host_public_jwk, "ht-rd-grant+jwt");
     if (grant.id !== this.ticket.grant_id || grant.grant_version !== this.ticket.grant_version || grant.server_instance_id !== this.ticket.server_instance_id || grant.owner_user_id !== this.api.userId || grant.host_endpoint_id !== this.ticket.host_endpoint_id || grant.controller_endpoint_id !== this.ticket.controller_endpoint_id || grant.host_jkt !== this.hostThumbprint || grant.controller_jkt !== this.api.identity.jkt || !Array.isArray(grant.scope) || [...this.permissions].some((permission) => !grant.scope.includes(permission)) || (grant.expires_at && Date.parse(grant.expires_at) <= Date.now())) throw new RemoteError("RD_GRANT_CHANGED");
+    if (!["one_session", "persistent"].includes(grant.mode) || (grant.mode === "one_session" && grant.one_session_request_id !== this.ticket.session_request_id) || (grant.expires_at !== null && !Number.isFinite(Date.parse(grant.expires_at)))) throw new RemoteError("RD_GRANT_CHANGED");
     this.permissions = new Set(this.ticket.permissions);
     this.lease.update(await this.serverClaims(this.snapshot.lease_jws, "ht-rd-lease+jwt", "ht-rd-use"));
   }
@@ -212,11 +213,12 @@ export class RemoteSession {
       this.ready = true; this.send(TYPES.SESSION_READY, { epoch: this.epoch, permissions: [...this.permissions], lease_seq: this.lease.sequence });
       this.attachVerifiedTracks(); this.onState?.("waiting_for_frame");
     } else if (frame.type === TYPES.CONTROL_GRANTED) {
-      if (!this.inputRequested || !this.ready || !Number.isSafeInteger(body.new_input_epoch) || body.new_input_epoch <= this.inputEpoch) throw new RemoteError("RD_STATE_CONFLICT");
+      if (!this.inputRequested || body.request_id !== this.inputRequestId || document.hidden) { this.send(TYPES.RELEASE_ALL, { reason: "stale_control_request" }); return; }
+      if (!this.ready || !Number.isSafeInteger(body.new_input_epoch) || body.new_input_epoch <= this.inputEpoch) throw new RemoteError("RD_STATE_CONFLICT");
       this.inputEpoch = body.new_input_epoch;
-      this.send(TYPES.INPUT_STATE, { generation: this.inputEpoch, keys: [], buttons: 0, motion_sequence: 0 });
+      this.send(TYPES.INPUT_STATE, { request_id: this.inputRequestId, generation: this.inputEpoch, keys: [], buttons: 0, motion_sequence: 0 });
     } else if (frame.type === TYPES.INPUT_SYNC_ACK) {
-      if (!this.inputRequested || body.input_epoch !== this.inputEpoch || body.layout_epoch !== this.layout?.layout_epoch || document.hidden) throw new RemoteError("RD_STATE_CONFLICT");
+      if (!this.inputRequested || body.request_id !== this.inputRequestId || body.input_epoch !== this.inputEpoch || body.layout_epoch !== this.layout?.layout_epoch || document.hidden) { this.send(TYPES.RELEASE_ALL, { reason: "stale_input_sync" }); return; }
       this.inputEnabled = true;
     } else if (frame.type === TYPES.FEATURE_STATE) {
       const pending = this.featureRequests.get(body.permission);
@@ -226,7 +228,7 @@ export class RemoteSession {
         clearTimeout(pending.timer); this.featureRequests.delete(body.permission);
         if (pending.enabled === body.enabled) pending.resolve(); else pending.reject(new RemoteError(body.error_code ?? "RD_FEATURE_DENIED"));
       }
-      if (body.enabled !== true && body.permission === "audio.microphone") void this.stopMicrophone();
+      if (body.enabled !== true && body.permission === "audio.microphone") void this.stopMicrophone({ notify: false });
       if (body.enabled !== true && body.permission === "audio.system" && this.audioTrack) this.audioTrack.enabled = false;
     }
     await this.onControl?.(frame);
@@ -246,6 +248,7 @@ export class RemoteSession {
     this.video.srcObject = new MediaStream([this.videoTrack, ...(this.audioTrack ? [this.audioTrack] : [])]);
     const firstFrame = () => {
       if (this.closed || !this.pathVerified) return;
+      this.firstFrameSeen = true;
       clearTimeout(this.frameTimer); this.onState?.("viewing");
       void this.reportReady().catch((error) => this.fail(error));
     };
@@ -256,7 +259,8 @@ export class RemoteSession {
   }
   async resumePlayback() {
     if (!this.ready || !this.pathVerified) throw new RemoteError("RD_MEDIA_FAILED");
-    clearTimeout(this.frameTimer); this.frameTimer = setTimeout(() => this.fail(new RemoteError("RD_MEDIA_FAILED")), 5000);
+    clearTimeout(this.frameTimer);
+    if (!this.firstFrameSeen) this.frameTimer = setTimeout(() => this.fail(new RemoteError("RD_MEDIA_FAILED")), 5000);
     await this.video.play();
   }
   selectDisplay(id) {
@@ -297,29 +301,37 @@ export class RemoteSession {
   requestInput() {
     if (!this.ready || !this.video.videoWidth || document.hidden) throw new RemoteError("RD_INPUT_DENIED");
     this.inputRequested = true;
-    this.send(TYPES.CONTROL_REQUEST, { requested_input_permissions: [...this.permissions].filter((value) => value.startsWith("input.")) });
+    this.inputRequestId = crypto.randomUUID();
+    this.send(TYPES.CONTROL_REQUEST, { request_id: this.inputRequestId, requested_input_permissions: [...this.permissions].filter((value) => value.startsWith("input.")) });
   }
   releaseInput() {
     const notify = this.inputEnabled || this.inputRequested;
     this.inputEnabled = false; this.inputRequested = false;
+    this.inputRequestId = null;
     this.clearInputState?.();
     if (notify && !this.closed) { try { this.send(TYPES.RELEASE_ALL, { reason: "controller_released" }); } catch {} }
   }
   async startMicrophone() {
     if (!this.ready || !this.permissions.has("audio.microphone") || !this.microphoneTransceiver || document.hidden) throw new RemoteError("RD_INPUT_DENIED");
+    const generation = this.microphoneGeneration = (this.microphoneGeneration ?? 0) + 1;
     await this.setFeature("audio.microphone", true);
+    if (this.closed || generation !== this.microphoneGeneration || document.hidden || !this.lease.valid()) { await this.stopMicrophone(); throw new RemoteError("RD_SESSION_REVOKED"); }
     let stream;
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: false }); }
     catch (error) { await this.setFeature("audio.microphone", false).catch(() => {}); throw error; }
-    if (this.closed || document.hidden || !this.lease.valid()) { stream.getTracks().forEach((track) => track.stop()); throw new RemoteError("RD_SESSION_REVOKED"); }
+    if (this.closed || generation !== this.microphoneGeneration || document.hidden || !this.lease.valid()) { stream.getTracks().forEach((track) => track.stop()); await this.stopMicrophone(); throw new RemoteError("RD_SESSION_REVOKED"); }
     this.microphone = stream;
     if (!this.featureState.has("audio.microphone")) { stream.getTracks().forEach((track) => track.stop()); this.microphone = null; throw new RemoteError("RD_FEATURE_APPROVAL_REQUIRED"); }
-    try { await this.microphoneTransceiver.sender.replaceTrack(stream.getAudioTracks()[0]); }
-    catch (error) { await this.stopMicrophone(); await this.setFeature("audio.microphone", false).catch(() => {}); throw error; }
+    try {
+      await this.microphoneTransceiver.sender.replaceTrack(stream.getAudioTracks()[0]);
+      if (generation !== this.microphoneGeneration || this.closed || document.hidden) { await this.stopMicrophone(); throw new RemoteError("RD_SESSION_REVOKED"); }
+    } catch (error) { await this.stopMicrophone(); throw error; }
   }
-  async stopMicrophone() {
+  async stopMicrophone({ notify = true } = {}) {
+    this.microphoneGeneration = (this.microphoneGeneration ?? 0) + 1;
     this.microphone?.getTracks().forEach((track) => track.stop()); this.microphone = null;
     if (this.microphoneTransceiver) await this.microphoneTransceiver.sender.replaceTrack(null).catch(() => {});
+    if (notify && !this.closed && this.ready && this.featureState.has("audio.microphone") && !this.featureRequests.has("audio.microphone")) await this.setFeature("audio.microphone", false).catch(() => {});
   }
   fail(error) { if (!this.closed) { this.close(); this.onState?.("failed", error); } }
   close({ remote = true } = {}) {
@@ -331,7 +343,10 @@ export class RemoteSession {
     this.featureRequests.clear();
     void this.stopMicrophone(); this.channels.forEach((channel) => channel.close()); this.channels.clear(); this.pc?.close();
     this.video.pause(); this.video.srcObject = null;
-    if (remote) this.closeRequest = this.api.request(`/api/v1/rd/sessions/${this.id}/close`, { method: "POST", body: {} }).catch(() => {});
+    if (remote) {
+      try { this.signal.send({ v: 1, type: "session.close", session_id: this.id }); } catch {}
+      this.closeRequest = this.api.request(`/api/v1/rd/sessions/${this.id}/close`, { method: "POST", body: {} }).catch(() => {});
+    }
     this.onState?.("closed");
   }
 }

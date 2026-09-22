@@ -69,3 +69,16 @@ test("account expiration removes every remote window and switcher", async ({ pag
   await expect(page.locator(".remote-dialog")).toHaveCount(0);
   await expect(page.locator(".remote-window-bar")).toHaveCount(0);
 });
+
+test("a nonmodal viewer remains scrollable at 720px with file and clipboard panels", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await ready(page, [hosts[0]]); await page.locator("[data-remote-host]").click();
+  // Layout-only fixture. It does not claim that capture or a media session works.
+  await page.locator(".remote-dialog").evaluate((dialog) => {
+    dialog.querySelector(".remote-auth").hidden = true; dialog.querySelector(".remote-viewer").hidden = false;
+    dialog.querySelector("[data-clipboard-panel]").hidden = false; dialog.querySelector("[data-file-panel]").hidden = false;
+  });
+  const button = page.locator("[data-file-send]"); await button.scrollIntoViewIfNeeded();
+  await expect(button).toBeInViewport();
+  expect(await page.locator(".remote-dialog").evaluate((dialog) => dialog.scrollTop)).toBeGreaterThan(0);
+});

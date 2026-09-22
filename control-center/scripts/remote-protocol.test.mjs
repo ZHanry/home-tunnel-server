@@ -31,12 +31,247 @@ import {
   RemoteSession,
 } from "../public/modules/remote/session.js";
 import { keyUsage, pointerCoordinates } from "../public/modules/remote/input.js";
+import { boundedResponse, RemoteApi } from "../public/modules/remote/http.js";
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 const vectors = JSON.parse(
   await readFile(new URL("../../contracts/remote-test-vectors.json", import.meta.url), "utf8"),
 );
 const hex = (value) => Buffer.from(value).toString("hex");
+
+test("released or previous input grants cannot enable input or terminate viewing", async () => {
+  const oldDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
+  Object.defineProperty(globalThis, "document", { configurable: true, value: { hidden: false } });
+  try {
+    const session = Object.create(RemoteSession.prototype),
+      sent = [];
+    Object.assign(session, {
+      lease: { valid: () => true },
+      epoch: 1,
+      received: new Map(),
+      peerVerified: true,
+      pathVerified: true,
+      ready: true,
+      inputRequested: false,
+      inputEnabled: false,
+      inputEpoch: 1,
+      inputRequestId: null,
+      layout: { layout_epoch: 1 },
+      send: (type, payload) => sent.push({ type, payload }),
+    });
+    await session.onFrame(
+      {
+        type: TYPES.CONTROL_GRANTED,
+        epoch: 1,
+        sequence: 1,
+        payload: { request_id: crypto.randomUUID(), new_input_epoch: 2 },
+      },
+      "control",
+    );
+    session.inputRequested = true;
+    session.inputRequestId = crypto.randomUUID();
+    await session.onFrame(
+      {
+        type: TYPES.INPUT_SYNC_ACK,
+        epoch: 1,
+        sequence: 2,
+        payload: { request_id: crypto.randomUUID(), input_epoch: 1, layout_epoch: 1 },
+      },
+      "control",
+    );
+    assert.equal(session.ready, true);
+    assert.equal(session.inputEnabled, false);
+    assert.equal(sent.length, 2);
+    assert.ok(sent.every((frame) => frame.type === TYPES.RELEASE_ALL));
+  } finally {
+    if (oldDocument) Object.defineProperty(globalThis, "document", oldDocument);
+    else delete globalThis.document;
+  }
+});
+
+test("an old account response cannot resume endpoint enrollment after logout", async () => {
+  let finish,
+    calls = 0,
+    current = true;
+  const api = new RemoteApi(
+    async () => {
+      calls++;
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    },
+    "old-user",
+    () => current,
+  );
+  const pending = api.initialize();
+  current = false;
+  api.close();
+  finish({ server_instance_id: "old-instance" });
+  await assert.rejects(pending, /RD_SESSION_REVOKED/);
+  assert.equal(calls, 1);
+  assert.equal(api.identity, undefined);
+});
+
+test("final file commit completing after cancellation does not ACK success", async (t) => {
+  const progress = [],
+    { transfers, frames } = transferHarness({ onProgress: (value) => progress.push(value) });
+  t.after(() => transfers.close());
+  const id = crypto.randomUUID();
+  let finish;
+  await transfers.onFrame({ type: TYPES.FILE_OFFER, payload: { id, name: "empty.txt", size: 0 } });
+  await transfers.acceptFile(id, {
+    write: async () => {},
+    close: () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    abort: async () => {},
+  });
+  const pending = transfers.onFrame({
+    type: TYPES.FILE_COMPLETE,
+    payload: { id, size: 0, sha256: createHash("sha256").digest("hex") },
+  });
+  await transfers.cancel(id);
+  finish();
+  await pending;
+  assert.equal(
+    frames.some((frame) => frame.type === TYPES.FILE_ACK),
+    false,
+  );
+  assert.equal(
+    progress.some((value) => value.complete),
+    false,
+  );
+  await transfers.onFrame({ type: TYPES.FILE_CHUNK, payload: chunk(id, 0, Uint8Array.of(1)) });
+});
+
+test("host-signed grant and server authorizations bind the original one-session request", async (t) => {
+  const fixture = JSON.parse(
+    await readFile(
+      new URL("../../contracts/remote-authorization-vectors.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  const binding = fixture.expected_binding,
+    oldLocation = Object.getOwnPropertyDescriptor(globalThis, "location");
+  t.mock.method(Date, "now", () => fixture.reference_time_unix * 1000);
+  Object.defineProperty(globalThis, "location", {
+    configurable: true,
+    value: { origin: binding.iss },
+  });
+  try {
+    const session = new RemoteSession({
+      api: {
+        userId: binding.owner_user_id,
+        keys: fixture.keyset,
+        identity: { endpointId: binding.controller_endpoint_id, jkt: binding.controller_jkt },
+      },
+      signal: {},
+      session: {
+        ...binding,
+        host_public_jwk: fixture.identities.host.public_jwk,
+        ticket_jws: fixture.valid.ticket.jws_parts.join("."),
+        lease_jws: fixture.valid.lease.jws_parts.join("."),
+        grant_jws: fixture.valid.grant.jws_parts.join("."),
+      },
+      hostThumbprint: binding.host_jkt,
+      video: {},
+    });
+    await session.authorize();
+    assert.equal(session.lease.valid(), true);
+    for (const rejected of fixture.rejected) {
+      await assert.rejects(
+        session.serverClaims(
+          rejected.jws_parts.join("."),
+          rejected.kind === "ticket" ? "ht-rd-ticket+jwt" : "ht-rd-lease+jwt",
+          rejected.kind === "ticket" ? "ht-rd-start" : "ht-rd-use",
+        ),
+        rejected.name,
+      );
+    }
+  } finally {
+    if (oldLocation) Object.defineProperty(globalThis, "location", oldLocation);
+    else delete globalThis.location;
+  }
+});
+
+test("HTTP response limits cancel oversized streams before accumulating the body", async () => {
+  let canceled = false;
+  const response = new Response(
+    new ReadableStream({
+      pull(controller) {
+        controller.enqueue(new Uint8Array(32));
+      },
+      cancel() {
+        canceled = true;
+      },
+    }),
+  );
+  await assert.rejects(boundedResponse(response, 64), /RD_MESSAGE_TOO_LARGE/);
+  assert.equal(canceled, true);
+  await assert.rejects(boundedResponse(new Response(Uint8Array.of(0xc0, 0xaf))));
+  assert.equal((await boundedResponse(new Response('{"value":"中文"}'))).value, "中文");
+});
+
+test("stopping a microphone invalidates capture permission still in flight", async () => {
+  const oldDocument = Object.getOwnPropertyDescriptor(globalThis, "document"),
+    oldNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  let grantCapture,
+    stopped = 0;
+  const replaced = [];
+  const track = {
+      stop() {
+        stopped++;
+      },
+    },
+    stream = { getTracks: () => [track], getAudioTracks: () => [track] };
+  Object.defineProperty(globalThis, "document", { configurable: true, value: { hidden: false } });
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: {
+      mediaDevices: {
+        getUserMedia: () =>
+          new Promise((resolve) => {
+            grantCapture = resolve;
+          }),
+      },
+    },
+  });
+  try {
+    const session = Object.create(RemoteSession.prototype);
+    Object.assign(session, {
+      ready: true,
+      permissions: new Set(["audio.microphone"]),
+      featureState: new Set(),
+      featureRequests: new Map(),
+      lease: { valid: () => true },
+      microphoneTransceiver: {
+        sender: {
+          replaceTrack: async (value) => {
+            replaced.push(value);
+          },
+        },
+      },
+      setFeature: async (permission, enabled) => {
+        if (enabled) session.featureState.add(permission);
+        else session.featureState.delete(permission);
+      },
+    });
+    const pending = session.startMicrophone();
+    await new Promise((resolve) => setImmediate(resolve));
+    await session.stopMicrophone();
+    grantCapture(stream);
+    await assert.rejects(pending, /RD_SESSION_REVOKED/);
+    assert.equal(stopped, 1);
+    assert.equal(replaced.includes(track), false);
+    assert.equal(session.microphone, null);
+  } finally {
+    if (oldDocument) Object.defineProperty(globalThis, "document", oldDocument);
+    else delete globalThis.document;
+    if (oldNavigator) Object.defineProperty(globalThis, "navigator", oldNavigator);
+    else delete globalThis.navigator;
+  }
+});
 
 test("the public key message and proof transcript match the cross-language vectors", async () => {
   const frame = decodeFrame(Buffer.from(vectors.key_down_a.wire_hex, "hex"), "input");

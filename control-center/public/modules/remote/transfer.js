@@ -103,6 +103,7 @@ export class RemoteTransfers {
   }
   async onFrame(frame) {
     const body = frame.payload;
+    if ([TYPES.CLIPBOARD_OFFER, TYPES.CLIPBOARD_ACCEPT, TYPES.CLIPBOARD_CHUNK, TYPES.CLIPBOARD_ACK].includes(frame.type) && !this.canUseClipboard()) { this.clearClipboard(); return; }
     if (frame.type === TYPES.FILE_OFFER) {
       if (!this.allowed("files.receive")) throw new Error("RD_SCOPE_DENIED");
       uuidBytes(body.id); safeFilename(body.name); size(body.size, RD.limits.file_bytes);
@@ -119,6 +120,7 @@ export class RemoteTransfers {
     if (frame.type === TYPES.FILE_CHUNK) {
       if (!this.allowed("files.receive") || body.byteLength <= 24 || body.byteLength > RD.limits.file_chunk_bytes + 24) throw new Error("RD_FILE_INVALID");
       const id = uuid(body.subarray(0,16)), item = this.incoming.get(id), offset = new DataView(body.buffer, body.byteOffset, body.byteLength).getBigUint64(16);
+      if (!item && this.seen.has(id)) return;
       if (!item?.sink || offset !== BigInt(item.offset) || item.offset + body.length - 24 > item.offer.size) throw new Error("RD_FILE_OFFSET");
       const content = body.subarray(24);
       try { await item.sink.write(content); } catch { await this.cancel(id); this.onProgress?.({ id, error: "RD_FILE_WRITE_FAILED" }); return; }
@@ -129,9 +131,11 @@ export class RemoteTransfers {
     }
     if (frame.type === TYPES.FILE_COMPLETE) {
       const item = this.incoming.get(body.id);
+      if (!item && this.seen.has(body.id)) return;
       if (!this.allowed("files.receive") || !item?.sink || body.size !== item.offer.size || item.offset !== body.size || !/^[0-9a-f]{64}$/.test(body.sha256) || item.hash.digest() !== body.sha256) { await this.cancel(body.id); throw new Error("RD_FILE_HASH_MISMATCH"); }
       clearTimeout(item.timer);
       try { await item.sink.close(); } catch { await this.cancel(body.id); this.onProgress?.({ id: body.id, error: "RD_FILE_WRITE_FAILED" }); return; }
+      if (this.incoming.get(body.id) !== item || !this.allowed("files.receive")) return;
       this.incoming.delete(body.id); this.remember(body.id);
       this.session.send(TYPES.FILE_ACK, { id: body.id, sha256: body.sha256 }); this.onProgress?.({ id: body.id, complete: true }); return;
     }
@@ -142,7 +146,7 @@ export class RemoteTransfers {
       if (!item?.digest || body.sha256 !== item.digest) throw new Error("RD_FILE_HASH_MISMATCH");
       clearTimeout(item.timer); this.outgoing.delete(body.id); this.remember(body.id); this.onProgress?.({ id: body.id, complete: true }); return;
     }
-    if (frame.type === TYPES.FILE_CANCEL) { await this.cancel(body.id, false); return; }
+    if (frame.type === TYPES.FILE_CANCEL) { await this.cancel(body.id, false); this.onProgress?.({ id: body.id, error: "RD_FILE_CANCELLED" }); return; }
     if (frame.type === TYPES.CLIPBOARD_OFFER) {
       if (!this.allowed("clipboard.read") || this.clipboard || body.mime !== "text/plain;charset=utf-8" || !/^[0-9a-f]{64}$/.test(body.sha256)) throw new Error("RD_SCOPE_DENIED");
       uuidBytes(body.id); size(body.size, RD.limits.clipboard_bytes);
@@ -207,7 +211,7 @@ export class RemoteTransfers {
   async close() {
     this.closed = true;
     for (const reject of [...this.waiters]) reject();
-    for (const id of [...this.incoming.keys(), ...this.outgoing.keys()]) await this.cancel(id, false);
     this.clearClipboard();
+    await Promise.allSettled([...this.incoming.keys(), ...this.outgoing.keys()].map((id) => this.cancel(id, false)));
   }
 }

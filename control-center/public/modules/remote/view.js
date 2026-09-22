@@ -24,13 +24,15 @@ const message = (error) => errors[error?.code ?? error?.message] ?? error?.messa
 export function createRemoteView({ api, state, viewContent, escapeHtml }) {
   const active = new Map();
   const pendingClosures = new Set();
-  let controller = null, controllerPromise = null, stack = 100;
+  let controller = null, controllerPromise = null, pendingController = null, controllerGeneration = 0, stack = 100;
   const raise = (current) => { current.dialog.style.zIndex = String(++stack); current.dialog.focus(); };
   async function controllerConnection() {
     if (controller) return controller;
     if (controllerPromise) return controllerPromise;
-    controllerPromise = (async () => {
-      const context = {};
+    const generation = controllerGeneration, userId = state.me.id;
+    const valid = () => generation === controllerGeneration && state.me?.id === userId;
+    const operation = (async () => {
+      const context = { api: new RemoteApi(api, userId, valid) }; pendingController = context;
       const locked = await new Promise((resolve, reject) => {
         navigator.locks.request(`rd-controller:${location.origin}:${state.me.id}`, { ifAvailable: true }, async (lock) => {
           if (!lock) { resolve(false); return; }
@@ -39,7 +41,8 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       });
       if (!locked) throw new Error("另一个标签页正在使用远程桌面，请先结束那里的会话。");
       try {
-        context.api = await new RemoteApi(api, state.me.id).initialize();
+        context.api.assertCurrent();
+        await context.api.initialize();
         context.signal = new RemoteSignal(context.api, async (message) => {
           for (const current of active.values()) {
             const session = current.session;
@@ -47,11 +50,18 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
             if (message.payload?.lease_jws && message.payload.lease_seq > session.lease.sequence) session.lease.update(await session.serverClaims(message.payload.lease_jws, "ht-rd-lease+jwt", "ht-rd-use"));
             await session.onSignal(message);
           }
-        }, (failure) => { for (const current of active.values()) { current.session?.fail(failure); current.showError(failure); } });
-        await context.signal.connect(); controller = context; return context;
+        }, (failure) => {
+          const closing = [];
+          for (const current of active.values()) if (current.api === context.api) { current.session?.fail(failure); current.showError(failure); if (current.session?.closeRequest) closing.push(current.session.closeRequest); }
+          if (controller === context) controller = null;
+          context.unlock?.();
+          void Promise.allSettled(closing).finally(() => context.api.close());
+        });
+        await context.signal.connect(); context.api.assertCurrent(); controller = context; return context;
       } catch (error) { context.signal?.close(); context.api?.close(); context.unlock?.(); throw error; }
     })();
-    try { return await controllerPromise; } finally { controllerPromise = null; }
+    controllerPromise = operation;
+    try { return await operation; } finally { if (controllerPromise === operation) { controllerPromise = null; pendingController = null; } }
   }
   async function releaseController() {
     if (active.size || pendingClosures.size) return;
@@ -108,6 +118,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     const close = () => {
       if (current.disposed) return;
       current.disposed = true; current.abort.abort(); clearTimeout(current.pollTimer); current.input?.close(); void current.transfers?.close(); current.session?.close();
+      if (!current.session && current.snapshot?.session_id) { try { current.signal.send({ v: 1, type: "session.close", session_id: current.snapshot.session_id }); } catch {} }
       active.delete(host.id); switcher.remove(); if (!active.size) windowBar.remove();
       const finish = () => { void releaseController(); };
       if (current.session?.closeRequest) { const request = current.session.closeRequest; pendingClosures.add(request); void request.finally(() => { pendingClosures.delete(request); finish(); }); } else finish();
@@ -186,6 +197,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
             select.value = frame.payload.active_display; select.disabled = frame.payload.displays.length < 2;
           }
           if (frame.type === TYPES.FEATURE_STATE && !frame.payload.enabled) await current.transfers?.revoke(frame.payload.permission);
+          if (frame.type === TYPES.FEATURE_STATE && frame.payload.enabled && frame.payload.permission.startsWith("clipboard.") && !current.transfers?.canUseClipboard()) pauseClipboard();
           await current.transfers?.onFrame(frame);
           const session = current.session;
           dialog.querySelector("[data-diagnostics]").textContent = JSON.stringify({ connectionEpoch: session.epoch, hostVerifiedUDP: session.pathVerified, browserVerifiedUDP: session.selectedPair?.verified ?? false, activeDisplay: session.layout?.active_display, capabilities: session.remoteCapabilities }, null, 2);
@@ -193,7 +205,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
         onReconnectNeeded: (reason) => { void reconnect(reason).catch(showError); },
       });
       current.input = new RemoteInput(current.session, video);
-      current.transfers = new RemoteTransfers(current.session, { onOffer: offerFile, onProgress: fileProgress, onClipboard: (text) => { dialog.querySelector("[data-clipboard-incoming]").value = text; }, canUseClipboard: () => !document.hidden && dialog.contains(document.activeElement) });
+      current.transfers = new RemoteTransfers(current.session, { onOffer: offerFile, onProgress: fileProgress, onClipboard: (text) => { dialog.querySelector("[data-clipboard-incoming]").value = text; }, canUseClipboard: () => !document.hidden && document.hasFocus() && dialog.contains(document.activeElement) });
       try { await current.session.start(capabilities.stun_urls); } catch (failure) { current.session.fail(failure); throw failure; }
     }
     async function reconnect(reason) {
@@ -201,7 +213,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       const previous = current.session;
       if ((current.retries ?? 0) >= 3 || !previous.lease.valid()) { previous.fail(new RemoteError("RD_NO_DIRECT_PATH")); return; }
       current.reconnecting = true; current.retries = (current.retries ?? 0) + 1;
-      current.input?.close(); await current.transfers?.close(); previous.close({ remote: false }); current.session = null;
+      current.input?.close(); previous.close({ remote: false }); void current.transfers?.close(); current.session = null;
       current.pendingText = undefined;
       status.textContent = "正在恢复直连，输入和麦克风已暂停";
       try {
@@ -217,13 +229,21 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     dialog.querySelector("[data-fullscreen]").addEventListener("click", safe(() => dialog.querySelector(".remote-viewer").requestFullscreen()));
     dialog.querySelector("[data-play]").addEventListener("click", safe(() => current.session?.resumePlayback()));
     dialog.querySelector("[data-audio]").addEventListener("click", safe(async () => { const enabled = !current.session.featureState.has("audio.system"); await current.session.setSystemAudio(enabled); dialog.querySelector("[data-audio]").textContent = enabled ? "关闭系统声音" : "开启系统声音"; }));
-    dialog.querySelector("[data-microphone]").addEventListener("click", safe(async () => { if (current.session.microphone) { await current.session.stopMicrophone(); await current.session.setFeature("audio.microphone", false); } else { for (const other of active.values()) if (other !== current && other.session?.microphone) { await other.session.stopMicrophone(); await other.session.setFeature("audio.microphone", false); other.dialog.querySelector("[data-microphone]").textContent = "开启麦克风回传"; } await current.session.startMicrophone(); } dialog.querySelector("[data-microphone]").textContent = current.session.microphone ? "关闭麦克风回传" : "开启麦克风回传"; }));
+    dialog.querySelector("[data-microphone]").addEventListener("click", safe(() => navigator.locks.request(`rd-microphone:${location.origin}`, async () => { if (current.disposed || !current.session?.ready) throw new RemoteError("RD_MEDIA_FAILED"); if (current.session.microphone) { await current.session.stopMicrophone(); await current.session.setFeature("audio.microphone", false); } else { for (const other of active.values()) if (other !== current && other.session?.microphone) { await other.session.stopMicrophone(); await other.session.setFeature("audio.microphone", false); other.dialog.querySelector("[data-microphone]").textContent = "开启麦克风回传"; } await current.session.startMicrophone(); } dialog.querySelector("[data-microphone]").textContent = current.session.microphone ? "关闭麦克风回传" : "开启麦克风回传"; })));
     dialog.querySelector(".remote-text").addEventListener("submit", safe(() => { current.pendingText = dialog.querySelector("textarea").value; current.session.requestInput(); }));
     dialog.querySelector("[data-display]").addEventListener("change", safe((event) => current.session.selectDisplay(event.target.value)));
     const setFeatures = async (permissions, enabled) => {
-      for (const permission of permissions) if (current.session?.permissions.has(permission)) { await current.session.setFeature(permission, enabled); if (!enabled) await current.transfers.revoke(permission); }
+      const supported = permissions.filter((permission) => current.session?.permissions.has(permission)), changed = [];
+      if (!supported.length) throw new RemoteError("RD_SCOPE_DENIED");
+      try {
+        for (const permission of supported) { await current.session.setFeature(permission, enabled); changed.push(permission); if (!enabled) await current.transfers.revoke(permission); }
+      } catch (failure) {
+        if (enabled) for (const permission of changed) { current.session.featureState.delete(permission); await current.transfers.revoke(permission); await current.session.setFeature(permission, false).catch(() => {}); }
+        throw failure;
+      }
     };
-    dialog.querySelector("[data-clipboard]").addEventListener("click", safe(async () => {
+    dialog.querySelector("[data-clipboard]").addEventListener("click", safe(() => navigator.locks.request(`rd-clipboard:${location.origin}`, async () => {
+      if (current.disposed || !current.session?.ready) throw new RemoteError("RD_MEDIA_FAILED");
       const panel = dialog.querySelector("[data-clipboard-panel]"), enabled = panel.hidden;
       if (enabled) for (const other of active.values()) if (other !== current && other.session) {
         for (const permission of ["clipboard.read", "clipboard.write"]) if (other.session.featureState.has(permission)) { await other.session.setFeature(permission, false); await other.transfers.revoke(permission); }
@@ -231,7 +251,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       }
       await setFeatures(["clipboard.read", "clipboard.write"], enabled); panel.hidden = !enabled;
       dialog.querySelector("[data-clipboard]").textContent = enabled ? "关闭文本剪贴板" : "开启文本剪贴板";
-    }));
+    })));
     dialog.querySelector("[data-clipboard-read]").addEventListener("click", safe(async () => {
       if (!current.transfers?.allowed("clipboard.write") || !navigator.clipboard?.readText) throw new Error("浏览器不支持此操作或当前窗口未获得权限，请手动粘贴文本。");
       const text = await navigator.clipboard.readText();
@@ -244,7 +264,17 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       if (!current.transfers?.allowed("clipboard.read") || !navigator.clipboard?.writeText) throw new Error("浏览器不支持此操作或当前窗口未获得权限，请手动复制文本。");
       return navigator.clipboard.writeText(dialog.querySelector("[data-clipboard-incoming]").value);
     }));
-    document.addEventListener("visibilitychange", () => { if (document.hidden) { current.transfers?.clearClipboard(); dialog.querySelector("[data-clipboard-incoming]").value = ""; dialog.querySelector("[data-clipboard-text]").value = ""; } }, { signal: current.abort.signal });
+    function pauseClipboard() {
+      current.transfers?.clearClipboard(); dialog.querySelector("[data-clipboard-incoming]").value = ""; dialog.querySelector("[data-clipboard-text]").value = "";
+      dialog.querySelector("[data-clipboard-panel]").hidden = true; dialog.querySelector("[data-clipboard]").textContent = "开启文本剪贴板";
+      for (const permission of ["clipboard.read", "clipboard.write"]) if (current.session?.featureState.has(permission)) {
+        current.session.featureState.delete(permission);
+        if (!current.session.featureRequests.has(permission)) void current.session.setFeature(permission, false).catch(() => {});
+      }
+    }
+    dialog.addEventListener("focusout", (event) => { if (!dialog.contains(event.relatedTarget)) pauseClipboard(); });
+    document.addEventListener("visibilitychange", () => { if (document.hidden) pauseClipboard(); }, { signal: current.abort.signal });
+    window.addEventListener("blur", pauseClipboard, { signal: current.abort.signal });
     dialog.querySelector("[data-file-support]").textContent = typeof window.showSaveFilePicker === "function" ? "收到文件后请选择保存位置。浏览器确认覆盖已有文件时，请检查文件名。" : "此浏览器不支持流式保存文件，接收功能不可用；请使用支持文件保存选择器的浏览器或桌面客户端。";
     dialog.querySelector("[data-files]").addEventListener("click", safe(async () => {
       const panel = dialog.querySelector("[data-file-panel]"), enabled = panel.hidden;
@@ -276,5 +306,10 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       })); row.row.append(accept);
     }
   }
-  return { renderRemote, closeRemote: () => { for (const current of [...active.values()]) current.close(); } };
+  return { renderRemote, closeRemote: () => {
+    controllerGeneration++;
+    for (const current of [...active.values()]) current.close();
+    for (const context of [controller, pendingController]) { context?.signal?.close(); context?.api?.close(); context?.unlock?.(); }
+    controller = null; controllerPromise = null; pendingController = null;
+  } };
 }
