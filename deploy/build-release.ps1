@@ -20,12 +20,10 @@ if ($OutputRoot -ne $allowedOutputRoot -and -not $OutputRoot.StartsWith($allowed
 $controlPackage = Get-Content -Raw -LiteralPath (Join-Path $workspaceRoot "control-center\package.json") | ConvertFrom-Json
 $gatewayPackage = Get-Content -Raw -LiteralPath (Join-Path $workspaceRoot "traffic-gateway\package.json") | ConvertFrom-Json
 if (-not $Version) {
-    $Version = (Get-Content -LiteralPath (Join-Path $workspaceRoot ".env.example") |
-        Where-Object { $_ -match '^HOME_TUNNEL_VERSION=' } |
-        Select-Object -First 1) -replace '^HOME_TUNNEL_VERSION=', ''
+    $Version = [string]$controlPackage.version
 }
 if ($Version -notmatch '^\d+\.\d+\.\d+(?:-rc\.\d+)?$') { throw "Version must use MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-rc.N format" }
-$sourceVersion = $Version -replace '-rc\.\d+$', ''
+$sourceVersion = $Version
 if ($controlPackage.version -ne $sourceVersion) { throw "Control-center package version does not match source version $sourceVersion" }
 $version = $Version
 $gatewaySourceVersion = [string]$gatewayPackage.version
@@ -53,6 +51,7 @@ foreach ($required in @($frpcSource, (Join-Path $deployRoot "compose.yaml"))) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Required release input is missing: $required" }
 }
 $composeSource = Get-Content -Raw -LiteralPath (Join-Path $deployRoot "compose.yaml")
+$composeSource = [regex]::Replace($composeSource, '(?m)^(    image: home-tunnel/(?:control-center|traffic-gateway):)\d+\.\d+\.\d+(?:-rc\.\d+)?(-arm64)[ \t]*\r?$', { param($match) $match.Groups[1].Value + $Version + $match.Groups[2].Value })
 foreach ($expectedImage in @("home-tunnel/control-center:$version-arm64", "home-tunnel/traffic-gateway:$version-arm64")) {
     if ($composeSource -notmatch "(?m)^    image: $([regex]::Escape($expectedImage))\s*$") {
         throw "Compose does not reference $expectedImage"
@@ -89,7 +88,7 @@ try {
     foreach ($directory in @("caddy", "scripts", "systemd", "images", "sbom")) {
         New-Item -ItemType Directory -Force (Join-Path $releaseDirectory $directory) | Out-Null
     }
-    Copy-Item -LiteralPath (Join-Path $deployRoot "compose.yaml") -Destination (Join-Path $releaseDirectory "compose.yaml")
+    [IO.File]::WriteAllText((Join-Path $releaseDirectory "compose.yaml"), $composeSource, [Text.UTF8Encoding]::new($false))
     Copy-Item -LiteralPath $frpcSource -Destination (Join-Path $releaseDirectory "frpc")
     foreach ($directory in @("caddy", "scripts", "systemd")) {
         Get-ChildItem -LiteralPath (Join-Path $deployRoot $directory) -File | ForEach-Object {

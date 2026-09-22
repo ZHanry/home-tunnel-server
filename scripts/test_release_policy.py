@@ -17,7 +17,18 @@ finally:
 
 class ReleasePolicyTests(unittest.TestCase):
     def test_first_project_version_is_allowed_as_a_test_build(self):
-        self.assertEqual(module.validate_release_tag("v0.1.0-rc.1", "0.1.0", "internal-testing"), ("0.1.0", "1"))
+        self.assertEqual(module.validate_release_tag("v0.1.0-rc.1", "0.1.0-rc.1", "internal-testing"), ("0.1.0", "1"))
+
+    def test_candidate_requires_exact_source_suffix(self):
+        for source in ("8.0.0", "8.0.0-rc.2"):
+            with self.assertRaisesRegex(SystemExit, "source version"):
+                module.validate_release_tag("v8.0.0-rc.1", source, "internal-testing")
+        self.assertEqual(module.validate_release_tag("v8.0.0-rc.1", "8.0.0-rc.1", "internal-testing"), ("8.0.0", "1"))
+
+    def test_candidate_number_is_positive_and_canonical(self):
+        for candidate in ("0", "01"):
+            with self.assertRaises(SystemExit):
+                module.validate_release_tag("v8.0.0-rc."+candidate, "8.0.0-rc."+candidate, "internal-testing")
 
     def test_internal_testing_cannot_publish_a_stable_tag(self):
         with self.assertRaisesRegex(SystemExit, "prereleases only"):

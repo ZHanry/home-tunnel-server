@@ -134,6 +134,7 @@ export class RemoteTransfers {
       if (!item && this.seen.has(body.id)) return;
       if (!this.allowed("files.receive") || !item?.sink || body.size !== item.offer.size || item.offset !== body.size || !/^[0-9a-f]{64}$/.test(body.sha256) || item.hash.digest() !== body.sha256) { await this.cancel(body.id); throw new Error("RD_FILE_HASH_MISMATCH"); }
       clearTimeout(item.timer);
+	  item.committing = true;
       try { await item.sink.close(); } catch { await this.cancel(body.id); this.onProgress?.({ id: body.id, error: "RD_FILE_WRITE_FAILED" }); return; }
       if (this.incoming.get(body.id) !== item || !this.allowed("files.receive")) return;
       this.incoming.delete(body.id); this.remember(body.id);
@@ -146,7 +147,7 @@ export class RemoteTransfers {
       if (!item?.digest || body.sha256 !== item.digest) throw new Error("RD_FILE_HASH_MISMATCH");
       clearTimeout(item.timer); this.outgoing.delete(body.id); this.remember(body.id); this.onProgress?.({ id: body.id, complete: true }); return;
     }
-    if (frame.type === TYPES.FILE_CANCEL) { await this.cancel(body.id, false); this.onProgress?.({ id: body.id, error: "RD_FILE_CANCELLED" }); return; }
+    if (frame.type === TYPES.FILE_CANCEL) { const result = await this.cancel(body.id, false); this.onProgress?.({ id: body.id, error: "RD_FILE_CANCELLED", mayBeSaved: result.mayBeSaved }); return; }
     if (frame.type === TYPES.CLIPBOARD_OFFER) {
       if (!this.allowed("clipboard.read") || this.clipboard || body.mime !== "text/plain;charset=utf-8" || !/^[0-9a-f]{64}$/.test(body.sha256)) throw new Error("RD_SCOPE_DENIED");
       uuidBytes(body.id); size(body.size, RD.limits.clipboard_bytes);
@@ -194,10 +195,14 @@ export class RemoteTransfers {
     const item = this.incoming.get(id); this.incoming.delete(id);
     clearTimeout(item?.timer);
     const outgoing = this.outgoing.get(id); this.outgoing.delete(id); clearTimeout(outgoing?.timer);
+	const mayBeSaved = !!(item?.committing || outgoing?.digest || !item && !outgoing && this.seen.has(id));
     if (outgoing) { outgoing.canceled = true; outgoing.ack?.reject(new Error("RD_FILE_CANCELLED")); outgoing.ack = null; }
     this.remember(id);
-    if (item?.sink) await Promise.resolve().then(() => item.sink.abort()).catch(() => {});
+    // OS abort can wait for a pending disk commit. Stop peer traffic immediately;
+    // do not claim that an already committed destination has been removed.
+    if (item?.sink) void Promise.resolve().then(() => item.sink.abort()).catch(() => {});
     if (notify && !this.closed && (item || outgoing)) this.session.send(TYPES.FILE_CANCEL, { id, reason: "cancelled" });
+	return { mayBeSaved };
   }
   clearClipboard() {
     for (const item of [this.clipboard, this.clipboardOutgoing]) { clearTimeout(item?.timer); item?.content.fill(0); }

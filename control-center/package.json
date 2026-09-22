@@ -1,6 +1,6 @@
 {
   "name": "home-tunnel-control-center",
-  "version": "8.0.0",
+  "version": "8.0.0-rc.1",
   "private": true,
   "type": "module",
   "scripts": {

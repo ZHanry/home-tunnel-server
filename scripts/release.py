@@ -31,11 +31,11 @@ def local_version():
 def validate_release_tag(tag, source_version, stage):
     if stage not in ("internal-testing", "public-release"):
         raise SystemExit("Unknown release stage; set compatibility.json explicitly")
-    match = re.fullmatch(r"v(\d+\.\d+\.\d+)(?:-rc\.(\d+))?", tag)
+    match = re.fullmatch(r"v(\d+\.\d+\.\d+)(?:-rc\.([1-9]\d*))?", tag)
     if not match:
         raise SystemExit("Release tags must be vX.Y.Z or vX.Y.Z-rc.N")
     version, candidate = match.groups()
-    if version != source_version:
+    if tag.removeprefix("v") != source_version:
         raise SystemExit("Tag does not match this component's source version")
     if stage == "internal-testing" and candidate is None:
         raise SystemExit("Internal testing publishes prereleases only; use vX.Y.Z-rc.N")
@@ -155,7 +155,7 @@ def publish(stable=False):
     packages=public_asset_names(COMPONENT,local_version())
     downloads='\n'.join(f'- [{name}](https://github.com/{REPO}/releases/download/{TAG}/{name})' for name in packages)
     checksums=''.join(f"{hashlib.sha256((public/name).read_bytes()).hexdigest()}  {name}\n" for name in packages)
-    title=f'Home Tunnel {COMPONENT} {local_version()}' + ('' if stable else f' ({TAG.rsplit("-",1)[1]})')
+    title=f'Home Tunnel {COMPONENT} {local_version()}'
     notes=ROOT/'release-notes.md'
     summary=(ROOT/'docs/RELEASE_NOTES.md').read_text(encoding='utf-8')
     run_url=f"https://github.com/{REPO}/actions/runs/{os.environ['GITHUB_RUN_ID']}"

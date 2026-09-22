@@ -286,14 +286,14 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       if (current.rows.has(id)) return current.rows.get(id);
       if (current.rows.size >= 128) { const oldest = current.rows.keys().next().value; current.rows.get(oldest).row.remove(); current.rows.delete(oldest); }
       const row = document.createElement("div"), text = document.createElement("span"), cancel = document.createElement("button"); row.className = "remote-file-row"; text.textContent = name ?? id;
-      cancel.className = "button button-secondary"; cancel.textContent = "取消"; cancel.addEventListener("click", safe(async () => { await current.transfers.cancel(id); text.textContent = "已取消"; cancel.disabled = true; }));
+      cancel.className = "button button-secondary"; cancel.textContent = "取消"; cancel.addEventListener("click", safe(async () => { const result = await current.transfers.cancel(id); text.textContent = result.mayBeSaved ? "已停止传输；保存可能已完成，请检查接收位置" : "已停止传输"; cancel.disabled = true; }));
       row.append(text, cancel); dialog.querySelector("[data-file-list]").append(row);
       const entry = { row, text, cancel }; current.rows.set(id, entry); return entry;
     }
     function fileProgress(progress) {
       if (current.disposed) return;
       const row = fileRow(progress.id, progress.name);
-      if (progress.complete || progress.error) { row.text.textContent = progress.complete ? "校验完成，文件已保存" : message(new Error(progress.error)); row.cancel.disabled = true; }
+      if (progress.complete || progress.error) { row.text.textContent = progress.complete ? "校验完成，文件已保存" : progress.mayBeSaved ? "已停止传输；保存可能已完成，请检查接收位置" : message(new Error(progress.error)); row.cancel.disabled = true; }
       else if (!progress.offered) row.text.textContent = `${progress.received ?? progress.sent ?? 0} / ${progress.size} 字节`;
     }
     function offerFile(offer) {

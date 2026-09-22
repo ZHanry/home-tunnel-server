@@ -131,7 +131,7 @@ test("final file commit completing after cancellation does not ACK success", asy
     type: TYPES.FILE_COMPLETE,
     payload: { id, size: 0, sha256: createHash("sha256").digest("hex") },
   });
-  await transfers.cancel(id);
+  assert.equal((await transfers.cancel(id)).mayBeSaved, true);
   finish();
   await pending;
   assert.equal(

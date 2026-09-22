@@ -206,9 +206,9 @@ jobs:
             throw 'An offline PowerShell release path does not accept RC versions'
           }
         }
-        if ($buildUi -notmatch '\$sourceVersion\s*=.*-replace' -or
-            $buildServer -notmatch '\$sourceVersion\s*=.*-replace') {
-          throw 'Offline builders must compare RC tags to the source base version'
+        if ($buildUi -notmatch '\$sourceVersion\s*=\s*\$Version\s*[\r\n]' -or
+            $buildServer -notmatch '\$sourceVersion\s*=\s*\$Version\s*[\r\n]') {
+          throw 'Offline builders must compare the complete RC version with the source'
         }
     - name: Validate RC-aware remote update script
       run: |
@@ -216,7 +216,7 @@ jobs:
         # The grep expressions below intentionally match literal shell/JavaScript source.
         bash -n deploy/scripts/update-ui.sh
         grep -Fq '(-rc\.[0-9]+)?$' deploy/scripts/update-ui.sh
-        grep -Fq 'source_version="${version%%-rc.*}"' deploy/scripts/update-ui.sh
+        grep -Fq 'source_version="$version"' deploy/scripts/update-ui.sh
         grep -Fq "b.version!=='\$source_version'" deploy/scripts/update-ui.sh
   repository:
     name: Repository boundaries

@@ -27,7 +27,7 @@ release_version="$(python3 - "$release/release.json" <<'PY'
 import json, re, sys
 release = json.load(open(sys.argv[1], encoding="utf-8"))
 value = release.get("version", "")
-if not re.fullmatch(r"\d+\.\d+\.\d+", value):
+if not re.fullmatch(r"\d+\.\d+\.\d+(?:-rc\.[1-9]\d*)?", value):
     raise SystemExit("Invalid release version")
 if release.get("target") != "linux/arm64" or release.get("database") != "sqlite":
     raise SystemExit("Invalid server release target")
