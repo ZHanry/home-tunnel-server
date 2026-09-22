@@ -202,6 +202,10 @@ export class RemoteSession {
     if (frame.type === TYPES.PAUSE || frame.type === TYPES.CONTROL_RELEASED) { this.releaseInput(); return; }
     if (frame.type === TYPES.SESSION_CLOSE) { this.close(); return; }
     if (!this.pathVerified) throw new RemoteError("RD_PATH_REJECTED");
+    if (frame.type === TYPES.TEXT_ACK) {
+      if (frame.inputEpoch === this.inputEpoch && this.inputEnabled) this.onTextAck?.(frame);
+      return;
+    }
     if (frame.type === TYPES.CAPABILITIES) {
       this.remoteCapabilities = body;
       this.send(TYPES.CAPABILITIES_ACK, { capability_hash: base64url(await sha256(canonicalJson(body))), permissions: [...this.permissions] });

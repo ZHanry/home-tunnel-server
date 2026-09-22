@@ -1,4 +1,5 @@
 import { TYPES, uuidBytes } from "./protocol.js";
+import { RemoteError } from "./http.js";
 
 const usages = new Map([
   ["Enter", 40], ["Escape", 41], ["Backspace", 42], ["Tab", 43], ["Space", 44],
@@ -29,10 +30,11 @@ export function pointerCoordinates(rect, width, height, x, y) {
 
 export class RemoteInput {
   constructor(session, video) {
-    this.session = session; this.video = video; this.keys = new Set(); this.buttons = 0; this.motion = 0;
+    this.session = session; this.video = video; this.keys = new Set(); this.buttons = 0; this.motion = 0; this.pendingText = new Map();
     this.abort = new AbortController(); video.tabIndex = 0;
     session.inputState = () => ({ keys: [...this.keys].map((usage) => ({ usage_page: 7, usage })), buttons: this.buttons });
-    session.clearInputState = () => { this.keys.clear(); this.buttons = 0; };
+    session.clearInputState = () => { this.keys.clear(); this.buttons = 0; this.cancelText(); };
+    session.onTextAck = (frame) => this.acknowledgeText(frame);
     const on = (name, callback, target = video) => target.addEventListener(name, callback, { signal: this.abort.signal, passive: false });
     on("keydown", (event) => this.key(event, true)); on("keyup", (event) => this.key(event, false));
     on("pointermove", (event) => this.pointer(event));
@@ -93,14 +95,41 @@ export class RemoteInput {
     this.session.send(TYPES.WHEEL, payload);
   }
   submitText(text) {
-    if (!this.session.inputEnabled || !this.session.permissions.has("input.text")) throw new Error("RD_INPUT_DENIED");
+    if (!this.session.inputEnabled || !this.session.permissions.has("input.text") || document.hidden) throw new RemoteError("RD_INPUT_DENIED");
+    if (this.pendingText.size) throw new RemoteError("RD_TEXT_PENDING");
     if (typeof text !== "string" || !text.isWellFormed()) throw new Error("RD_INVALID_TEXT");
     const content = new TextEncoder().encode(text);
     if (!content.length || content.length > 4096) throw new Error("RD_TEXT_TOO_LARGE");
     const id = crypto.randomUUID(), payload = new Uint8Array(20 + content.length);
     payload.set(uuidBytes(id)); new DataView(payload.buffer).setUint32(16, content.length); payload.set(content, 20);
-    this.session.send(TYPES.TEXT_COMMIT, payload); return id;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.pendingText.delete(id); reject(new RemoteError("RD_TEXT_UNCONFIRMED")); }, 5000);
+      this.pendingText.set(id, { epoch: this.session.inputEpoch, timer, resolve, reject });
+      try { this.session.send(TYPES.TEXT_COMMIT, payload); }
+      catch (error) { clearTimeout(timer); this.pendingText.delete(id); reject(error); }
+    });
+  }
+  acknowledgeText(frame) {
+    if (frame.type !== TYPES.TEXT_ACK || !(frame.payload instanceof Uint8Array) || frame.payload.length !== 18) return;
+    const hex = Array.from(frame.payload.subarray(0, 16), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    const pending = this.pendingText.get(id);
+    if (!pending || pending.epoch !== frame.inputEpoch || frame.inputEpoch !== this.session.inputEpoch) return;
+    clearTimeout(pending.timer); this.pendingText.delete(id);
+    const status = new DataView(frame.payload.buffer, frame.payload.byteOffset, frame.payload.byteLength).getUint16(16);
+    if (status === 0) pending.resolve(id); else pending.reject(new RemoteError("RD_TEXT_REJECTED"));
+  }
+  async submitTextOnce(text) {
+    const { inputEpoch, inputRequestId } = this.session;
+    try { return await this.submitText(text); }
+    finally {
+      if (this.session.inputEpoch === inputEpoch && this.session.inputRequestId === inputRequestId) this.release();
+    }
+  }
+  cancelText() {
+    for (const pending of this.pendingText.values()) { clearTimeout(pending.timer); pending.reject(new RemoteError("RD_TEXT_UNCONFIRMED")); }
+    this.pendingText.clear();
   }
   release() { this.session.releaseInput(); this.keys.clear(); this.buttons = 0; }
-  close() { this.release(); this.abort.abort(); this.session.inputState = undefined; this.session.clearInputState = undefined; }
+  close() { this.release(); this.abort.abort(); this.session.inputState = undefined; this.session.clearInputState = undefined; this.session.onTextAck = undefined; }
 }

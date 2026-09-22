@@ -18,6 +18,9 @@ const errors = {
   RD_PEER_IDENTITY_MISMATCH: "对端身份验证失败，会话已终止。", RD_MEDIA_FAILED: "画面或媒体连接失败，会话已终止。",
   RD_SESSION_LIMIT: "会话名额已用完，或被控设备正在使用。", RD_PAIRING_EXPIRED: "配对已超时，请在被控设备旁重新发起。",
   RD_CAPTURE_DENIED: "被控设备尚未获得屏幕捕获权限。", RD_INPUT_DENIED: "当前未获得输入权限。",
+  RD_TEXT_PENDING: "正在等待上一条文字的确认。", RD_TEXT_REJECTED: "被控端未完成文字输入，请检查远端后再重试。",
+  RD_TEXT_UNCONFIRMED: "未收到文字输入确认，远端可能已经输入。请检查远端后再重试。",
+  RD_TEXT_CONTROL_TIMEOUT: "文字尚未发送：等待输入授权超时。",
 };
 const message = (error) => errors[error?.code ?? error?.message] ?? error?.message ?? "远程桌面操作失败。";
 
@@ -118,6 +121,10 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
         ["[data-clipboard-send]", ["clipboard.write"]], ["[data-clipboard-read]", ["clipboard.write"]],
         ["[data-clipboard-copy]", ["clipboard.read"]], [".remote-text button", ["input.text"]], [".remote-text textarea", ["input.text"]],
       ]) dialog.querySelector(selector).disabled = !allowed(...permissions);
+      if (current.pendingText !== undefined || current.textSending) {
+        dialog.querySelector(".remote-text button").disabled = true;
+        dialog.querySelector("[data-input]").disabled = true;
+      }
     };
     syncControls();
     active.set(host.id, current); raise(current);
@@ -131,7 +138,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     current.showError = showError;
     const close = () => {
       if (current.disposed) return;
-      current.disposed = true; current.abort.abort(); clearTimeout(current.pollTimer); current.input?.close(); void current.transfers?.close(); current.session?.close();
+      current.disposed = true; current.abort.abort(); clearTimeout(current.pollTimer); clearTimeout(current.textRequestTimer); current.input?.close(); void current.transfers?.close(); current.session?.close();
       if (!current.session && current.snapshot?.session_id) { try { current.signal.send({ v: 1, type: "session.close", session_id: current.snapshot.session_id }); } catch {} }
       active.delete(host.id); switcher.remove(); if (!active.size) windowBar.remove();
       const finish = () => { void releaseController(); };
@@ -198,12 +205,26 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
           syncControls();
           status.textContent = { connecting: "正在检查直连", waiting_for_frame: "身份和直连已验证，等待画面", viewing: "被控端已验证 UDP 直连 · 只看画面", closed: "会话已结束", failed: "会话失败", playback_gesture_required: "请点击播放画面" }[phase] ?? phase;
           if (failure) showError(failure);
-          if (["closed", "failed"].includes(phase)) { void current.transfers?.close(); current.pendingText = undefined; dialog.querySelector("[data-clipboard-incoming]").value = ""; }
+          if (["closed", "failed"].includes(phase)) { void current.transfers?.close(); current.pendingText = undefined; clearTimeout(current.textRequestTimer); dialog.querySelector("[data-clipboard-incoming]").value = ""; }
         },
         onControl: async (frame) => {
           if (frame.type === TYPES.INPUT_SYNC_ACK) {
             if (current.pendingText !== undefined) {
-              try { current.input.submitText(current.pendingText); current.pendingText = undefined; current.input.release(); } catch (failure) { showError(failure); }
+              const text = current.pendingText, input = current.input;
+              current.pendingText = undefined; current.textSending = true; clearTimeout(current.textRequestTimer); syncControls();
+              void (async () => {
+                try {
+                  await input.submitTextOnce(text);
+                  if (!current.disposed && input === current.input) {
+                    const field = dialog.querySelector(".remote-text textarea");
+                    if (field.value === text) field.value = "";
+                    status.textContent = "被控端已确认文字输入";
+                  }
+                } catch (failure) { if (!current.disposed && input === current.input) showError(failure); }
+                finally {
+                  if (input === current.input) { current.textSending = false; syncControls(); }
+                }
+              })();
             } else { video.focus(); status.textContent = "被控端已验证 UDP 直连 · 允许输入"; }
           }
           if (frame.type === TYPES.DISPLAY_LAYOUT) {
@@ -230,7 +251,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       if ((current.retries ?? 0) >= 3 || !previous.lease.valid()) { previous.fail(new RemoteError("RD_NO_DIRECT_PATH")); return; }
       current.reconnecting = true; current.retries = (current.retries ?? 0) + 1;
       current.input?.close(); previous.close({ remote: false }); void current.transfers?.close(); current.session = null;
-      current.pendingText = undefined;
+      current.pendingText = undefined; clearTimeout(current.textRequestTimer);
       status.textContent = "正在恢复直连，输入和麦克风已暂停";
       try {
         current.snapshot = await current.api.request(`/api/v1/rd/sessions/${previous.id}/reconnect`, { method: "POST", idempotencyKey: crypto.randomUUID(), body: { expected_epoch: previous.epoch, reason } });
@@ -241,12 +262,23 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       } finally { current.reconnecting = false; }
     }
     dialog.querySelector("[data-input]").addEventListener("click", safe(() => current.session?.requestInput()));
-    dialog.querySelector("[data-release]").addEventListener("click", () => { current.input?.release(); status.textContent = "只看画面 · 输入已释放"; });
+    dialog.querySelector("[data-release]").addEventListener("click", () => { current.pendingText = undefined; clearTimeout(current.textRequestTimer); current.input?.release(); syncControls(); status.textContent = "只看画面 · 输入已释放"; });
     dialog.querySelector("[data-fullscreen]").addEventListener("click", safe(() => dialog.querySelector(".remote-viewer").requestFullscreen()));
     dialog.querySelector("[data-play]").addEventListener("click", safe(() => current.session?.resumePlayback()));
     dialog.querySelector("[data-audio]").addEventListener("click", safe(async () => { const enabled = !current.session.featureState.has("audio.system"); await current.session.setSystemAudio(enabled); dialog.querySelector("[data-audio]").textContent = enabled ? "关闭系统声音" : "开启系统声音"; }));
     dialog.querySelector("[data-microphone]").addEventListener("click", safe(() => navigator.locks.request(`rd-microphone:${location.origin}`, async () => { if (current.disposed || !current.session?.ready) throw new RemoteError("RD_MEDIA_FAILED"); if (current.session.microphone) { await current.session.stopMicrophone(); await current.session.setFeature("audio.microphone", false); } else { for (const other of active.values()) if (other !== current && other.session?.microphone) { await other.session.stopMicrophone(); await other.session.setFeature("audio.microphone", false); other.dialog.querySelector("[data-microphone]").textContent = "开启麦克风回传"; } await current.session.startMicrophone(); } dialog.querySelector("[data-microphone]").textContent = current.session.microphone ? "关闭麦克风回传" : "开启麦克风回传"; })));
-    dialog.querySelector(".remote-text").addEventListener("submit", safe(() => { current.pendingText = dialog.querySelector("textarea").value; current.session.requestInput(); }));
+    dialog.querySelector(".remote-text").addEventListener("submit", safe(() => {
+      if (current.pendingText !== undefined || current.textSending) throw new RemoteError("RD_TEXT_PENDING");
+      current.pendingText = dialog.querySelector(".remote-text textarea").value;
+      try {
+        current.session.requestInput(); syncControls();
+        current.textRequestTimer = setTimeout(() => {
+          if (current.disposed || current.pendingText === undefined) return;
+          current.pendingText = undefined; current.session.releaseInput(); syncControls(); showError(new RemoteError("RD_TEXT_CONTROL_TIMEOUT"));
+        }, 5000);
+      }
+      catch (failure) { current.pendingText = undefined; throw failure; }
+    }));
     dialog.querySelector("[data-display]").addEventListener("change", safe((event) => current.session.selectDisplay(event.target.value)));
     const setFeatures = async (permissions, enabled) => {
       const supported = permissions.filter((permission) => current.session?.permissions.has(permission)), changed = [];

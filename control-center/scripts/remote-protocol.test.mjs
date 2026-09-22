@@ -32,7 +32,7 @@ import {
   selectedUdpPair,
   RemoteSession,
 } from "../public/modules/remote/session.js";
-import { keyUsage, pointerCoordinates } from "../public/modules/remote/input.js";
+import { keyUsage, pointerCoordinates, RemoteInput } from "../public/modules/remote/input.js";
 import { boundedResponse, RemoteApi } from "../public/modules/remote/http.js";
 import { validateJsonBody } from "../public/modules/remote/payload.generated.js";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -43,6 +43,129 @@ const vectors = JSON.parse(
   await readFile(new URL("../../contracts/remote-test-vectors.json", import.meta.url), "utf8"),
 );
 const hex = (value) => Buffer.from(value).toString("hex");
+
+function textHarness(t) {
+  const oldDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
+  const visibility = { hidden: false };
+  Object.defineProperty(globalThis, "document", { configurable: true, value: visibility });
+  const session = Object.create(RemoteSession.prototype),
+    frames = [];
+  Object.assign(session, {
+    lease: { valid: () => true },
+    epoch: 1,
+    received: new Map(),
+    peerVerified: true,
+    pathVerified: true,
+    ready: true,
+    closed: false,
+    inputRequested: true,
+    inputRequestId: crypto.randomUUID(),
+    inputEnabled: true,
+    inputEpoch: 2,
+    permissions: new Set(["view", "input.text"]),
+    send: (type, payload) => frames.push({ type, payload }),
+  });
+  const input = new RemoteInput(session, new EventTarget());
+  let sequence = 0;
+  const ack = (status = 0, { inputEpoch = session.inputEpoch, matching = true } = {}) => {
+    const payload = new Uint8Array(18);
+    payload.set(frames.find((frame) => frame.type === TYPES.TEXT_COMMIT).payload.subarray(0, 16));
+    if (!matching) payload[0] ^= 0xff;
+    new DataView(payload.buffer).setUint16(16, status);
+    return session.onFrame(
+      { type: TYPES.TEXT_ACK, payload, epoch: 1, inputEpoch, sequence: ++sequence },
+      "control",
+    );
+  };
+  t.after(() => {
+    input.close();
+    if (oldDocument) Object.defineProperty(globalThis, "document", oldDocument);
+    else delete globalThis.document;
+  });
+  return { input, session, frames, ack, visibility };
+}
+
+test("one-shot Chinese input waits for its own current-epoch ACK before releasing control", async (t) => {
+  const { input, session, frames, ack } = textHarness(t);
+  let finished = false;
+  const operation = input.submitTextOnce("中文输入🙂").then((id) => {
+    finished = true;
+    return id;
+  });
+  assert.equal(new TextDecoder().decode(frames[0].payload.subarray(20)), "中文输入🙂");
+  assert.throws(() => input.submitText("second"), /RD_TEXT_PENDING/);
+  await ack(0, { matching: false });
+  await ack(0, { inputEpoch: 1 });
+  assert.equal(finished, false);
+  assert.equal(session.inputEnabled, true);
+  assert.deepEqual(
+    frames.map((frame) => frame.type),
+    [TYPES.TEXT_COMMIT],
+  );
+  await ack();
+  assert.match(await operation, /^[0-9a-f-]{36}$/);
+  assert.equal(session.inputEnabled, false);
+  assert.deepEqual(
+    frames.map((frame) => frame.type),
+    [TYPES.TEXT_COMMIT, TYPES.RELEASE_ALL],
+  );
+  assert.equal(input.pendingText.size, 0);
+});
+
+test("text rejection and ACK timeout report failure without retrying potentially inserted text", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const { input, session, frames, ack } = textHarness(t);
+  const rejected = assert.rejects(input.submitTextOnce("拒绝"), /RD_TEXT_REJECTED/);
+  await ack(1);
+  await rejected;
+  assert.equal(input.pendingText.size, 0);
+  session.inputRequested = true;
+  session.inputEnabled = true;
+  session.inputRequestId = crypto.randomUUID();
+  session.inputEpoch++;
+  const timeout = assert.rejects(input.submitTextOnce("未确认"), /RD_TEXT_UNCONFIRMED/);
+  t.mock.timers.tick(4999);
+  assert.equal(session.inputEnabled, true);
+  t.mock.timers.tick(1);
+  await timeout;
+  assert.equal(session.inputEnabled, false);
+  assert.equal(input.pendingText.size, 0);
+  assert.equal(frames.filter((frame) => frame.type === TYPES.TEXT_COMMIT).length, 2);
+  assert.equal(frames.filter((frame) => frame.type === TYPES.RELEASE_ALL).length, 2);
+});
+
+test("revoking a text request rejects it and delayed cleanup cannot release a newer grant", async (t) => {
+  const { input, session, frames, ack } = textHarness(t);
+  const revoked = assert.rejects(input.submitTextOnce("取消"), /RD_TEXT_UNCONFIRMED/);
+  session.releaseInput();
+  session.inputRequested = true;
+  session.inputEnabled = true;
+  session.inputRequestId = crypto.randomUUID();
+  session.inputEpoch++;
+  await revoked;
+  await ack(0, { inputEpoch: 2 });
+  assert.equal(session.inputEnabled, true);
+  assert.equal(frames.filter((frame) => frame.type === TYPES.RELEASE_ALL).length, 1);
+});
+
+test("text ACKs cannot pass peer/path authorization and invalid text never leaves the controller", async (t) => {
+  const { input, session, frames, ack, visibility } = textHarness(t);
+  for (const text of ["", "\ud800", "中".repeat(1366)]) assert.throws(() => input.submitText(text));
+  visibility.hidden = true;
+  assert.throws(() => input.submitText("background"), /RD_INPUT_DENIED/);
+  visibility.hidden = false;
+  assert.equal(frames.length, 0);
+  const operation = input.submitText("pending");
+  session.peerVerified = false;
+  await assert.rejects(ack(), /RD_PEER_IDENTITY_MISMATCH/);
+  session.peerVerified = true;
+  session.pathVerified = false;
+  await assert.rejects(ack(), /RD_PATH_REJECTED/);
+  assert.equal(input.pendingText.size, 1);
+  session.pathVerified = true;
+  await ack();
+  await operation;
+});
 
 test("all JSON bodies have strict schemas; generated validator agrees with JSON Schema", () => {
   const ajv = new Ajv2020({ strict: true, allErrors: true });
