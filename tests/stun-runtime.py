@@ -23,7 +23,10 @@ spec.loader.exec_module(probe)
 
 
 def run(*args, **kwargs):
-    return subprocess.run(args, check=True, text=True, capture_output=True, timeout=60, **kwargs).stdout.strip()
+    result = subprocess.run(args, text=True, capture_output=True, timeout=60, **kwargs)
+    if result.returncode:
+        raise RuntimeError(f'{args[0]} exited {result.returncode}: {(result.stdout + result.stderr)[-3000:]}')
+    return result.stdout.strip()
 
 
 def namespace_checks(firewall):
@@ -81,7 +84,7 @@ def main(output):
     try:
         # --network none ensures that the probe cannot contact another host.
         run('docker', 'run', '-d', '--name', name, '--network', 'none', '--read-only',
-            '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true', '--memory', '64m',
+            '--cap-drop', 'ALL', '--cap-add', 'NET_BIND_SERVICE', '--security-opt', 'no-new-privileges:true', '--memory', '64m',
             '--cpus', '0.20', '--pids-limit', '32', '--tmpfs', '/tmp:size=8m,noexec,nosuid,nodev',
             '-v', str(ROOT / 'deploy/stun/turnserver.conf') + ':/etc/coturn/turnserver.conf:ro',
             image, '-c', '/etc/coturn/turnserver.conf')
@@ -89,7 +92,9 @@ def main(output):
         for _ in range(30):
             state = json.loads(run('docker', 'inspect', '--format', '{{json .State}}', name))
             if not state['Running']:
-                raise RuntimeError('Coturn stopped: ' + run('docker', 'logs', name)[-3000:])
+                logs = subprocess.run(['docker', 'logs', name], capture_output=True, text=True, timeout=10)
+                report['container_exit'] = {key: state[key] for key in ('ExitCode', 'OOMKilled', 'Error')}
+                raise RuntimeError('Coturn stopped: ' + (logs.stdout + logs.stderr)[-3000:])
             health = subprocess.run(['docker', 'exec', name, 'turnutils_stunclient', '-p', '3478', '127.0.0.1'],
                                     capture_output=True, timeout=6)
             if health.returncode == 0:
