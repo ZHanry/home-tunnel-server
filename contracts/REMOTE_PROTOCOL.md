@@ -113,6 +113,16 @@ one-session grant's `one_session_request_id` must equal that signed request ID.
 The negative vectors are correctly signed but fail their binding or validity
 checks; signature verification alone must never make them acceptable.
 
+## Text clipboard platform limits
+
+Clipboard content is well-formed UTF-8 plain text, limited to 65536 encoded
+bytes. Embedded U+0000 (NUL) is not supported: native text formats such as
+Windows `CF_UNICODETEXT` use NUL termination. Senders must reject such content
+locally before `CLIPBOARD_OFFER`, report an actionable text error, and preserve
+the viewing session. Do not silently truncate or strip characters. Receivers
+must validate the complete decoded text before changing the OS clipboard;
+the UTF-8 and NUL restrictions do not apply to binary file transfers.
+
 <!-- BEGIN GENERATED RD PAYLOAD REFERENCE -->
 ## Machine-readable payload reference
 

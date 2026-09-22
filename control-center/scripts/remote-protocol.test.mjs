@@ -1067,6 +1067,22 @@ test("clipboard is opt-in, UTF8 bounded, verified, deduplicated and cleared on r
   await assert.rejects(transfers.sendClipboard("blocked"));
 });
 
+test("clipboard rejects native-unrepresentable text before sending and preserves viewing", async (t) => {
+  const { transfers, session, frames } = transferHarness();
+  t.after(() => transfers.close());
+  for (const value of ["\u0000", "before\u0000after", "\ud800", "\udc00"]) {
+    await assert.rejects(transfers.sendClipboard(value), /RD_CLIPBOARD_TEXT_INVALID/);
+    assert.equal(frames.length, 0);
+    assert.equal(transfers.clipboardOutgoing, undefined);
+    assert.equal(session.ready, true);
+    assert.equal(transfers.closed, false);
+  }
+  await transfers.sendClipboard("完整文字 😀\nnext line");
+  assert.equal(frames.length, 1);
+  assert.equal(frames[0].type, TYPES.CLIPBOARD_OFFER);
+  assert.equal(session.ready, true);
+});
+
 function featureHarness(t) {
   const frames = [],
     received = [],

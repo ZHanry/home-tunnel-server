@@ -21,6 +21,7 @@ const errors = {
   RD_TEXT_PENDING: "正在等待上一条文字的确认。", RD_TEXT_REJECTED: "被控端未完成文字输入，请检查远端后再重试。",
   RD_TEXT_UNCONFIRMED: "未收到文字输入确认，远端可能已经输入。请检查远端后再重试。",
   RD_TEXT_CONTROL_TIMEOUT: "文字尚未发送：等待输入授权超时。",
+  RD_CLIPBOARD_TEXT_INVALID: "剪贴板文本含有空字符（NUL）或不完整的 Unicode 字符，无法写入远端系统剪贴板。请删除这些字符后重试。",
 };
 const message = (error) => errors[error?.code ?? error?.message] ?? error?.message ?? "远程桌面操作失败。";
 

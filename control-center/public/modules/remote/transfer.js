@@ -91,7 +91,10 @@ export class RemoteTransfers {
     finally { item.running = false; }
   }
   async sendClipboard(text) {
-    if (!this.allowed("clipboard.write") || typeof text !== "string" || !text.isWellFormed()) throw new Error("RD_SCOPE_DENIED");
+    if (!this.allowed("clipboard.write")) throw new Error("RD_SCOPE_DENIED");
+    // Native text clipboards (including Windows CF_UNICODETEXT) terminate at
+    // NUL. Reject before any offer so local text cannot tear down the session.
+    if (typeof text !== "string" || !text.isWellFormed() || text.includes("\u0000")) throw new Error("RD_CLIPBOARD_TEXT_INVALID");
     const content = textEncoder.encode(text);
     size(content.length, RD.limits.clipboard_bytes);
     const id = crypto.randomUUID(), digest = hex(await sha256(content));
