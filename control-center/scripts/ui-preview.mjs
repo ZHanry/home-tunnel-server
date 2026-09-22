@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import express from "express";
-import { rateLimit } from "express-rate-limit";
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 import { WebSocketServer } from "ws";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -136,9 +136,20 @@ const auditEvents = Array.from({ length: 67 }, (_, index) => ({
 }));
 
 const app = express();
-app.use(
-  rateLimit({ windowMs: 60_000, limit: 1200, standardHeaders: "draft-8", legacyHeaders: false }),
-);
+const previewLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 1200,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+});
+app.use((request, _response, next) => {
+  // Reset the loopback-only preview fixture's client budget along with its test data.
+  // This must run before the limiter so an exhausted test can still reset its fixture.
+  if (request.method === "POST" && request.path === "/__preview/reset")
+    previewLimiter.resetKey(ipKeyGenerator(request.ip ?? "unknown"));
+  next();
+});
+app.use(previewLimiter);
 app.disable("x-powered-by");
 app.use((request, response, next) => {
   if (["admin", "user"].includes(String(request.query.role)))

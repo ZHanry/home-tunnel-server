@@ -50,13 +50,15 @@ const parser: RequestHandler = (request, response, next) => {
       return;
     }
     try {
-      if (Buffer.isBuffer(request.body)) {
-        (request as Request).rdBodyBytes = request.body.length;
-        const parsed = strictJson(new TextDecoder("utf-8", { fatal: true }).decode(request.body));
+      const rawBody: unknown = request.body;
+      if (Buffer.isBuffer(rawBody)) {
+        const bytes = Uint8Array.from(rawBody);
+        (request as Request).rdBodyBytes = bytes.byteLength;
+        const parsed = strictJson(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
           throw new Error("JSON object required");
         request.body = parsed;
-      }
+      } else if (rawBody !== undefined) throw new Error("Raw JSON body required");
       next();
     } catch {
       next(new HttpError(400, "RD_JSON_INVALID", "JSON 编码、字段或数值无效"));

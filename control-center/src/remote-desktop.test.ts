@@ -288,6 +288,22 @@ test("RD parser runs before global parser; copied tokens and replayed DPoP do no
   });
   assert.equal(response.status, 400);
   await response.text();
+  for (const body of [
+    '["one","two"]',
+    '"a string"',
+    "null",
+    '{"length":123,"0":123}',
+    '{"id":"汉字","id":"重复"}',
+  ]) {
+    response = await fetch(origin + "/api/v1/rd/sessions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+    });
+    assert.equal(response.status, body === '{"length":123,"0":123}' ? 401 : 400);
+    const result = await response.json();
+    if (response.status === 400) assert.equal(result.error_code, "RD_JSON_INVALID");
+  }
   response = await fetch(origin + "/api/v1/rd/unknown");
   assert.equal(response.status, 404);
   assert.equal((await response.json()).error_code, "RD_NOT_FOUND");
