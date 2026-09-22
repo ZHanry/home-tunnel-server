@@ -245,6 +245,13 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
           dialog.querySelector("[data-diagnostics]").textContent = JSON.stringify({ connectionEpoch: session.epoch, hostVerifiedUDP: session.pathVerified, browserVerifiedUDP: session.selectedPair?.verified ?? false, activeDisplay: session.layout?.active_display, capabilities: session.remoteCapabilities }, null, 2);
         },
         onReconnectNeeded: (reason, displayId) => reconnect(reason, displayId).catch(showError),
+        onFeatureRevoked: (permission) => {
+          void current.transfers?.revoke(permission);
+          if (permission.startsWith("clipboard.")) {
+            dialog.querySelector("[data-clipboard-incoming]").value = "";
+            dialog.querySelector("[data-clipboard-text]").value = "";
+          }
+        },
       });
       current.input = new RemoteInput(current.session, video);
       current.transfers = new RemoteTransfers(current.session, { onOffer: offerFile, onProgress: fileProgress, onClipboard: (text) => { dialog.querySelector("[data-clipboard-incoming]").value = text; }, canUseClipboard: () => !document.hidden && document.hasFocus() && dialog.contains(document.activeElement) });
@@ -291,7 +298,8 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       const supported = permissions.filter((permission) => current.session?.permissions.has(permission)), changed = [];
       if (!supported.length) throw new RemoteError("RD_SCOPE_DENIED");
       try {
-        for (const permission of supported) { await current.session.setFeature(permission, enabled); changed.push(permission); if (!enabled) await current.transfers.revoke(permission); }
+        if (!enabled) { await Promise.all(supported.map((permission) => current.session.setFeature(permission, false))); return; }
+        for (const permission of supported) { await current.session.setFeature(permission, true); changed.push(permission); }
       } catch (failure) {
         if (enabled) for (const permission of changed) { current.session.featureState.delete(permission); await current.transfers.revoke(permission); await current.session.setFeature(permission, false).catch(() => {}); }
         throw failure;
@@ -301,7 +309,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       if (current.disposed || !current.session?.ready) throw new RemoteError("RD_MEDIA_FAILED");
       const panel = dialog.querySelector("[data-clipboard-panel]"), enabled = panel.hidden;
       if (enabled) for (const other of active.values()) if (other !== current && other.session) {
-        for (const permission of ["clipboard.read", "clipboard.write"]) if (other.session.featureState.has(permission)) { await other.session.setFeature(permission, false); await other.transfers.revoke(permission); }
+        await Promise.all(["clipboard.read", "clipboard.write"].filter((permission) => other.session.featureState.has(permission) || other.session.featureRequests.has(permission)).map((permission) => other.session.setFeature(permission, false)));
         other.dialog.querySelector("[data-clipboard-panel]").hidden = true; other.dialog.querySelector("[data-clipboard]").textContent = "开启文本剪贴板";
       }
       await setFeatures(["clipboard.read", "clipboard.write"], enabled); panel.hidden = !enabled;
@@ -322,9 +330,8 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     function pauseClipboard() {
       current.transfers?.clearClipboard(); dialog.querySelector("[data-clipboard-incoming]").value = ""; dialog.querySelector("[data-clipboard-text]").value = "";
       dialog.querySelector("[data-clipboard-panel]").hidden = true; dialog.querySelector("[data-clipboard]").textContent = "开启文本剪贴板";
-      for (const permission of ["clipboard.read", "clipboard.write"]) if (current.session?.featureState.has(permission)) {
-        current.session.featureState.delete(permission);
-        if (!current.session.featureRequests.has(permission)) void current.session.setFeature(permission, false).catch(() => {});
+      for (const permission of ["clipboard.read", "clipboard.write"]) if (current.session?.featureState.has(permission) || current.session?.featureRequests.get(permission)?.enabled) {
+        void current.session.setFeature(permission, false).catch(() => {});
       }
     }
     dialog.addEventListener("focusout", (event) => { if (!dialog.contains(event.relatedTarget)) pauseClipboard(); });

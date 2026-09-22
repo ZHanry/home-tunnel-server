@@ -15,7 +15,7 @@ export class RemoteTransfers {
   constructor(session, { onOffer, onProgress, onClipboard, canUseClipboard = () => !document.hidden, timeoutMs = 30000 } = {}) {
     this.session = session; this.onOffer = onOffer; this.onProgress = onProgress; this.onClipboard = onClipboard;
     this.outgoing = new Map(); this.incoming = new Map(); this.clipboard = null; this.seen = new Set(); this.closed = false;
-    this.canUseClipboard = canUseClipboard; this.timeoutMs = timeoutMs; this.waiters = new Set();
+    this.canUseClipboard = canUseClipboard; this.timeoutMs = timeoutMs; this.waiters = new Set(); this.clipboardWaiters = new Set();
   }
   allowed(permission) { return !this.closed && this.session.ready && this.session.lease.valid() && this.session.featureState.has(permission) && (!permission.startsWith("clipboard.") || this.canUseClipboard()); }
   expire(id, item, collection) {
@@ -31,10 +31,11 @@ export class RemoteTransfers {
     if (channel.bufferedAmount <= 65536) return;
     channel.bufferedAmountLowThreshold = 32768;
     await new Promise((resolve, reject) => {
-      const cleanup = () => { clearTimeout(timer); this.waiters.delete(closed); channel.removeEventListener("bufferedamountlow", low); channel.removeEventListener("close", closed); };
+      const cleanup = () => { clearTimeout(timer); this.waiters.delete(closed); this.clipboardWaiters.delete(closed); channel.removeEventListener("bufferedamountlow", low); channel.removeEventListener("close", closed); };
       const low = () => { cleanup(); resolve(); }, closed = () => { cleanup(); reject(new Error("RD_MEDIA_FAILED")); };
       const timer = setTimeout(() => { cleanup(); reject(new Error("RD_MEDIA_BACKPRESSURE")); }, 10000);
       this.waiters.add(closed);
+      if (channelName === "clipboard") this.clipboardWaiters.add(closed);
       channel.addEventListener("bufferedamountlow", low, { once: true }); channel.addEventListener("close", closed, { once: true });
       if (channel.readyState !== "open" || this.closed) closed(); else if (channel.bufferedAmount <= 65536) low();
     });
@@ -103,6 +104,11 @@ export class RemoteTransfers {
   }
   async onFrame(frame) {
     const body = frame.payload;
+    if ([TYPES.CLIPBOARD_OFFER, TYPES.CLIPBOARD_CHUNK, TYPES.CLIPBOARD_ACCEPT, TYPES.CLIPBOARD_ACK].includes(frame.type)) {
+      const permission = [TYPES.CLIPBOARD_OFFER, TYPES.CLIPBOARD_CHUNK].includes(frame.type) ? "clipboard.read" : "clipboard.write";
+      const approved = await this.session.waitForFeature?.(permission);
+      if (approved === false || !this.allowed(permission)) { this.clearClipboard(); return; }
+    }
     if ([TYPES.CLIPBOARD_OFFER, TYPES.CLIPBOARD_ACCEPT, TYPES.CLIPBOARD_CHUNK, TYPES.CLIPBOARD_ACK].includes(frame.type) && !this.canUseClipboard()) { this.clearClipboard(); return; }
     if (frame.type === TYPES.FILE_OFFER) {
       if (!this.allowed("files.receive")) throw new Error("RD_SCOPE_DENIED");
@@ -162,8 +168,10 @@ export class RemoteTransfers {
       if (!this.allowed("clipboard.write") || !item || item.id !== body.id || item.accepted) throw new Error("RD_STATE_CONFLICT");
       item.accepted = true;
       for (let offset = 0; offset < item.content.length; offset += 8192) {
-        await this.room("clipboard"); const chunk = item.content.subarray(offset, offset + 8192), payload = new Uint8Array(chunk.length + 24);
-        if (this.clipboardOutgoing !== item || !this.allowed("clipboard.write")) throw new Error("RD_SCOPE_DENIED");
+        try { await this.room("clipboard"); }
+        catch (error) { if (this.clipboardOutgoing !== item || !this.allowed("clipboard.write")) return; throw error; }
+        if (this.clipboardOutgoing !== item || !this.allowed("clipboard.write")) return;
+        const chunk = item.content.subarray(offset, offset + 8192), payload = new Uint8Array(chunk.length + 24);
         payload.set(uuidBytes(item.id)); new DataView(payload.buffer).setBigUint64(16, BigInt(offset)); payload.set(chunk, 24); this.session.send(TYPES.CLIPBOARD_CHUNK, payload);
       }
       return;
@@ -182,8 +190,9 @@ export class RemoteTransfers {
   }
   async finishClipboard() {
     const item = this.clipboard;
-    if (hex(await sha256(item.content)) !== item.sha256) throw new Error("RD_CLIPBOARD_INVALID");
-    if (this.clipboard !== item || !this.allowed("clipboard.read")) throw new Error("RD_SCOPE_DENIED");
+    const digest = hex(await sha256(item.content));
+    if (this.clipboard !== item || !this.allowed("clipboard.read")) return;
+    if (digest !== item.sha256) throw new Error("RD_CLIPBOARD_INVALID");
     const text = textDecoder.decode(item.content); clearTimeout(item.timer); item.content.fill(0); this.clipboard = null; this.remember(item.id);
     const duplicate = this.lastClipboardDigest === item.sha256; this.lastClipboardDigest = item.sha256;
     if (!duplicate) await this.onClipboard?.(text);
@@ -207,6 +216,7 @@ export class RemoteTransfers {
   clearClipboard() {
     for (const item of [this.clipboard, this.clipboardOutgoing]) { clearTimeout(item?.timer); item?.content.fill(0); }
     this.clipboard = null; this.clipboardOutgoing = null;
+    for (const cancel of [...this.clipboardWaiters]) cancel();
   }
   async revoke(permission) {
     if (permission.startsWith("clipboard.")) this.clearClipboard();

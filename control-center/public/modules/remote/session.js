@@ -38,10 +38,11 @@ export function selectedUdpPair(stats) {
 }
 
 export class RemoteSession {
-  constructor({ api, signal, session, hostThumbprint, video, onState, onControl, onReconnectNeeded }) {
+  constructor({ api, signal, session, hostThumbprint, video, onState, onControl, onReconnectNeeded, onFeatureRevoked }) {
     this.api = api; this.signal = signal; this.snapshot = session; this.hostThumbprint = hostThumbprint;
     this.video = video; this.onState = onState; this.onControl = onControl;
     this.onReconnectNeeded = onReconnectNeeded;
+    this.onFeatureRevoked = onFeatureRevoked;
     this.epoch = session.connection_epoch; this.id = session.session_id;
     this.channels = new Map(); this.sequences = new Map(); this.received = new Map(); this.peerReplay = new PeerReplayWindow(); this.frameQueues = new Map();
     this.lease = new LeaseDeadline(); this.closed = false; this.ready = false; this.inputEpoch = 0; this.heartbeatVersion = 0;
@@ -229,10 +230,13 @@ export class RemoteSession {
     } else if (frame.type === TYPES.FEATURE_STATE) {
       const pending = this.featureRequests.get(body.permission);
       if (typeof body.enabled !== "boolean" || !this.permissions.has(body.permission) || (body.enabled === true && (!pending && !this.featureState.has(body.permission)))) throw new RemoteError("RD_SCOPE_DENIED");
-      if (body.enabled === true) this.featureState.add(body.permission); else this.featureState.delete(body.permission);
+      // A late enable response must never undo local cancellation or a disable.
+      if (body.enabled === true && (!pending || pending.enabled && !pending.cancelled)) this.featureState.add(body.permission);
+      else this.revokeFeature(body.permission);
       if (pending) {
         clearTimeout(pending.timer); this.featureRequests.delete(body.permission);
-        if (pending.enabled === body.enabled) pending.resolve(); else pending.reject(new RemoteError(body.error_code ?? "RD_FEATURE_DENIED"));
+        if (!pending.cancelled && pending.enabled === body.enabled) pending.resolve(); else pending.reject(new RemoteError(body.error_code ?? "RD_FEATURE_DENIED"));
+        pending.drain();
       }
       if (body.enabled !== true && body.permission === "audio.microphone") void this.stopMicrophone({ notify: false });
       if (body.enabled !== true && body.permission === "audio.system" && this.audioTrack) this.audioTrack.enabled = false;
@@ -283,16 +287,47 @@ export class RemoteSession {
     if (this.closed || !this.pathVerified || !this.lease.valid()) return;
     await this.api.request(`/api/v1/rd/sessions/${this.id}/report`, { method: "POST", body: { phase: "ready", connection_epoch: this.epoch, expected_version: snapshot.state_version, path_verified: true } });
   }
+  revokeFeature(permission) {
+    this.featureState.delete(permission);
+    this.onFeatureRevoked?.(permission);
+  }
   setFeature(permission, enabled) {
-    if (!this.ready || !this.permissions.has(permission) || this.featureRequests.has(permission)) return Promise.reject(new RemoteError("RD_SCOPE_DENIED"));
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.featureRequests.delete(permission); reject(new RemoteError("RD_FEATURE_TIMEOUT")); }, 10000);
-      this.featureRequests.set(permission, { enabled, resolve, reject, timer });
-      try { this.send(TYPES.FEATURE_REQUEST, { permission, enabled }); }
-      catch (error) { clearTimeout(timer); this.featureRequests.delete(permission); reject(error); }
-    });
+    if (!enabled) this.revokeFeature(permission);
+    if (this.closed || !this.ready || !this.permissions.has(permission) || !this.lease.valid() || (enabled && this.featureFailures?.has(permission))) return Promise.reject(new RemoteError("RD_SCOPE_DENIED"));
+    const previous = this.featureRequests.get(permission);
+    if (previous) {
+      if (enabled) return Promise.reject(new RemoteError("RD_SCOPE_DENIED"));
+      if (!previous.enabled) return previous.promise;
+      previous.cancelled = true; previous.reject(new RemoteError("RD_FEATURE_CANCELLED"));
+      // The protocol has no request IDs. Drain the old control-channel response
+      // before sending the disable, while local permission is already revoked.
+      return previous.disablePromise ??= previous.drained.then(() => this.setFeature(permission, false));
+    }
+    let resolve, reject, drain;
+    const promise = new Promise((success, failure) => { resolve = success; reject = failure; });
+    const drained = new Promise((done) => { drain = done; });
+    const timer = setTimeout(() => {
+      this.featureRequests.delete(permission); this.revokeFeature(permission);
+      (this.featureFailures ??= new Set()).add(permission);
+      reject(new RemoteError("RD_FEATURE_TIMEOUT")); drain();
+    }, 10000);
+    this.featureRequests.set(permission, { enabled, resolve, reject, drain, drained, timer, promise });
+    try { this.send(TYPES.FEATURE_REQUEST, { permission, enabled }); }
+    catch (error) { clearTimeout(timer); this.featureRequests.delete(permission); this.revokeFeature(permission); reject(error); drain(); }
+    return promise;
+  }
+  async waitForFeature(permission) {
+    // A reliable data channel can deliver an offer before the control channel
+    // delivers the corresponding FEATURE_STATE. Its bounded queue may wait for
+    // that already-requested approval without blocking the control channel.
+    const pending = this.featureRequests.get(permission);
+    if (!this.featureState.has(permission) && pending?.enabled && !pending.cancelled) {
+      try { await pending.promise; } catch { return false; }
+    }
+    return !this.closed && this.ready && this.lease.valid() && this.featureState.has(permission);
   }
   async setSystemAudio(enabled) {
+    if (!enabled && this.audioTrack) { this.audioTrack.enabled = false; this.video.muted = true; }
     await this.setFeature("audio.system", enabled);
     if (!this.audioTrack) throw new RemoteError("RD_MEDIA_FAILED");
     this.audioTrack.enabled = enabled; this.video.muted = !enabled;
@@ -357,7 +392,8 @@ export class RemoteSession {
     this.releaseInput(); this.closed = true; this.ready = false; this.abort.abort();
     clearInterval(this.timer); clearInterval(this.pathTimer); clearTimeout(this.iceTimer); clearTimeout(this.authTimer); clearTimeout(this.frameTimer);
     if (this.frameCallback !== undefined) this.video.cancelVideoFrameCallback?.(this.frameCallback);
-    for (const pending of this.featureRequests.values()) { clearTimeout(pending.timer); pending.reject(new RemoteError("RD_SESSION_REVOKED")); }
+    for (const permission of this.featureState) this.revokeFeature(permission);
+    for (const pending of this.featureRequests.values()) { clearTimeout(pending.timer); pending.reject(new RemoteError("RD_SESSION_REVOKED")); pending.drain(); }
     this.featureRequests.clear();
     void this.stopMicrophone(); this.channels.forEach((channel) => channel.close()); this.channels.clear(); this.pc?.close();
     this.video.pause(); this.video.srcObject = null;

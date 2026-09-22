@@ -1067,6 +1067,279 @@ test("clipboard is opt-in, UTF8 bounded, verified, deduplicated and cleared on r
   await assert.rejects(transfers.sendClipboard("blocked"));
 });
 
+function featureHarness(t) {
+  const frames = [],
+    received = [],
+    failures = [],
+    sequences = new Map();
+  const session = new RemoteSession({
+    api: { request: async () => {} },
+    signal: { send() {} },
+    session: {
+      session_id: crypto.randomUUID(),
+      connection_epoch: 1,
+      permissions: ["view", "clipboard.read", "clipboard.write"],
+    },
+    video: { pause() {}, srcObject: null },
+    onState: (phase, error) => {
+      if (phase === "failed") failures.push(error);
+    },
+  });
+  session.ready = session.peerVerified = session.pathVerified = true;
+  session.lease = { valid: () => true };
+  session.send = (type, payload) => frames.push({ type, payload });
+  const channel = new EventTarget();
+  channel.readyState = "open";
+  channel.bufferedAmount = 0;
+  channel.close = () => {};
+  session.channels.set("clipboard", channel);
+  const transfers = new RemoteTransfers(session, {
+    canUseClipboard: () => true,
+    onClipboard: (text) => received.push(text),
+  });
+  session.onControl = (frame) => transfers.onFrame(frame);
+  session.onFeatureRevoked = (permission) => {
+    void transfers.revoke(permission);
+  };
+  const deliver = (type, payload, name = "control") => {
+    const sequence = (sequences.get(name) ?? 0) + 1;
+    sequences.set(name, sequence);
+    session.enqueueFrame(encodeFrame(type, payload, { epoch: 1, sequence }), name);
+    return session.frameQueues.get(name);
+  };
+  const offer = (content = "中文😀") => {
+    const data = Buffer.from(content),
+      id = crypto.randomUUID();
+    return {
+      id,
+      data,
+      body: {
+        id,
+        mime: "text/plain;charset=utf-8",
+        size: data.length,
+        sha256: createHash("sha256").update(data).digest("hex"),
+      },
+    };
+  };
+  t.after(async () => {
+    session.close({ remote: false });
+    await transfers.close();
+    await Promise.all(session.frameQueues.values());
+  });
+  return { session, transfers, frames, received, failures, deliver, offer };
+}
+
+test("clipboard offers await requested approval without blocking the independent control queue", async (t) => {
+  const { session, transfers, frames, received, failures, deliver, offer } = featureHarness(t);
+  const enabled = session.setFeature("clipboard.read", true),
+    incoming = offer();
+  const pendingOffer = deliver(TYPES.CLIPBOARD_OFFER, incoming.body, "clipboard");
+  const pendingChunk = deliver(
+    TYPES.CLIPBOARD_CHUNK,
+    chunk(incoming.id, 0, incoming.data),
+    "clipboard",
+  );
+  await immediate();
+  assert.equal(transfers.clipboard, null);
+  assert.equal(frames.filter((frame) => frame.type === TYPES.CLIPBOARD_ACCEPT).length, 0);
+  assert.equal(session.pendingCount, 2);
+  await deliver(TYPES.FEATURE_STATE, { permission: "clipboard.read", enabled: true });
+  await Promise.all([enabled, pendingOffer, pendingChunk]);
+  assert.deepEqual(received, [incoming.data.toString()]);
+  assert.deepEqual(
+    frames.filter((frame) => frame.type !== TYPES.FEATURE_REQUEST).map((frame) => frame.type),
+    [TYPES.CLIPBOARD_ACCEPT, TYPES.CLIPBOARD_ACK],
+  );
+  assert.equal(session.pendingCount, 0);
+  assert.equal(session.pendingBytes, 0);
+  assert.deepEqual(failures, []);
+});
+
+test("denied clipboard enable drains queued data without granting permission or ending viewing", async (t) => {
+  const { session, transfers, frames, received, failures, deliver, offer } = featureHarness(t);
+  const enabled = assert.rejects(
+      session.setFeature("clipboard.read", true),
+      /RD_FEATURE_UNAVAILABLE/,
+    ),
+    incoming = offer();
+  const queued = deliver(TYPES.CLIPBOARD_OFFER, incoming.body, "clipboard");
+  await immediate();
+  await deliver(TYPES.FEATURE_STATE, {
+    permission: "clipboard.read",
+    enabled: false,
+    error_code: "RD_FEATURE_UNAVAILABLE",
+  });
+  await Promise.all([enabled, queued]);
+  await deliver(TYPES.CLIPBOARD_CHUNK, chunk(incoming.id, 0, incoming.data), "clipboard");
+  assert.equal(session.featureState.has("clipboard.read"), false);
+  assert.equal(transfers.clipboard, null);
+  assert.equal(session.pendingBytes, 0);
+  assert.equal(session.closed, false);
+  assert.equal(frames.filter((frame) => frame.type === TYPES.CLIPBOARD_ACCEPT).length, 0);
+  assert.deepEqual(received, []);
+  assert.deepEqual(failures, []);
+});
+
+test("disabling an in-flight enable cancels clipboard waiters and a late true response cannot reopen it", async (t) => {
+  const { session, transfers, frames, received, failures, deliver, offer } = featureHarness(t);
+  const enabled = assert.rejects(
+      session.setFeature("clipboard.read", true),
+      /RD_FEATURE_CANCELLED/,
+    ),
+    incoming = offer();
+  const queued = deliver(TYPES.CLIPBOARD_OFFER, incoming.body, "clipboard");
+  await immediate();
+  const disabled = session.setFeature("clipboard.read", false);
+  const rejectedDisable = assert.rejects(disabled, /RD_FEATURE_DENIED/);
+  await Promise.all([enabled, queued]);
+  assert.equal(transfers.clipboard, null);
+  assert.equal(session.pendingBytes, 0);
+  assert.equal(
+    frames.filter((frame) => frame.type === TYPES.FEATURE_REQUEST).length,
+    1,
+    "drain the old response before issuing another request without an ID",
+  );
+  await deliver(TYPES.FEATURE_STATE, { permission: "clipboard.read", enabled: true });
+  await immediate();
+  assert.equal(session.featureState.has("clipboard.read"), false);
+  assert.deepEqual(
+    frames
+      .filter((frame) => frame.type === TYPES.FEATURE_REQUEST)
+      .map((frame) => frame.payload.enabled),
+    [true, false],
+  );
+  await deliver(TYPES.CLIPBOARD_CHUNK, chunk(incoming.id, 0, incoming.data), "clipboard");
+  await deliver(TYPES.FEATURE_STATE, { permission: "clipboard.read", enabled: true });
+  await rejectedDisable;
+  assert.equal(
+    session.featureState.has("clipboard.read"),
+    false,
+    "refusing disable cannot restore local permission",
+  );
+  assert.equal(session.closed, false);
+  assert.deepEqual(received, []);
+  assert.deepEqual(failures, []);
+});
+
+test("disable erases incoming and outgoing clipboard buffers before the host acknowledges", async (t) => {
+  const { session, transfers, received, failures, deliver, offer } = featureHarness(t);
+  session.featureState.add("clipboard.read");
+  session.featureState.add("clipboard.write");
+  const incoming = offer("sensitive incoming");
+  await deliver(TYPES.CLIPBOARD_OFFER, incoming.body, "clipboard");
+  await deliver(
+    TYPES.CLIPBOARD_CHUNK,
+    chunk(incoming.id, 0, incoming.data.subarray(0, 3)),
+    "clipboard",
+  );
+  await transfers.sendClipboard("sensitive outgoing");
+  const inputBuffer = transfers.clipboard.content,
+    outputBuffer = transfers.clipboardOutgoing.content;
+  const disabledRead = session.setFeature("clipboard.read", false),
+    disabledWrite = session.setFeature("clipboard.write", false);
+  assert.ok(inputBuffer.every((byte) => byte === 0));
+  assert.ok(outputBuffer.every((byte) => byte === 0));
+  assert.equal(transfers.clipboard, null);
+  assert.equal(transfers.clipboardOutgoing, null);
+  await deliver(
+    TYPES.CLIPBOARD_CHUNK,
+    chunk(incoming.id, 3, incoming.data.subarray(3)),
+    "clipboard",
+  );
+  await deliver(TYPES.CLIPBOARD_ACK, { id: crypto.randomUUID() }, "clipboard");
+  await deliver(TYPES.FEATURE_STATE, { permission: "clipboard.read", enabled: false });
+  await deliver(TYPES.FEATURE_STATE, { permission: "clipboard.write", enabled: false });
+  await Promise.all([disabledRead, disabledWrite]);
+  assert.deepEqual(received, []);
+  assert.deepEqual(failures, []);
+});
+
+test("clipboard revocation during digest verification neither publishes text nor ends the session", async (t) => {
+  const { session, transfers, frames, received, failures, deliver, offer } = featureHarness(t);
+  session.featureState.add("clipboard.read");
+  const incoming = offer();
+  await deliver(TYPES.CLIPBOARD_OFFER, incoming.body, "clipboard");
+  let finishDigest, started;
+  const digestStarted = new Promise((resolve) => {
+    started = resolve;
+  });
+  t.mock.method(
+    crypto.subtle,
+    "digest",
+    () =>
+      new Promise((resolve) => {
+        finishDigest = () => resolve(Buffer.from(incoming.body.sha256, "hex"));
+        started();
+      }),
+  );
+  const chunkPending = deliver(
+    TYPES.CLIPBOARD_CHUNK,
+    chunk(incoming.id, 0, incoming.data),
+    "clipboard",
+  );
+  await digestStarted;
+  const sensitive = transfers.clipboard.content,
+    disabled = session.setFeature("clipboard.read", false);
+  assert.ok(sensitive.every((byte) => byte === 0));
+  finishDigest();
+  await chunkPending;
+  await deliver(TYPES.FEATURE_STATE, { permission: "clipboard.read", enabled: false });
+  await disabled;
+  assert.equal(frames.filter((frame) => frame.type === TYPES.CLIPBOARD_ACK).length, 0);
+  assert.equal(session.closed, false);
+  assert.deepEqual(received, []);
+  assert.deepEqual(failures, []);
+});
+
+test("clipboard disable releases a backpressured send without closing the video session", async (t) => {
+  const { session, transfers, frames, failures, deliver } = featureHarness(t);
+  session.featureState.add("clipboard.write");
+  await transfers.sendClipboard("sensitive outgoing");
+  const id = transfers.clipboardOutgoing.id,
+    sensitive = transfers.clipboardOutgoing.content;
+  session.channels.get("clipboard").bufferedAmount = 70000;
+  const sending = deliver(TYPES.CLIPBOARD_ACCEPT, { id }, "clipboard");
+  await immediate();
+  assert.equal(transfers.clipboardWaiters.size, 1);
+  const disabled = session.setFeature("clipboard.write", false);
+  await sending;
+  assert.ok(sensitive.every((byte) => byte === 0));
+  assert.equal(transfers.clipboardWaiters.size, 0);
+  assert.equal(session.pendingBytes, 0);
+  assert.equal(frames.filter((frame) => frame.type === TYPES.CLIPBOARD_CHUNK).length, 0);
+  await deliver(TYPES.FEATURE_STATE, { permission: "clipboard.write", enabled: false });
+  await disabled;
+  assert.equal(session.closed, false);
+  assert.deepEqual(failures, []);
+});
+
+test("timed-out approval cannot be reused by a new enable with an indistinguishable late response", async (t) => {
+  const { session, transfers, failures, deliver, offer } = featureHarness(t);
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const enabled = assert.rejects(session.setFeature("clipboard.read", true), /RD_FEATURE_TIMEOUT/);
+  const queued = deliver(TYPES.CLIPBOARD_OFFER, offer().body, "clipboard");
+  await immediate();
+  t.mock.timers.tick(10000);
+  await Promise.all([enabled, queued]);
+  assert.equal(transfers.clipboard, null);
+  assert.equal(session.pendingBytes, 0);
+  await assert.rejects(session.setFeature("clipboard.read", true), /RD_SCOPE_DENIED/);
+  assert.equal(session.featureState.has("clipboard.read"), false);
+  assert.deepEqual(failures, []);
+});
+
+test("closing the session releases queued clipboard approval waiters", async (t) => {
+  const { session, transfers, failures, deliver, offer } = featureHarness(t);
+  const enabled = assert.rejects(session.setFeature("clipboard.read", true), /RD_SESSION_REVOKED/);
+  const queued = deliver(TYPES.CLIPBOARD_OFFER, offer().body, "clipboard");
+  await immediate();
+  session.close({ remote: false });
+  await Promise.all([enabled, queued]);
+  assert.equal(transfers.clipboard, null);
+  assert.equal(session.pendingBytes, 0);
+  assert.deepEqual(failures, []);
+});
+
 test("a blocked file write does not delay control-channel revocation", async () => {
   let release,
     control = false;
