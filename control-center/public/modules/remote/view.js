@@ -103,7 +103,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       <fieldset><legend>本次请求权限，仍需被控端同意</legend>${Object.entries(labels).filter(([permission]) => host.capabilities.permissions?.includes(permission)).map(([permission, label]) => `<label class="remote-permission"><input type="checkbox" name="permission" value="${permission}" ${permission === "view" ? "checked disabled" : ""}>${label}</label>`).join("")}</fieldset>
       <button class="button button-primary" type="submit">验证并请求连接</button></form>
       <section class="remote-pairing" hidden><p>请在被控电脑上批准，并核对两端显示的配对码：</p><strong class="remote-code" data-no-translate></strong><button class="button button-primary" data-pair-confirm disabled>两端配对码一致</button></section>
-      <section class="remote-viewer" hidden><div class="remote-toolbar"><button class="button button-secondary" data-input>允许输入</button><button class="button button-secondary" data-release>释放输入</button><button class="button button-secondary" data-fullscreen>全屏</button><button class="button button-secondary" data-play>播放画面</button><button class="button button-secondary" data-audio ${host.capabilities.permissions?.includes("audio.system") ? "" : "disabled"}>开启系统声音</button><button class="button button-secondary" data-microphone ${host.capabilities.permissions?.includes("audio.microphone") ? "" : "disabled"}>开启麦克风回传</button></div><video class="remote-video" autoplay muted playsinline aria-label="远端桌面"></video><form class="remote-text"><label>发送文字（本地完成中文输入）<textarea name="text" rows="2" maxlength="4096"></textarea></label><button class="button button-secondary">发送文字</button></form><p>退出窗口、失焦或切换页面会释放按键。剪贴板与文件仅在双方启用对应能力后传输。</p></section>`;
+      <section class="remote-viewer" hidden><div class="remote-toolbar"><button class="button button-secondary" data-input>允许输入</button><button class="button button-secondary" data-release>释放输入</button><button class="button button-secondary" data-fullscreen>全屏</button><button class="button button-secondary" data-play>播放画面</button><button class="button button-secondary" data-audio ${host.capabilities.permissions?.includes("audio.system") ? "" : "disabled"}>开启系统声音</button><button class="button button-secondary" data-microphone ${host.capabilities.permissions?.includes("audio.microphone") ? "" : "disabled"}>开启麦克风回传</button></div><div class="remote-video-stage"><video class="remote-video" autoplay muted playsinline aria-label="远端桌面"></video><div class="remote-media-mask" data-media-mask>等待身份、直连与画面验证</div></div><form class="remote-text"><label>发送文字（本地完成中文输入）<textarea name="text" rows="2" maxlength="4096"></textarea></label><button class="button button-secondary">发送文字</button></form><p>退出窗口、失焦或切换页面会释放按键。剪贴板与文件仅在双方启用对应能力后传输。</p></section>`;
     const extras = document.createElement("section"); extras.className = "remote-data";
     extras.innerHTML = `<div class="remote-toolbar"><label>显示器 <select data-display aria-label="远端显示器" disabled></select></label><button class="button button-secondary" data-clipboard>开启文本剪贴板</button><button class="button button-secondary" data-files>开启文件收发</button></div><div data-clipboard-panel hidden><p>剪贴板仅绑定当前指定窗口；浏览器需要前台操作。远端文本收到后，点击“复制到本机”才写入本机剪贴板。</p><label>发送的文本<textarea data-clipboard-text rows="2" maxlength="65536"></textarea></label><button class="button button-secondary" data-clipboard-read>读取本机剪贴板</button><button class="button button-secondary" data-clipboard-send>发送文本剪贴板</button><label>远端文本<textarea data-clipboard-incoming readonly rows="2"></textarea></label><button class="button button-secondary" data-clipboard-copy>复制到本机</button></div><div data-file-panel hidden><input type="file" data-file-input multiple aria-label="选择要发送的文件"><button class="button button-secondary" data-file-send>发送所选文件</button><p data-file-support></p><div data-file-list aria-live="polite"></div></div><details><summary>连接诊断</summary><pre data-diagnostics>等待身份与直连验证</pre></details>`;
     dialog.querySelector(".remote-viewer").append(extras);
@@ -111,7 +111,10 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     const current = { dialog, disposed: false, pollTimer: null, pairing: null, api: null, signal: null, session: null, input: null, abort: new AbortController(), rows: new Map() };
     const syncControls = () => {
       const session = current.session;
-      const allowed = (...permissions) => !!session?.ready && session.pathVerified && permissions.some((permission) => session.permissions.has(permission));
+      const visible = !!session?.ready && session.pathVerified && session.firstFrameSeen;
+      const allowed = (...permissions) => visible && permissions.some((permission) => session.permissions.has(permission));
+      dialog.querySelector("[data-media-mask]").hidden = !!visible;
+      dialog.querySelector("[data-display]").disabled = !visible || session.layout?.displays.length < 2;
       const input = allowed("input.keyboard", "input.pointer", "input.text");
       for (const selector of ["[data-input]", "[data-release]"]) dialog.querySelector(selector).disabled = !input;
       for (const [selector, permissions] of [
@@ -203,7 +206,9 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       current.session = new RemoteSession({ api: current.api, signal: current.signal, session: snapshot, hostThumbprint: host.jkt, video,
         onState: (phase, failure) => {
           syncControls();
-          status.textContent = { connecting: "正在检查直连", waiting_for_frame: "身份和直连已验证，等待画面", viewing: "被控端已验证 UDP 直连 · 只看画面", closed: "会话已结束", failed: "会话失败", playback_gesture_required: "请点击播放画面" }[phase] ?? phase;
+          status.textContent = { connecting: "正在检查直连", waiting_for_frame: "身份和直连已验证，等待画面", viewing: "被控端已验证 UDP 直连 · 只看画面", switching_display: "正在切换显示器，等待新画面", closed: "会话已结束", failed: "会话失败", playback_gesture_required: "请点击播放画面" }[phase] ?? phase;
+          if (phase === "viewing") current.retries = 0;
+          if (phase !== "viewing") dialog.querySelector("[data-media-mask]").textContent = status.textContent;
           if (failure) showError(failure);
           if (["closed", "failed"].includes(phase)) { void current.transfers?.close(); current.pendingText = undefined; clearTimeout(current.textRequestTimer); dialog.querySelector("[data-clipboard-incoming]").value = ""; }
         },
@@ -239,22 +244,24 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
           const session = current.session;
           dialog.querySelector("[data-diagnostics]").textContent = JSON.stringify({ connectionEpoch: session.epoch, hostVerifiedUDP: session.pathVerified, browserVerifiedUDP: session.selectedPair?.verified ?? false, activeDisplay: session.layout?.active_display, capabilities: session.remoteCapabilities }, null, 2);
         },
-        onReconnectNeeded: (reason) => { void reconnect(reason).catch(showError); },
+        onReconnectNeeded: (reason, displayId) => reconnect(reason, displayId).catch(showError),
       });
       current.input = new RemoteInput(current.session, video);
       current.transfers = new RemoteTransfers(current.session, { onOffer: offerFile, onProgress: fileProgress, onClipboard: (text) => { dialog.querySelector("[data-clipboard-incoming]").value = text; }, canUseClipboard: () => !document.hidden && document.hasFocus() && dialog.contains(document.activeElement) });
       try { await current.session.start(capabilities.stun_urls); } catch (failure) { current.session.fail(failure); throw failure; }
     }
-    async function reconnect(reason) {
+    async function reconnect(reason, displayId) {
       if (current.disposed || current.reconnecting || !current.session) return;
       const previous = current.session;
-      if ((current.retries ?? 0) >= 3 || !previous.lease.valid()) { previous.fail(new RemoteError("RD_NO_DIRECT_PATH")); return; }
-      current.reconnecting = true; current.retries = (current.retries ?? 0) + 1;
+      if ((reason !== "display_changed" && (current.retries ?? 0) >= 3) || !previous.lease.valid()) { previous.fail(new RemoteError("RD_NO_DIRECT_PATH")); return; }
+      current.reconnecting = true; if (reason !== "display_changed") current.retries = (current.retries ?? 0) + 1;
       current.input?.close(); previous.close({ remote: false }); void current.transfers?.close(); current.session = null;
       current.pendingText = undefined; clearTimeout(current.textRequestTimer);
-      status.textContent = "正在恢复直连，输入和麦克风已暂停";
+      syncControls();
+      status.textContent = reason === "display_changed" ? "正在切换显示器，等待本机批准和新画面" : "正在恢复直连，输入和麦克风已暂停";
+      dialog.querySelector("[data-media-mask]").textContent = status.textContent;
       try {
-        current.snapshot = await current.api.request(`/api/v1/rd/sessions/${previous.id}/reconnect`, { method: "POST", idempotencyKey: crypto.randomUUID(), body: { expected_epoch: previous.epoch, reason } });
+        current.snapshot = await current.api.request(`/api/v1/rd/sessions/${previous.id}/reconnect`, { method: "POST", idempotencyKey: crypto.randomUUID(), body: { expected_epoch: previous.epoch, reason, ...(displayId !== undefined ? { display_id: displayId } : {}) } });
         if (!current.disposed) await pollSession();
       } catch (failure) {
         void current.api.request(`/api/v1/rd/sessions/${previous.id}/close`, { method: "POST", body: {} }).catch(() => {});

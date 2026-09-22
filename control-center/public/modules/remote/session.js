@@ -270,8 +270,13 @@ export class RemoteSession {
     await this.video.play();
   }
   selectDisplay(id) {
-    if (!this.ready || !this.layout?.displays.some((display) => display.id === id)) throw new RemoteError("RD_STATE_CONFLICT");
-    this.releaseInput(); this.send(TYPES.DISPLAY_SELECT, { display_id: id, layout_epoch: this.layout.layout_epoch });
+    if (!this.ready || !this.firstFrameSeen || !this.layout?.displays.some((display) => display.id === id)) throw new RemoteError("RD_STATE_CONFLICT");
+    if (id === this.layout.active_display) return;
+    if (!this.onReconnectNeeded) throw new RemoteError("RD_STATE_CONFLICT");
+    this.releaseInput(); this.ready = false;
+    this.video.pause(); this.video.srcObject = null; this.video.load?.();
+    this.onState?.("switching_display");
+    return this.onReconnectNeeded("display_changed", id);
   }
   async reportReady() {
     const snapshot = await this.api.request(`/api/v1/rd/sessions/${this.id}`);
@@ -311,7 +316,7 @@ export class RemoteSession {
     this.send(TYPES.INPUT_HEARTBEAT, { input_epoch: this.inputEpoch, state_version: ++this.heartbeatVersion, keys, buttons });
   }
   requestInput() {
-    if (!this.ready || !this.video.videoWidth || document.hidden) throw new RemoteError("RD_INPUT_DENIED");
+    if (!this.ready || !this.firstFrameSeen || !this.video.videoWidth || document.hidden) throw new RemoteError("RD_INPUT_DENIED");
     if (this.inputEnabled || this.inputRequested) this.releaseInput();
     this.inputRequested = true;
     this.inputRequestId = crypto.randomUUID();

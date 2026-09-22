@@ -492,6 +492,7 @@ test("requesting input again releases old keys and control before creating a new
     Object.assign(session, {
       ready: true,
       video: { videoWidth: 100 },
+      firstFrameSeen: true,
       inputEnabled: true,
       inputRequested: true,
       inputRequestId: previous,
@@ -574,6 +575,57 @@ test("released or previous input grants cannot enable input or terminate viewing
     if (oldDocument) Object.defineProperty(globalThis, "document", oldDocument);
     else delete globalThis.document;
   }
+});
+
+test("same-size display switching clears the old video and input before requesting a new connection", async (t) => {
+  const { session, frames } = textHarness(t);
+  const events = [];
+  Object.assign(session, {
+    firstFrameSeen: true,
+    layout: {
+      active_display: "left",
+      displays: [
+        { id: "left", width_px: 1920, height_px: 1080 },
+        { id: "right", width_px: 1920, height_px: 1080 },
+      ],
+    },
+    video: {
+      videoWidth: 1920,
+      srcObject: { oldTrack: true },
+      pause: () => events.push("pause"),
+      load: () => events.push("clear"),
+    },
+    onState: (state) => events.push(state),
+    onReconnectNeeded: (reason, displayId) => {
+      assert.equal(session.inputEnabled, false);
+      assert.equal(session.ready, false);
+      assert.equal(session.video.srcObject, null);
+      events.push([reason, displayId]);
+    },
+  });
+  assert.throws(() => session.selectDisplay("missing"), /RD_STATE_CONFLICT/);
+  session.selectDisplay("left");
+  assert.deepEqual(events, []);
+  assert.deepEqual(frames, []);
+  session.selectDisplay("right");
+  assert.deepEqual(events, ["pause", "clear", "switching_display", ["display_changed", "right"]]);
+  assert.deepEqual(
+    frames.map((frame) => frame.type),
+    [TYPES.RELEASE_ALL],
+  );
+  assert.throws(() => session.requestInput(), /RD_INPUT_DENIED/);
+  assert.throws(() => session.selectDisplay("left"), /RD_STATE_CONFLICT/);
+});
+
+test("cached video dimensions cannot authorize input before the new connection's first frame", (t) => {
+  const { session, frames } = textHarness(t);
+  session.video = { videoWidth: 1920 };
+  session.firstFrameSeen = false;
+  assert.throws(() => session.requestInput(), /RD_INPUT_DENIED/);
+  assert.deepEqual(frames, []);
+  session.firstFrameSeen = true;
+  session.requestInput();
+  assert.equal(frames.at(-1).type, TYPES.CONTROL_REQUEST);
 });
 
 test("an old account response cannot resume endpoint enrollment after logout", async () => {
