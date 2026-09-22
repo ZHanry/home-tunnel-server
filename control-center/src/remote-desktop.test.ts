@@ -11,7 +11,7 @@ import { WebSocket } from "ws";
 import { spawnSync } from "node:child_process";
 import type { AuthenticatedActor } from "./types.js";
 import type { PublicJwk } from "./rd/crypto.js";
-import type { RdIdentity, Permission } from "./rd/service.js";
+import type { RdIdentity, Permission, Session } from "./rd/service.js";
 
 const directory = mkdtempSync(join(tmpdir(), "home-tunnel-rd-"));
 const serverKey = generateKeyPairSync("ec", { namedCurve: "P-256" });
@@ -164,11 +164,11 @@ async function create(host: Peer) {
   const session = await rd.createSession(controller.identity, grant.requestId, body);
   return { session, body, grant };
 }
-async function approve(host: Peer, id: string, version: number) {
+async function approve(host: Peer, id: string, version: number, epoch = 1) {
   const payload = {
     type: "session.decision",
     session_id: id,
-    connection_epoch: 1,
+    connection_epoch: epoch,
     decision: "accept" as const,
     grant_version: 1,
     permissions: ["view", "input.pointer"] as Permission[],
@@ -511,6 +511,7 @@ test("both ready reports are required; reconnect changes epoch without extending
     reason: "network_changed",
   });
   assert.equal(session.connection_epoch, 2);
+  assert.equal(session.display_id, "display-1");
   assert.equal(session.state, "reconnecting");
   assert.equal(rd.timestamp(session.lease_expires_at), expiry);
   assert.equal((session as { ticket_jws: string | null }).ticket_jws, null);
@@ -537,6 +538,215 @@ test("both ready reports are required; reconnect changes epoch without extending
     0,
   );
 });
+test("display reconnect validates current capabilities, serializes requests and preserves recovery budget", async () => {
+  const host = hosts[0]!;
+  const advertise = async (ids: string[], status = "ready") => {
+    const current = await rd.tokenIdentity(host.token);
+    const capabilities = {
+      ...JSON.parse(current.endpoint.capability_json),
+      displays: ids.map((id) => ({ id, name: id, width: 1920, height: 1080 })),
+      status,
+    };
+    const payload = {
+      endpoint_id: current.endpoint.id,
+      local_enabled: true,
+      capability_version: current.endpoint.capability_version + 1,
+      capabilities,
+    };
+    await rd.updateCapabilities(current, {
+      ...payload,
+      signed_proof: signature(host.privateKey, payload, "ht-rd-capabilities+jwt"),
+    });
+  };
+  await advertise(["display-1", "display-2"]);
+  const created = await create(host),
+    id = created.session.session_id,
+    path = `/api/v1/rd/sessions/${id}/reconnect`;
+  let session = await approve(host, id, created.session.state_version);
+  const initial = await db.one<Session>("SELECT * FROM rd_sessions WHERE id=?", [id]),
+    slots = await db.query("SELECT * FROM rd_session_slots WHERE session_id=? ORDER BY role", [id]);
+  assert.ok(initial);
+  const reconnect = (body: Record<string, unknown>, key = randomUUID()) =>
+    fetch(origin + path, {
+      method: "POST",
+      headers: {
+        ...dpop(controller, path, "POST"),
+        "content-type": "application/json",
+        "idempotency-key": key,
+      },
+      body: JSON.stringify(body),
+    });
+  for (const body of [
+    { expected_epoch: 1, reason: "display_changed" },
+    { expected_epoch: 1, reason: "display_changed", display_id: "" },
+    { expected_epoch: 1, reason: "display_changed", display_id: "x".repeat(129) },
+    { expected_epoch: 1, reason: "network_changed", display_id: "display-2" },
+    { expected_epoch: 0x100000000, reason: "network_changed" },
+  ]) {
+    const response = await reconnect(body);
+    assert.equal(response.status, 400);
+    await response.text();
+  }
+  for (const displayId of ["missing", "display-1"]) {
+    const response = await reconnect({
+      expected_epoch: 1,
+      reason: "display_changed",
+      display_id: displayId,
+    });
+    assert.equal(response.status, 422);
+    assert.equal((await response.json()).error_code, "RD_HOST_UNAVAILABLE");
+  }
+  await advertise(["display-1", "display-2"], "locked");
+  await assert.rejects(
+    rd.reconnectSession(controller.identity, id, randomUUID(), {
+      expected_epoch: 1,
+      reason: "display_changed",
+      display_id: "display-2",
+    }),
+    { errorCode: "RD_HOST_UNAVAILABLE" },
+  );
+  assert.deepEqual(await db.one("SELECT * FROM rd_sessions WHERE id=?", [id]), initial);
+  assert.equal(
+    (
+      await db.one<{ count: number }>(
+        "SELECT count(*) AS count FROM rd_idempotency WHERE operation=?",
+        [`reconnect:${id}`],
+      )
+    )?.count,
+    0,
+  );
+  await advertise(["display-1", "display-2"]);
+  const key = randomUUID(),
+    body = { expected_epoch: 1, reason: "display_changed", display_id: "display-2" };
+  const response = await reconnect(body, key);
+  assert.equal(response.status, 202);
+  const accepted = await response.json();
+  assert.equal(accepted.display_id, "display-2");
+  assert.equal(accepted.connection_epoch, 2);
+  assert.equal(accepted.state, "reconnecting");
+  assert.equal(accepted.ticket_jws, null);
+  assert.equal(accepted.lease_seq, initial.lease_seq);
+  assert.equal(accepted.state_version, initial.state_version + 1);
+  assert.equal(rd.timestamp(accepted.lease_expires_at), rd.timestamp(initial.lease_expires_at));
+  assert.equal(
+    rd.timestamp(accepted.approval_expires_at),
+    rd.timestamp(initial.approval_expires_at),
+  );
+  assert.deepEqual(
+    await db.query("SELECT * FROM rd_session_slots WHERE session_id=? ORDER BY role", [id]),
+    slots,
+  );
+  // A lost HTTP response can be retried even after the capability list changes.
+  await advertise(["display-1"]);
+  const replay = await reconnect(body, key);
+  assert.equal(replay.status, 202);
+  assert.deepEqual(await replay.json(), accepted);
+  await assert.rejects(
+    rd.reconnectSession(controller.identity, id, key, { ...body, display_id: "display-1" }),
+    { errorCode: "RD_IDEMPOTENCY_CONFLICT" },
+  );
+  await advertise(["display-1", "display-2"]);
+  session = await approve(host, id, accepted.state_version, 2);
+  assert.equal(rd.timestamp(session.lease_expires_at), rd.timestamp(initial.lease_expires_at));
+  assert.equal(
+    crypto.verifyJws(
+      (session as { ticket_jws: string }).ticket_jws,
+      crypto.serverPublicKey(),
+      "ht-rd-ticket+jwt",
+    ).connection_epoch,
+    2,
+  );
+  // Multiple user display switches are independent of the three recovery attempts.
+  for (let index = 0; index < 5; index++) {
+    const expectedEpoch = session.connection_epoch,
+      nextDisplay = session.display_id === "display-1" ? "display-2" : "display-1";
+    const concurrent = await Promise.allSettled([
+      rd.reconnectSession(controller.identity, id, randomUUID(), {
+        expected_epoch: expectedEpoch,
+        reason: "display_changed",
+        display_id: nextDisplay,
+      }),
+      rd.reconnectSession(controller.identity, id, randomUUID(), {
+        expected_epoch: expectedEpoch,
+        reason: "display_changed",
+        display_id: nextDisplay,
+      }),
+    ]);
+    assert.equal(concurrent.filter((result) => result.status === "fulfilled").length, 1);
+    assert.equal(concurrent.filter((result) => result.status === "rejected").length, 1);
+    const current = await rd.getSession(actor.userId, id, host.identity.endpoint.id);
+    assert.equal(current.connection_epoch, expectedEpoch + 1);
+    assert.equal(current.display_id, nextDisplay);
+    session = await approve(host, id, current.state_version, current.connection_epoch);
+    assert.equal(rd.timestamp(session.lease_expires_at), rd.timestamp(initial.lease_expires_at));
+  }
+  assert.equal(
+    (await db.one<Session>("SELECT * FROM rd_sessions WHERE id=?", [id]))?.network_reconnect_count,
+    0,
+  );
+  const selected = session.display_id;
+  await advertise([selected === "display-1" ? "display-2" : "display-1"]);
+  await assert.rejects(
+    rd.reconnectSession(controller.identity, id, randomUUID(), {
+      expected_epoch: session.connection_epoch,
+      reason: "network_changed",
+    }),
+    { errorCode: "RD_HOST_UNAVAILABLE" },
+  );
+  await advertise(["display-1", "display-2"]);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const recoveryKey = randomUUID(),
+      recovery = { expected_epoch: session.connection_epoch, reason: "ice_failed" };
+    session = await rd.reconnectSession(controller.identity, id, recoveryKey, recovery);
+    const repeat = await rd.reconnectSession(controller.identity, id, recoveryKey, recovery);
+    assert.equal(repeat.connection_epoch, session.connection_epoch);
+    assert.equal(repeat.display_id, selected);
+    session = await approve(host, id, session.state_version, session.connection_epoch);
+  }
+  await assert.rejects(
+    rd.reconnectSession(controller.identity, id, randomUUID(), {
+      expected_epoch: session.connection_epoch,
+      reason: "network_changed",
+    }),
+    { errorCode: "RD_RECONNECT_LIMIT" },
+  );
+  session = await rd.reconnectSession(controller.identity, id, randomUUID(), {
+    expected_epoch: session.connection_epoch,
+    reason: "display_changed",
+    display_id: selected === "display-1" ? "display-2" : "display-1",
+  });
+  session = await approve(host, id, session.state_version, session.connection_epoch);
+  assert.equal(
+    (await db.one<Session>("SELECT * FROM rd_sessions WHERE id=?", [id]))?.network_reconnect_count,
+    3,
+  );
+  await db.query("UPDATE rd_sessions SET connection_epoch=4294967295 WHERE id=?", [id]);
+  await assert.rejects(
+    rd.reconnectSession(controller.identity, id, randomUUID(), {
+      expected_epoch: 0xffffffff,
+      reason: "display_changed",
+      display_id: selected,
+    }),
+    { errorCode: "RD_RECONNECT_LIMIT" },
+  );
+  await db.query("UPDATE rd_sessions SET connection_epoch=?,lease_expires_at=? WHERE id=?", [
+    session.connection_epoch,
+    new Date(Date.now() - 1),
+    id,
+  ]);
+  await assert.rejects(
+    rd.reconnectSession(controller.identity, id, randomUUID(), {
+      expected_epoch: session.connection_epoch,
+      reason: "display_changed",
+      display_id: selected,
+    }),
+    { errorCode: "RD_RECONNECT_LIMIT" },
+  );
+  await db.transaction(rd.cleanupRd);
+  assert.equal((await rd.getSession(actor.userId, id)).state, "expired");
+  await advertise(["display-1"]);
+});
+
 test("database rollback cannot publish authorization or ghost lease", async () => {
   const created = await create(hosts[0]!);
   await assert.rejects(

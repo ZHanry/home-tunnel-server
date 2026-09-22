@@ -29,6 +29,27 @@ released; they do not terminate the read-only video session. Layout changes firs
 release all input. Reliable button packets carry their own coordinates. Text
 commits carry an independent UUID and final UTF-8, never intermediate IME state.
 
+The browser can switch displays through `POST /api/v1/rd/sessions/{id}/reconnect`
+with `{expected_epoch, reason: "display_changed", display_id}` and a fresh
+`Idempotency-Key`. This reason requires a different `display_id`; all other
+reconnect reasons omit it and retain the current display. The selected display
+must still be present in the host's latest ready capabilities. Selection and the connection epoch change in
+one transaction. Repeated identical requests do not advance the epoch twice;
+reusing a key with a changed display conflicts. Network/media recovery has a
+separate persistent limit of three rebuilds per session; display switching does
+not consume that budget. Epochs are bounded by uint32 and existing REST request
+rate limits apply. Reconnect does not extend the lease or approval deadline.
+The host stops the old capture and input epoch before approving
+the replacement; both peers build a new PeerConnection. Controllers keep input
+disabled until the new layout and first frame arrive and the new input handshake
+finishes. This also permits switching between displays of the same resolution,
+without relying on a video resize event to distinguish the new stream.
+The current native/browser profile uses this reconnect flow. `DISPLAY_SELECT`
+remains defined for a future negotiated profile and does not hot-swap the current
+media track. Each new connection publishes the complete display list with the
+selected display in slot 0; its `layout_epoch` starts at 1 and is isolated by the
+new connection epoch.
+
 ## Independent features
 
 `FEATURE_REQUEST {permission, enabled}` asks the host to enable or disable exactly

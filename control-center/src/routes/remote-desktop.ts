@@ -597,10 +597,13 @@ router.post(
   "/sessions/:id/reconnect",
   asyncHandler(async (request, response) => {
     const body = parseBody(
-      z.strictObject({
-        expected_epoch: z.number().int().positive(),
-        reason: z.enum(["network_changed", "ice_failed", "display_changed", "media_failed"]),
-      }),
+      z
+        .strictObject({
+          expected_epoch: z.number().int().positive().max(0xffffffff),
+          reason: z.enum(["network_changed", "ice_failed", "display_changed", "media_failed"]),
+          display_id: z.string().min(1).max(128).optional(),
+        })
+        .refine((body) => (body.reason === "display_changed") === (body.display_id !== undefined)),
       request.body,
     );
     response

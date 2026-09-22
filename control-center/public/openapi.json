@@ -16268,33 +16268,13 @@
             }
           }
         },
-        "description": "Remote desktop authorization only. Payloads use authenticated direct UDP WebRTC; no server media or file relay. Disabled deployments return RD_DISABLED. Request JSON is limited to 16 KiB.",
+        "description": "Original controller requests a new PeerConnection and connection epoch using expected_epoch and Idempotency-Key. display_changed requires display_id selecting a different advertised, ready host display; other reasons omit display_id and retain the current display, which must still exist. The display and epoch change atomically. Host approval requires stopping the old capture/input epoch before accepting the new ticket. The original lease and deadlines are not extended. Network/media recovery is limited to three rebuilds per session independently of display switching. Epochs cannot exceed uint32; normal request rate limits apply. Same key/body replays the persisted request without another epoch change; a changed body conflicts.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "expected_epoch": {
-                    "type": "integer",
-                    "minimum": 1
-                  },
-                  "reason": {
-                    "type": "string",
-                    "enum": [
-                      "network_changed",
-                      "ice_failed",
-                      "display_changed",
-                      "media_failed"
-                    ]
-                  }
-                },
-                "required": [
-                  "expected_epoch",
-                  "reason"
-                ],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/RdReconnectInput"
               }
             }
           }
@@ -20581,6 +20561,64 @@
           "active_kid",
           "keys",
           "rotation_proofs"
+        ]
+      },
+      "RdReconnectInput": {
+        "type": "object",
+        "properties": {
+          "expected_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4294967295
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "network_changed",
+              "ice_failed",
+              "display_changed",
+              "media_failed"
+            ]
+          },
+          "display_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "expected_epoch",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "reason": {
+                "const": "display_changed"
+              }
+            },
+            "required": [
+              "display_id"
+            ]
+          },
+          {
+            "properties": {
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "network_changed",
+                  "ice_failed",
+                  "media_failed"
+                ]
+              }
+            },
+            "not": {
+              "required": [
+                "display_id"
+              ]
+            }
+          }
         ]
       }
     }

@@ -3124,6 +3124,64 @@
         "keys",
         "rotation_proofs"
       ]
+    },
+    "RdReconnectInput": {
+      "type": "object",
+      "properties": {
+        "expected_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "network_changed",
+            "ice_failed",
+            "display_changed",
+            "media_failed"
+          ]
+        },
+        "display_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "expected_epoch",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "reason": {
+              "const": "display_changed"
+            }
+          },
+          "required": [
+            "display_id"
+          ]
+        },
+        {
+          "properties": {
+            "reason": {
+              "type": "string",
+              "enum": [
+                "network_changed",
+                "ice_failed",
+                "media_failed"
+              ]
+            }
+          },
+          "not": {
+            "required": [
+              "display_id"
+            ]
+          }
+        }
+      ]
     }
   }
 }

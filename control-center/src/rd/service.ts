@@ -72,6 +72,8 @@ export type Session = DatabaseRow & {
   state: string;
   state_version: number;
   connection_epoch: number;
+  network_reconnect_count: number;
+  display_id: string;
   ticket_jti: string | null;
   ticket_jws: string | null;
   lease_seq: number;
@@ -1516,7 +1518,7 @@ export async function reconnectSession(
   identity: RdIdentity,
   id: string,
   key: string,
-  body: { expected_epoch: number; reason: string },
+  body: { expected_epoch: number; reason: string; display_id?: string },
 ) {
   requireController(identity);
   await transaction(async (db) => {
@@ -1525,16 +1527,35 @@ export async function reconnectSession(
     if (row.controller_endpoint_id !== identity.endpoint.id)
       fail(403, "RD_CONTROLLER_REQUIRED", "仅原控制端可重建会话");
     await idempotent(db, identity, `reconnect:${id}`, key, body, async () => {
+      const displayChanged = body.reason === "display_changed";
       if (
         !["active", "connecting", "authorized"].includes(row.state) ||
         row.connection_epoch !== body.expected_epoch ||
-        row.connection_epoch >= 4
+        row.connection_epoch >= 0xffffffff ||
+        (!displayChanged && row.network_reconnect_count >= 3)
       )
         fail(409, "RD_RECONNECT_LIMIT", "会话无法再次重建");
+      if (
+        displayChanged
+          ? !body.display_id || body.display_id === row.display_id
+          : body.display_id !== undefined
+      )
+        fail(422, "RD_HOST_UNAVAILABLE", "切换显示器必须选择另一块可用显示器");
       await liveGrant(db, row);
+      const host = await endpointById(db, row.host_endpoint_id),
+        displayId = body.display_id ?? row.display_id,
+        capability = JSON.parse(host.capability_json) as {
+          status?: string;
+          displays?: { id: string }[];
+        };
+      if (
+        capability.status !== "ready" ||
+        !capability.displays?.some((display) => display.id === displayId)
+      )
+        fail(422, "RD_HOST_UNAVAILABLE", "被控端未就绪或所选显示器不存在");
       await db.query(
-        "UPDATE rd_sessions SET state='reconnecting',connection_epoch=connection_epoch+1,state_version=state_version+1,ticket_jws=NULL,ticket_jti=NULL,host_ready=0,controller_ready=0,updated_at=home_tunnel_now() WHERE id=?",
-        [id],
+        "UPDATE rd_sessions SET state='reconnecting',display_id=?,connection_epoch=connection_epoch+1,network_reconnect_count=network_reconnect_count+?,state_version=state_version+1,ticket_jws=NULL,ticket_jti=NULL,host_ready=0,controller_ready=0,updated_at=home_tunnel_now() WHERE id=?",
+        [displayId, displayChanged ? 0 : 1, id],
       );
       return { id };
     });
