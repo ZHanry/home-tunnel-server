@@ -27,6 +27,15 @@ test("offline and missing-backend hosts cannot start a remote desktop", async ({
   for (const button of await page.locator("[data-remote-host]").all()) await expect(button).toBeDisabled();
 });
 
+test("an unapproved viewer cannot expose enabled input or data controls", async ({ page }) => {
+  await ready(page, [{ ...hosts[0], capabilities: { ...hosts[0].capabilities, permissions: ["view"] } }]);
+  await page.locator("[data-remote-host]").click();
+  for (const selector of ["[data-input]", "[data-release]", "[data-audio]", "[data-microphone]", "[data-clipboard]", "[data-files]", ".remote-text button", "[data-file-send]"]) {
+    await expect(page.locator(".remote-dialog").locator(selector)).toBeDisabled();
+  }
+  await expect(page.locator('[name="permission"]')).toHaveCount(1);
+});
+
 test("four independent windows retain drafts and closing one preserves the others", async ({ page }) => {
   await ready(page);
   // Opening a dialog is a local operation; no authentication or media is mocked as successful.

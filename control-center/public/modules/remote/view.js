@@ -106,6 +106,20 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     dialog.querySelector(".remote-viewer").append(extras);
     document.body.append(dialog); dialog.show();
     const current = { dialog, disposed: false, pollTimer: null, pairing: null, api: null, signal: null, session: null, input: null, abort: new AbortController(), rows: new Map() };
+    const syncControls = () => {
+      const session = current.session;
+      const allowed = (...permissions) => !!session?.ready && session.pathVerified && permissions.some((permission) => session.permissions.has(permission));
+      const input = allowed("input.keyboard", "input.pointer", "input.text");
+      for (const selector of ["[data-input]", "[data-release]"]) dialog.querySelector(selector).disabled = !input;
+      for (const [selector, permissions] of [
+        ["[data-audio]", ["audio.system"]], ["[data-microphone]", ["audio.microphone"]],
+        ["[data-clipboard]", ["clipboard.read", "clipboard.write"]], ["[data-files]", ["files.send", "files.receive"]],
+        ["[data-file-send]", ["files.send"]], ["[data-file-input]", ["files.send"]],
+        ["[data-clipboard-send]", ["clipboard.write"]], ["[data-clipboard-read]", ["clipboard.write"]],
+        ["[data-clipboard-copy]", ["clipboard.read"]], [".remote-text button", ["input.text"]], [".remote-text textarea", ["input.text"]],
+      ]) dialog.querySelector(selector).disabled = !allowed(...permissions);
+    };
+    syncControls();
     active.set(host.id, current); raise(current);
     const switcher = document.createElement("button"); switcher.className = "button remote-window-switch"; switcher.textContent = host.name;
     let windowBar = document.querySelector(".remote-window-bar");
@@ -181,6 +195,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       const video = dialog.querySelector("video");
       current.session = new RemoteSession({ api: current.api, signal: current.signal, session: snapshot, hostThumbprint: host.jkt, video,
         onState: (phase, failure) => {
+          syncControls();
           status.textContent = { connecting: "正在检查直连", waiting_for_frame: "身份和直连已验证，等待画面", viewing: "被控端已验证 UDP 直连 · 只看画面", closed: "会话已结束", failed: "会话失败", playback_gesture_required: "请点击播放画面" }[phase] ?? phase;
           if (failure) showError(failure);
           if (["closed", "failed"].includes(phase)) { void current.transfers?.close(); current.pendingText = undefined; dialog.querySelector("[data-clipboard-incoming]").value = ""; }
@@ -199,6 +214,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
           if (frame.type === TYPES.FEATURE_STATE && !frame.payload.enabled) await current.transfers?.revoke(frame.payload.permission);
           if (frame.type === TYPES.FEATURE_STATE && frame.payload.enabled && frame.payload.permission.startsWith("clipboard.") && !current.transfers?.canUseClipboard()) pauseClipboard();
           await current.transfers?.onFrame(frame);
+          syncControls();
           const session = current.session;
           dialog.querySelector("[data-diagnostics]").textContent = JSON.stringify({ connectionEpoch: session.epoch, hostVerifiedUDP: session.pathVerified, browserVerifiedUDP: session.selectedPair?.verified ?? false, activeDisplay: session.layout?.active_display, capabilities: session.remoteCapabilities }, null, 2);
         },
