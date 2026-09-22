@@ -1,0 +1,21 @@
+# Install on the Linux host before publishing UDP 3478. Never flush the ruleset.
+# Applies before Docker DNAT; the external and internal STUN port are fixed at 3478.
+table inet home_tunnel_stun {
+  chain ingress {
+    type filter hook prerouting priority -150; policy accept;
+    udp dport 3478 udp length > 520 counter drop
+    udp dport 3478 udp length < 28 counter drop
+    # UDP header is 64 bits; require STUN Binding request and RFC 5389 cookie.
+    udp dport 3478 @th,64,16 != 0x0001 counter drop
+    udp dport 3478 @th,96,32 != 0x2112a442 counter drop
+    udp dport 3478 limit rate over 200/second burst 400 packets counter drop
+    meta nfproto ipv4 udp dport 3478 meter source4 size 2048 { ip saddr timeout 5m limit rate over 10/second burst 20 packets } counter drop
+    meta nfproto ipv6 udp dport 3478 meter source6 size 2048 { ip6 saddr timeout 5m limit rate over 10/second burst 20 packets } counter drop
+    udp dport 3478 counter
+  }
+  chain egress {
+    type filter hook postrouting priority 150; policy accept;
+    udp sport 3478 limit rate over 64 kbytes/second burst 64 kbytes counter drop
+    udp sport 3478 counter
+  }
+}

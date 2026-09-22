@@ -2,6 +2,7 @@ import { setImmediate as yieldEventLoop } from "node:timers/promises";
 import { startDatabaseBackups } from "./backup.js";
 import { transaction } from "./db.js";
 import { startQuotaAndAlertChecks } from "./quota.js";
+import { retainRdHistory } from "./rd/service.js";
 
 const batchSize = 5_000;
 const maximumBatchesPerRun = 20;
@@ -168,6 +169,7 @@ async function deleteTrafficHourly(cutoff: Date): Promise<number> {
 }
 
 export async function runDataMaintenance(now = new Date()): Promise<MaintenanceStats> {
+  await transaction(retainRdHistory);
   const trafficCutoff = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
   const hourlyCutoff = new Date(now);
   hourlyCutoff.setUTCMonth(hourlyCutoff.getUTCMonth() - 18);

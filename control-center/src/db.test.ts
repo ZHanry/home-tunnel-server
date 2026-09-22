@@ -111,3 +111,18 @@ test("outbox notifications leave the writer transaction context", async () => {
   });
   await notification;
 });
+
+test("migration checksums detect altered applied journal entries", async () => {
+  const original = await db.one<{ checksum_sha256: string }>(
+    "SELECT checksum_sha256 FROM schema_migrations WHERE version=13",
+  );
+  assert.ok(original?.checksum_sha256);
+  await db.query("UPDATE schema_migrations SET checksum_sha256=? WHERE version=13", [
+    "0".repeat(64),
+  ]);
+  await assert.rejects(db.migrate(), /checksum mismatch/);
+  await db.query("UPDATE schema_migrations SET checksum_sha256=? WHERE version=13", [
+    original.checksum_sha256,
+  ]);
+  await db.migrate();
+});

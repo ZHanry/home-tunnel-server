@@ -6,10 +6,14 @@ import { spawn } from "node:child_process";
 import { backup, DatabaseSync } from "node:sqlite";
 import { pathToFileURL } from "node:url";
 
-const releaseVersion = "7.0.0";
+const packageMetadata = JSON.parse(await readFile(new URL("../../control-center/package.json", import.meta.url), "utf8").catch(() => readFile(new URL("./package.json", import.meta.url), "utf8")));
+const releaseVersion = packageMetadata.version;
+const migrationNames = await readdir(new URL("../../control-center/migrations/", import.meta.url)).catch(() => readdir(new URL("./migrations/", import.meta.url)));
+const supportedSchema = Math.max(...migrationNames.filter(name => /^\d+_.*\.sql$/.test(name)).map(name => Number(name.split("_")[0])));
 const secretFiles = ["internal_service_key","frps_plugin_key","lease_signing_key","bootstrap_admin_password","frps_tls_cert.pem","frps_tls_key.pem"];
 const optionalOperationsFiles = ["compose.release.yaml", "deploy/compose.backup.yaml", "deploy/compose.monitoring.yaml", "deploy/backup/Dockerfile", "deploy/backup/runner.mjs", "deploy/monitoring/prometheus.generated.yml", "deploy/monitoring/prometheus.yml.template", "deploy/monitoring/alerts.yml", "deploy/monitoring/alertmanager.yml", "deploy/monitoring/blackbox.yml", "deploy/monitoring/dashboards/home-tunnel.json", "deploy/monitoring/provisioning/dashboards/default.yml", "deploy/monitoring/provisioning/datasources/default.yml", "deploy/secrets/grafana_admin_password"];
-const configFiles = [...optionalOperationsFiles,".env","compose.yaml","compose.override.yaml","deploy/compose.ports.yaml","deploy/compose.tcp.yaml","deploy/compose.udp.yaml","deploy/compose.l4.yaml","deploy/caddy/Caddyfile.selfhost",...secretFiles.map(name=>`deploy/secrets/${name}`)];
+const rdFiles = ["deploy/secrets/rd_signing_key", "deploy/rd-keyset.json", "deploy/compose.rd-keyset.yaml", "deploy/scripts/rotate-rd-key.mjs", "deploy/compose.rd.yaml", "deploy/compose.stun.yaml", "deploy/stun/turnserver.conf", "deploy/stun/firewall.nft", "deploy/scripts/stun-firewall.sh", "deploy/scripts/probe-stun.py", "docs/REMOTE_DESKTOP_OPERATIONS.md"];
+const configFiles = [...optionalOperationsFiles,...rdFiles,"compatibility.json","control-center/package.json",...migrationNames.filter(name => /^\d+_.*\.sql$/.test(name)).map(name=>`control-center/migrations/${name}`),".env","compose.yaml","compose.override.yaml","deploy/compose.ports.yaml","deploy/compose.tcp.yaml","deploy/compose.udp.yaml","deploy/compose.l4.yaml","deploy/caddy/Caddyfile.selfhost",...secretFiles.map(name=>`deploy/secrets/${name}`)];
 const requiredConfig = [".env","compose.yaml","deploy/caddy/Caddyfile.selfhost",...secretFiles.map(name=>`deploy/secrets/${name}`)];
 const allowedPaths = new Set(["database.sqlite3",...configFiles.map(name=>`config/${name}`)]);
 const host = process.env.BACKUP_HOST || "home-tunnel";
@@ -64,7 +68,15 @@ export async function buildBundle(stage,source,configRoot) {
   try { await backup(sourceDb,join(bundle,"database.sqlite3"),{rate:256}); }
   finally {sourceDb.close();}
   const portable = new DatabaseSync(join(bundle,"database.sqlite3"));
-  try { portable.exec("PRAGMA journal_mode=DELETE"); } finally { portable.close(); }
+  let schema,rdState=null,rdUsed=false;
+  try {
+    portable.exec("PRAGMA journal_mode=DELETE");
+    schema=Number(portable.prepare("SELECT max(version) AS version FROM schema_migrations").get().version);
+    if(schema>=13) {
+      rdState=portable.prepare("SELECT server_instance_id,restore_epoch,keyset_version FROM rd_server_state WHERE id=1").get() ?? null;
+      rdUsed=Number(portable.prepare("SELECT count(*) AS count FROM rd_endpoints").get().count)>0;
+    }
+  } finally { portable.close(); }
   const files=[];
   for (const name of configFiles) {
     const from=join(configRoot,name), to=join(bundle,"config",name);
@@ -78,7 +90,9 @@ export async function buildBundle(stage,source,configRoot) {
     files.push(`config/${name}`);
   }
   files.push("database.sqlite3");
-  const manifest={format:1,version:releaseVersion,created_at:new Date().toISOString(),files:[]};
+  const hasRdKey=files.includes("config/deploy/secrets/rd_signing_key");
+  if(rdUsed && !hasRdKey)throw new Error("RD has registered identities but its signing key is missing from the protected deployment directory");
+  const manifest={format:1,version:releaseVersion,schema_version:schema,remote_desktop:rdState?{...rdState,signing_key_included:hasRdKey}:null,created_at:new Date().toISOString(),files:[]};
   for (const path of files.sort()) manifest.files.push({path,size:(await stat(join(bundle,path))).size,sha256:await digest(join(bundle,path))});
   await writeFile(join(bundle,"manifest.json"),JSON.stringify(manifest),{mode:0o600,flag:"wx"});
   await verifyBundle(bundle);
@@ -88,7 +102,7 @@ export async function buildBundle(stage,source,configRoot) {
 export async function verifyBundle(bundle) {
   await safeFile(bundle,join(bundle,"manifest.json"));
   const manifest=JSON.parse(await readFile(join(bundle,"manifest.json"),"utf8"));
-  if (manifest.format!==1 || !Array.isArray(manifest.files) || manifest.files.length>64) throw new Error("Unsupported backup manifest");
+  if (manifest.format!==1 || !/^\d+\.\d+\.\d+(?:-rc\.\d+)?$/.test(manifest.version) || !Array.isArray(manifest.files) || manifest.files.length>128) throw new Error("Unsupported backup manifest");
   const paths=new Set();
   for (const item of manifest.files) {
     if (!allowedPaths.has(item.path) || paths.has(item.path) || !/^[a-f0-9]{64}$/.test(item.sha256)) throw new Error("Unsafe or duplicate backup path");
@@ -111,7 +125,12 @@ export async function verifyBundle(bundle) {
     if(database.prepare("PRAGMA integrity_check").get().integrity_check!=="ok")throw new Error("Restored SQLite integrity check failed");
     if(database.prepare("PRAGMA foreign_key_check").all().length)throw new Error("Restored database foreign keys are invalid");
     const schema=Number(database.prepare("SELECT max(version) AS version FROM schema_migrations").get().version);
-    if(schema!==12)throw new Error("Restore requires the matching Home Tunnel server release");
+    if(schema<12 || schema>supportedSchema || (manifest.schema_version!==undefined && manifest.schema_version!==schema))throw new Error("Restore requires a supported schema and matching manifest");
+    if(schema>=13) {
+      const state=database.prepare("SELECT server_instance_id,restore_epoch,keyset_version FROM rd_server_state WHERE id=1").get() ?? null;
+      if(state && (!manifest.remote_desktop || state.server_instance_id!==manifest.remote_desktop.server_instance_id || state.restore_epoch!==manifest.remote_desktop.restore_epoch))throw new Error("RD instance metadata does not match the backup manifest");
+      if(Number(database.prepare("SELECT count(*) AS count FROM rd_endpoints").get().count)>0 && !paths.has("config/deploy/secrets/rd_signing_key"))throw new Error("RD signing key is missing from the protected backup");
+    }
     if(Number(database.prepare("SELECT count(*) AS count FROM users WHERE role='admin' AND deleted_at IS NULL").get().count)!==1)throw new Error("Restored database must have one administrator");
   } finally {database.close();}
   return manifest;

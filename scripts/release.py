@@ -94,7 +94,7 @@ def seal():
         import tarfile
         archive = directory/f'home-tunnel-server-{local_version()}.tar.gz'
         with tarfile.open(archive, 'w:gz') as bundle:
-            for entry in ['compose.yaml', '.env.example', 'README.md', 'README.en.md', 'LICENSE', 'deploy', 'docs', 'contracts']:
+            for entry in ['compose.yaml', '.env.example', 'README.md', 'README.en.md', 'LICENSE', 'compatibility.json', 'control-center/package.json', 'control-center/migrations', 'deploy', 'docs', 'contracts']:
                 bundle.add(ROOT/entry, arcname=entry, filter=lambda item: None if '__pycache__' in item.name or item.name.endswith('.pyc') else item)
             bundle.add(directory/'compose.release.yaml',arcname='compose.release.yaml')
     lines=[]

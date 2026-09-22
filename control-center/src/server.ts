@@ -16,6 +16,9 @@ import { clientRouter } from "./routes/client.js";
 import { internalRouter } from "./routes/internal.js";
 import { downloadRouter, publicRouter } from "./routes/public.js";
 import { APP_VERSION } from "./version.js";
+import { remoteDesktopRouter, remoteDesktopAdminRouter } from "./routes/remote-desktop.js";
+import { initializeRd } from "./rd/service.js";
+import { attachRdSignaling } from "./rd/signaling.js";
 
 export async function createApplication(
   initializeDatabase = true,
@@ -24,6 +27,7 @@ export async function createApplication(
   if (initializeDatabase) {
     await migrate();
     await bootstrapAdmin();
+    await initializeRd();
   }
   const app = express();
   app.disable("x-powered-by");
@@ -46,6 +50,8 @@ export async function createApplication(
   // Bound public API work before parsing bodies or looking up sessions. Internal
   // service traffic has separate authentication and must not share a public budget.
   app.use("/api", apiRequestLimiter);
+  app.use("/api/v1/rd", remoteDesktopRouter);
+  app.use("/api/v1/admin/rd", remoteDesktopAdminRouter);
   app.use(express.json({ limit: "1mb", strict: true }));
 
   app.get("/healthz", publicRequestLimiter, async (_request, response) => {
@@ -107,6 +113,7 @@ async function main(): Promise<void> {
   const app = await createApplication(true);
   const server = createServer(app);
   const realtime = attachRealtime(server);
+  const rdSignaling = attachRdSignaling(server);
   const maintenance = startDataMaintenance();
   await new Promise<void>((resolve) => server.listen(config.port, "0.0.0.0", resolve));
   console.log(
@@ -140,6 +147,7 @@ async function main(): Promise<void> {
     const serverClosed = new Promise<void>((resolve) => server.close(() => resolve()));
     server.closeAllConnections();
     await realtime.close().catch(() => undefined);
+    await rdSignaling.close().catch(() => undefined);
     await serverClosed;
     await closeDatabase().catch(() => undefined);
     process.exit(0);

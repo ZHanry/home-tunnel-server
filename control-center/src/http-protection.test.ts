@@ -43,6 +43,13 @@ test("API budgets reject excess work without consuming the separate page budget"
     for (let index = 0; index < 2; index++) {
       const response = await fetch(origin + "/api/v1/public/config");
       assert.equal(response.status, 200);
+      assert.equal(
+        response.headers.get("permissions-policy"),
+        "camera=(), microphone=(self), geolocation=()",
+      );
+      assert.ok(
+        response.headers.get("content-security-policy")?.includes("media-src 'self' blob:"),
+      );
       await response.text();
     }
     const limited = await fetch(origin + "/api/v1/public/config");

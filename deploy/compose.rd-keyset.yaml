@@ -1,0 +1,7 @@
+# Include together with compose.rd.yaml after an offline signing-key rotation.
+services:
+  control-center:
+    environment:
+      RD_KEYSET_FILE: /run/configs/rd-keyset.json
+    volumes:
+      - ./deploy/rd-keyset.json:/run/configs/rd-keyset.json:ro

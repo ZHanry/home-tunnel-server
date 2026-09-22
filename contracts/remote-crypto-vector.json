@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "description": "Public verification vector; private fixture key was discarded.",
+  "public_jwk": {
+    "kty": "EC",
+    "x": "HsvJxq-Ra__mYYTYVgE8_iRfIE70_z3Vt0oVwA2ngLw",
+    "y": "8TWXqpztF7kgyyXbswFabx0TKg1OtQkFaB0onMGArdI",
+    "crv": "P-256"
+  },
+  "public_key_xy_hex": "1ecbc9c6af916bffe66184d856013cfe245f204ef4ff3dd5b74a15c00da780bcf13597aa9ced17b920cb25dbb3015a6f1d132a0d4eb50905681d289cc180add2",
+  "signature_raw64_hex": "7be15fa9e6997c9a88cc3c5f5cfeb43e548a8b0cc1b545dbe35fec6d6af4942b02f6a86bdc358ac69141c14d7f7c5101b4a8081dccc805f4c533df1c4112a0cd",
+  "transcript_sha256": "9d1129fe46f43dc736251c6434dfa4c8d3e2443c3a2de9f9b3d96ac485c384d9"
+}

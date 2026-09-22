@@ -1,0 +1,27 @@
+.remote-dialog { position: fixed; top: 3vh; width: min(1200px, 96vw); max-height: 87vh; padding: 24px; border: 1px solid var(--border, #c8d3cf); border-radius: 16px; background: var(--surface, #fff); color: var(--text, #173d32); box-shadow: 0 12px 64px #09110d55; }
+.remote-dialog::backdrop { background: #0b251cbb; }
+.remote-header { display: flex; gap: 24px; justify-content: space-between; align-items: start; }
+.remote-header h2 { margin: 0; }
+.remote-status { margin: 8px 0 16px; }
+.remote-error { color: #b42318; white-space: pre-wrap; }
+.remote-auth { display: grid; gap: 16px; max-width: 640px; }
+.remote-auth fieldset { padding: 16px; border: 1px solid var(--border, #c8d3cf); border-radius: 8px; }
+.remote-permission { display: inline-flex; gap: 6px; padding: 6px 12px 6px 0; align-items: center; }
+.remote-permission input { width: auto; }
+.remote-code { display: block; margin: 20px 0; font-family: ui-monospace, monospace; font-size: 20px; overflow-wrap: anywhere; }
+.remote-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.remote-video { display: block; width: 100%; height: min(65vh, 760px); background: #09110d; object-fit: contain; touch-action: none; }
+.remote-video:focus { outline: 3px solid #20b886; outline-offset: -3px; }
+.remote-text { display: flex; gap: 12px; align-items: end; margin-top: 16px; }
+.remote-text label { flex: 1; }
+.remote-text textarea { display: block; width: 100%; }
+.remote-viewer:fullscreen { padding: 16px; background: #09110d; color: #e5f5ee; overflow: auto; }
+.remote-viewer:fullscreen .remote-video { height: calc(100vh - 180px); }
+.remote-dialog [hidden] { display: none !important; }
+.remote-window-bar { position: fixed; bottom: 12px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 8px; z-index: 2147483646; }
+.remote-data { display: grid; gap: 12px; margin-top: 16px; }
+.remote-data textarea { display: block; width: 100%; margin: 8px 0; }
+.remote-file-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.remote-file-row span { flex: 1; overflow-wrap: anywhere; }
+.remote-data pre { max-height: 240px; overflow: auto; white-space: pre-wrap; }
+@media (prefers-color-scheme: dark) { .remote-dialog { background: #10251e; color: #e2f3ec; } .remote-error { color: #ffb4a8; } }

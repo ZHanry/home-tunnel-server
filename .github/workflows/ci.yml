@@ -262,7 +262,7 @@ jobs:
       run: |
         set -euo pipefail
         export TEST_RESTORE_BUNDLE_PATH="$RUNNER_TEMP/ht-restored-bundle"
-        node --test deploy/backup/runner.test.mjs
+        node --test deploy/backup/runner.test.mjs deploy/backup/bundle.test.mjs
         python3 deploy/scripts/import-restore.py --bundle "$TEST_RESTORE_BUNDLE_PATH" --verify-only
         python3 deploy/scripts/import-restore.py --bundle "$TEST_RESTORE_BUNDLE_PATH" --destination "$RUNNER_TEMP/ht-restored-project" --project ht-restore-ci
         python3 tests/verify-restored-volume.py

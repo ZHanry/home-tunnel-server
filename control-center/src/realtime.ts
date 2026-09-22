@@ -4,6 +4,7 @@ import { config } from "./config.js";
 import { databaseEvents, one, transaction } from "./db.js";
 import { parseCookieHeader } from "./http.js";
 import { tokenHash } from "./security.js";
+import { registerUpgrade } from "./upgrades.js";
 
 type SocketIdentity = {
   userId: string;
@@ -78,7 +79,7 @@ export function attachRealtime(
   const websocketServer = new WebSocketServer(websocketOptions);
   let closing = false;
 
-  server.on("upgrade", (request, socket, head) => {
+  const unregisterUpgrade = registerUpgrade(server, "/api/v1/ws", (request, socket, head) => {
     const url = new URL(request.url ?? "/", "http://internal");
     if (url.pathname !== "/api/v1/ws") {
       socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
@@ -243,6 +244,7 @@ export function attachRealtime(
   return {
     close: async () => {
       closing = true;
+      unregisterUpgrade();
       clearInterval(fallbackTimer);
       clearInterval(pingTimer);
       databaseEvents.off("outbox", onOutbox);
