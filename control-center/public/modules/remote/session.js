@@ -44,7 +44,7 @@ export class RemoteSession {
     this.onReconnectNeeded = onReconnectNeeded;
     this.epoch = session.connection_epoch; this.id = session.session_id;
     this.channels = new Map(); this.sequences = new Map(); this.received = new Map(); this.peerReplay = new PeerReplayWindow(); this.frameQueues = new Map();
-    this.lease = new LeaseDeadline(); this.closed = false; this.ready = false; this.inputEpoch = 0;
+    this.lease = new LeaseDeadline(); this.closed = false; this.ready = false; this.inputEpoch = 0; this.heartbeatVersion = 0;
     this.inputEnabled = false; this.peerVerified = false; this.pathVerified = false; this.signalSequence = 0n;
     this.candidates = []; this.pendingCandidates = []; this.abort = new AbortController();
     this.controllerNonce = crypto.getRandomValues(new Uint8Array(32));
@@ -112,7 +112,7 @@ export class RemoteSession {
     this.timer = setInterval(() => {
       if (!this.lease.valid()) { this.fail(new RemoteError("RD_LEASE_EXPIRED")); return; }
       if (this.inputEnabled) {
-        try { this.send(TYPES.INPUT_HEARTBEAT, { input_epoch: this.inputEpoch, state_version: this.inputEpoch, ...(this.inputState?.() ?? { keys: [], buttons: 0 }) }); }
+        try { this.sendInputHeartbeat(); }
         catch (error) { this.fail(error); }
       }
     }, 250);
@@ -215,7 +215,9 @@ export class RemoteSession {
     } else if (frame.type === TYPES.CONTROL_GRANTED) {
       if (!this.inputRequested || body.request_id !== this.inputRequestId || document.hidden) { this.send(TYPES.RELEASE_ALL, { reason: "stale_control_request" }); return; }
       if (!this.ready || !Number.isSafeInteger(body.new_input_epoch) || body.new_input_epoch <= this.inputEpoch) throw new RemoteError("RD_STATE_CONFLICT");
+      this.inputEnabled = false; this.clearInputState?.();
       this.inputEpoch = body.new_input_epoch;
+      this.heartbeatVersion = 0;
       this.send(TYPES.INPUT_STATE, { request_id: this.inputRequestId, generation: this.inputEpoch, keys: [], buttons: 0, motion_sequence: 0 });
     } else if (frame.type === TYPES.INPUT_SYNC_ACK) {
       if (!this.inputRequested || body.request_id !== this.inputRequestId || body.input_epoch !== this.inputEpoch || body.layout_epoch !== this.layout?.layout_epoch || document.hidden) { this.send(TYPES.RELEASE_ALL, { reason: "stale_input_sync" }); return; }
@@ -298,8 +300,15 @@ export class RemoteSession {
     if (channel.bufferedAmount + encoded.length > RD.limits.send_queue_bytes) throw new RemoteError("RD_MEDIA_BACKPRESSURE");
     channel.send(encoded); this.sequences.set(name, sequence);
   }
+  sendInputHeartbeat() {
+    if (!this.inputEnabled || document.hidden) return;
+    if (this.heartbeatVersion >= Number.MAX_SAFE_INTEGER) throw new RemoteError("RD_STATE_CONFLICT");
+    const { keys, buttons } = this.inputState?.() ?? { keys: [], buttons: 0 };
+    this.send(TYPES.INPUT_HEARTBEAT, { input_epoch: this.inputEpoch, state_version: ++this.heartbeatVersion, keys, buttons });
+  }
   requestInput() {
     if (!this.ready || !this.video.videoWidth || document.hidden) throw new RemoteError("RD_INPUT_DENIED");
+    if (this.inputEnabled || this.inputRequested) this.releaseInput();
     this.inputRequested = true;
     this.inputRequestId = crypto.randomUUID();
     this.send(TYPES.CONTROL_REQUEST, { request_id: this.inputRequestId, requested_input_permissions: [...this.permissions].filter((value) => value.startsWith("input.")) });

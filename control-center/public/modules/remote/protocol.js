@@ -1,4 +1,5 @@
 import { RD, TYPES } from "./protocol.generated.js";
+import { validateJsonBody } from "./payload.generated.js";
 
 export { RD, TYPES };
 const encoder = new TextEncoder();
@@ -119,6 +120,7 @@ export function decodeFrame(input, channel) {
   const body = content.subarray(24);
   const payload = definition.encoding === "json" ? strictJson(decoder.decode(body), RD.channels[channel].max_message_bytes) : body;
   if (definition.encoding === "json" && (!payload || typeof payload !== "object" || Array.isArray(payload))) throw new Error("RD_PROTOCOL_MISMATCH");
+  if (definition.encoding === "json") validateJsonBody(definition.id, payload, body.byteLength);
   return { type: view.getUint8(3), flags: view.getUint16(4), epoch, inputEpoch, sequence, payload };
 }
 

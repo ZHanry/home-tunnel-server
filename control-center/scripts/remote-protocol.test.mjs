@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { createHash, randomBytes, webcrypto } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import {
   RD,
   TYPES,
@@ -32,12 +34,374 @@ import {
 } from "../public/modules/remote/session.js";
 import { keyUsage, pointerCoordinates } from "../public/modules/remote/input.js";
 import { boundedResponse, RemoteApi } from "../public/modules/remote/http.js";
+import { validateJsonBody } from "../public/modules/remote/payload.generated.js";
+import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 const vectors = JSON.parse(
   await readFile(new URL("../../contracts/remote-test-vectors.json", import.meta.url), "utf8"),
 );
 const hex = (value) => Buffer.from(value).toString("hex");
+
+test("all JSON bodies have strict schemas; generated validator agrees with JSON Schema", () => {
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  addFormats(ajv);
+  ajv.addKeyword({
+    keyword: "x-maxEncodedBytes",
+    schemaType: "number",
+    validate: (maximum, data) => Buffer.byteLength(JSON.stringify(data)) <= maximum,
+  });
+  ajv.addKeyword({
+    keyword: "x-uniqueBy",
+    schemaType: "array",
+    type: "array",
+    validate: (keys, data) =>
+      keys.every((key) => new Set(data.map((item) => item[key])).size === data.length),
+  });
+  ajv.addKeyword({
+    keyword: "x-fieldInArray",
+    schemaType: "object",
+    type: "object",
+    validate: (rule, data) =>
+      Array.isArray(data[rule.array]) &&
+      data[rule.array].some((item) => item[rule.key] === data[rule.field]),
+  });
+  const counts = { defined: 0, reserved: 0, binary: 0 };
+  for (const [name, definition] of Object.entries(RD.messages)) {
+    if (definition.encoding === "binary") {
+      counts.binary++;
+      assert.equal(definition.body_schema, false, name);
+      assert.ok(definition.binary_layout.fields.length > 0, name);
+      continue;
+    }
+    if (definition.wire_status === "reserved") {
+      counts.reserved++;
+      assert.equal(definition.body_schema, false, name);
+      assert.throws(() => validateJsonBody(definition.id, {}), /RD_PROTOCOL_MISMATCH/, name);
+      continue;
+    }
+    counts.defined++;
+    const validate = ajv.compile({
+      $schema: RD.schema_dialect,
+      $defs: RD.$defs,
+      ...definition.body_schema,
+    });
+    for (const example of definition.examples) {
+      assert.equal(validate(example), true, `${name}: ${JSON.stringify(validate.errors)}`);
+      assert.deepEqual(validateJsonBody(definition.id, example), example, name);
+      const extra = { ...example, unexpected: true };
+      assert.equal(validate(extra), false, name);
+      assert.throws(() => validateJsonBody(definition.id, extra), /RD_PROTOCOL_MISMATCH/, name);
+      assert.throws(
+        () => validateJsonBody(definition.id, example, definition.max_payload_bytes + 1),
+        /RD_MESSAGE_TOO_LARGE/,
+        name,
+      );
+      for (const key of Object.keys(example)) {
+        const missing = { ...example };
+        delete missing[key];
+        // The optional variants must be treated identically by both validators.
+        const valid = validate(missing);
+        if (valid) assert.doesNotThrow(() => validateJsonBody(definition.id, missing), name);
+        else
+          assert.throws(
+            () => validateJsonBody(definition.id, missing),
+            /RD_PROTOCOL_MISMATCH/,
+            name,
+          );
+      }
+    }
+  }
+  assert.deepEqual(counts, { defined: 27, reserved: 7, binary: 9 });
+});
+
+test("input heartbeat versions increase per epoch and only a current grant resets them", async () => {
+  const oldDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
+  const visibility = { hidden: false };
+  Object.defineProperty(globalThis, "document", { configurable: true, value: visibility });
+  try {
+    const session = Object.create(RemoteSession.prototype),
+      frames = [];
+    const requestID = crypto.randomUUID();
+    Object.assign(session, {
+      lease: { valid: () => true },
+      epoch: 1,
+      received: new Map(),
+      peerVerified: true,
+      pathVerified: true,
+      ready: true,
+      inputRequested: true,
+      inputRequestId: requestID,
+      inputEnabled: true,
+      inputEpoch: 2,
+      heartbeatVersion: 0,
+      layout: { layout_epoch: 1 },
+      inputState: () => ({ keys: [{ usage_page: 7, usage: 4 }], buttons: 1 }),
+      send: (type, payload) => {
+        validateJsonBody(type, payload);
+        frames.push({ type, payload });
+      },
+    });
+    session.sendInputHeartbeat();
+    session.sendInputHeartbeat();
+    assert.deepEqual(
+      frames.map((frame) => frame.payload.state_version),
+      [1, 2],
+    );
+    assert.ok(frames.every((frame) => frame.payload.input_epoch === 2));
+    assert.deepEqual(frames[1].payload.keys, [{ usage_page: 7, usage: 4 }]);
+    assert.equal(frames[1].payload.buttons, 1);
+    await session.onFrame(
+      {
+        type: TYPES.CONTROL_GRANTED,
+        epoch: 1,
+        sequence: 1,
+        payload: { request_id: crypto.randomUUID(), new_input_epoch: 90 },
+      },
+      "control",
+    );
+    assert.equal(session.heartbeatVersion, 2, "stale request must not reset heartbeat history");
+    assert.equal(session.inputEpoch, 2);
+    await session.onFrame(
+      {
+        type: TYPES.CONTROL_GRANTED,
+        epoch: 1,
+        sequence: 2,
+        payload: { request_id: requestID, new_input_epoch: 3 },
+      },
+      "control",
+    );
+    assert.equal(session.heartbeatVersion, 0);
+    assert.equal(session.inputEpoch, 3);
+    assert.equal(session.inputEnabled, false, "a new epoch cannot inherit enabled input");
+    const beforeACK = frames.length;
+    session.sendInputHeartbeat();
+    assert.equal(
+      frames.length,
+      beforeACK,
+      "new grant still requires its input synchronization ACK",
+    );
+    await session.onFrame(
+      {
+        type: TYPES.INPUT_SYNC_ACK,
+        epoch: 1,
+        sequence: 3,
+        payload: { request_id: requestID, input_epoch: 3, layout_epoch: 1 },
+      },
+      "control",
+    );
+    session.sendInputHeartbeat();
+    assert.equal(frames.at(-1).payload.state_version, 1);
+    assert.equal(frames.at(-1).payload.input_epoch, 3);
+    session.inputRequested = false;
+    await session.onFrame(
+      {
+        type: TYPES.CONTROL_GRANTED,
+        epoch: 1,
+        sequence: 4,
+        payload: { request_id: requestID, new_input_epoch: 4 },
+      },
+      "control",
+    );
+    assert.equal(session.heartbeatVersion, 1, "released request must not reset heartbeat history");
+    assert.equal(session.inputEpoch, 3);
+    const count = frames.length;
+    visibility.hidden = true;
+    session.sendInputHeartbeat();
+    assert.equal(frames.length, count, "background page cannot keep input alive");
+    visibility.hidden = false;
+    session.inputEnabled = false;
+    session.sendInputHeartbeat();
+    assert.equal(frames.length, count, "disabled input cannot keep the watchdog alive");
+    session.inputEnabled = true;
+    session.heartbeatVersion = Number.MAX_SAFE_INTEGER;
+    assert.throws(() => session.sendInputHeartbeat());
+    assert.equal(frames.length, count, "overflow cannot wrap into an old heartbeat sequence");
+  } finally {
+    if (oldDocument) Object.defineProperty(globalThis, "document", oldDocument);
+    else delete globalThis.document;
+  }
+});
+
+test("body validation rejects stale-field shapes, scope widening, ambiguous ACKs and boundary overflow", () => {
+  const example = (name) => structuredClone(RD.messages[name].examples[0]);
+  const reject = (name, body) =>
+    assert.throws(() => validateJsonBody(TYPES[name], body), /RD_PROTOCOL_MISMATCH/, name);
+  reject("CONTROL_REQUEST", { ...example("CONTROL_REQUEST"), request_id: "not-a-uuid" });
+  reject("CONTROL_REQUEST", {
+    ...example("CONTROL_REQUEST"),
+    requested_input_permissions: ["view"],
+  });
+  reject("CONTROL_REQUEST", {
+    ...example("CONTROL_REQUEST"),
+    requested_input_permissions: ["input.keyboard", "input.keyboard"],
+  });
+  reject("CONTROL_GRANTED", { ...example("CONTROL_GRANTED"), new_input_epoch: 0 });
+  reject("CONTROL_GRANTED", { ...example("CONTROL_GRANTED"), new_input_epoch: 0x100000000 });
+  reject("INPUT_SYNC_ACK", { ...example("INPUT_SYNC_ACK"), layout_epoch: 1.5 });
+  reject("INPUT_STATE", { ...example("INPUT_STATE"), keys: [{ usage_page: 7, usage: 4 }] });
+  reject("INPUT_STATE", { ...example("INPUT_STATE"), buttons: 1 });
+  reject("INPUT_HEARTBEAT", {
+    ...example("INPUT_HEARTBEAT"),
+    keys: [
+      { usage_page: 7, usage: 4 },
+      { usage: 4, usage_page: 7 },
+    ],
+  });
+  reject("INPUT_HEARTBEAT", { ...example("INPUT_HEARTBEAT"), buttons: 32 });
+  reject("FEATURE_REQUEST", { ...example("FEATURE_REQUEST"), permission: "input.keyboard" });
+  reject("FEATURE_STATE", { ...example("FEATURE_STATE"), enabled: "false" });
+  reject("FEATURE_STATE", { ...example("FEATURE_STATE"), error_code: "unbounded user text" });
+  reject("SESSION_READY", { ...example("SESSION_READY"), permissions: ["input.keyboard"] });
+  reject("SESSION_HELLO", {
+    ...example("SESSION_HELLO"),
+    protocol: { major: 1, minor: 0, trusted: true },
+  });
+  reject("SESSION_HELLO", { ...example("SESSION_HELLO"), nonce: "A".repeat(42) + "B" });
+  reject("SESSION_PROOF", { ...example("SESSION_PROOF"), signature: "A".repeat(85) + "B" });
+  reject("PATH_VERIFIED", { ...example("PATH_VERIFIED"), local_candidate_type: "relay" });
+  reject("PATH_VERIFIED", { ...example("PATH_VERIFIED"), protocol: "tcp" });
+  reject("DISPLAY_SELECT", { display_id: "0", expected_layout_epoch: 1 });
+  const layout = example("DISPLAY_LAYOUT");
+  reject("DISPLAY_LAYOUT", { ...layout, active_display: "missing" });
+  reject("DISPLAY_LAYOUT", {
+    ...layout,
+    displays: [layout.displays[0], { ...layout.displays[0], id: "other" }],
+  });
+  reject("DISPLAY_LAYOUT", { ...layout, displays: [{ ...layout.displays[0], width_px: 32769 }] });
+  reject("DISPLAY_LAYOUT", {
+    ...layout,
+    displays: [{ ...layout.displays[0], native_handle: "private" }],
+  });
+  reject("CLIPBOARD_OFFER", { ...example("CLIPBOARD_OFFER"), size: 65537 });
+  reject("CLIPBOARD_OFFER", { ...example("CLIPBOARD_OFFER"), mime: "text/html" });
+  reject("CLIPBOARD_OFFER", { ...example("CLIPBOARD_OFFER"), sha256: "A".repeat(64) });
+  reject("FILE_OFFER", { ...example("FILE_OFFER"), size: RD.limits.file_bytes + 1 });
+  for (const name of [
+    "../secret",
+    "C:\\secret",
+    "CON.txt",
+    "report.",
+    "report ",
+    "bad\u0000.txt",
+    ".",
+    "..",
+  ])
+    reject("FILE_OFFER", { ...example("FILE_OFFER"), name });
+  reject("FILE_ACK", { ...example("FILE_ACK"), sha256: "a".repeat(64) });
+  reject("FILE_ACK", { ...example("FILE_ACK"), offset: -1 });
+  assert.doesNotThrow(() =>
+    validateJsonBody(TYPES.FILE_OFFER, { ...example("FILE_OFFER"), size: RD.limits.file_bytes }),
+  );
+  assert.doesNotThrow(() =>
+    validateJsonBody(TYPES.CLIPBOARD_OFFER, { ...example("CLIPBOARD_OFFER"), size: 65536 }),
+  );
+});
+
+test("frame decoder applies body schemas and rejects reserved messages before dispatch", () => {
+  const body = RD.messages.SESSION_HELLO.examples[0];
+  const frame = encodeFrame(TYPES.SESSION_HELLO, body, { epoch: 1, sequence: 1 });
+  assert.deepEqual(JSON.parse(JSON.stringify(decodeFrame(frame, "control").payload)), body);
+  assert.throws(
+    () => encodeFrame(TYPES.SESSION_HELLO, { ...body, trusted: true }, { epoch: 1, sequence: 1 }),
+    /RD_PROTOCOL_MISMATCH/,
+  );
+  assert.throws(
+    () => encodeFrame(TYPES.STREAM_CONFIG, {}, { epoch: 1, sequence: 1 }),
+    /RD_PROTOCOL_MISMATCH/,
+  );
+});
+
+test("generated documentation and all nine binary layouts match the registry", async () => {
+  const canonical = JSON.parse(
+    await readFile(new URL("../../contracts/remote-desktop.v1.json", import.meta.url), "utf8"),
+  );
+  assert.deepEqual(RD, canonical, "generated registry must match canonical schema");
+  const generated = spawnSync(
+    "python",
+    [
+      fileURLToPath(new URL("../../scripts/generate-remote-protocol.py", import.meta.url)),
+      "--check",
+    ],
+    { encoding: "utf8" },
+  );
+  assert.equal(generated.status, 0, generated.stderr || generated.stdout);
+  const documentation = await readFile(
+    new URL("../../contracts/REMOTE_PROTOCOL.md", import.meta.url),
+    "utf8",
+  );
+  for (const [name, definition] of Object.entries(RD.messages)) {
+    assert.ok(
+      documentation.includes(
+        `| ${name} | \`0x${definition.id.toString(16).padStart(2, "0")}\` / ${definition.channel} | ${definition.encoding} / ${definition.wire_status} |`,
+      ),
+      name,
+    );
+    assert.ok(
+      definition.max_payload_bytes + RD.header.length <=
+        RD.channels[definition.channel].max_message_bytes,
+      name,
+    );
+    if (definition.encoding !== "binary") continue;
+    const fields = definition.binary_layout.fields;
+    assert.equal(fields[0].offset, 0, name);
+    for (let index = 1; index < fields.length; index++)
+      assert.equal(fields[index].offset, fields[index - 1].offset + fields[index - 1].bytes, name);
+    if (definition.payload_bytes)
+      assert.equal(fields.at(-1).offset + fields.at(-1).bytes, definition.payload_bytes, name);
+  }
+  assert.equal(RD.messages.FILE_CHUNK.max_payload_bytes, 24 + RD.limits.file_chunk_bytes);
+  assert.equal(
+    RD.messages.CLIPBOARD_CHUNK.max_payload_bytes,
+    RD.channels.clipboard.max_message_bytes - RD.header.length,
+  );
+});
+
+test("requesting input again releases old keys and control before creating a new request", () => {
+  const oldDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
+  Object.defineProperty(globalThis, "document", { configurable: true, value: { hidden: false } });
+  try {
+    const session = Object.create(RemoteSession.prototype),
+      frames = [];
+    let cleared = 0;
+    const previous = crypto.randomUUID();
+    Object.assign(session, {
+      ready: true,
+      video: { videoWidth: 100 },
+      inputEnabled: true,
+      inputRequested: true,
+      inputRequestId: previous,
+      permissions: new Set(["view", "input.keyboard"]),
+      closed: false,
+      clearInputState: () => {
+        cleared++;
+      },
+      send: (type, payload) => frames.push({ type, payload }),
+    });
+    session.requestInput();
+    assert.equal(cleared, 1);
+    assert.equal(session.inputEnabled, false);
+    assert.equal(session.inputRequested, true);
+    assert.notEqual(session.inputRequestId, previous);
+    assert.deepEqual(
+      frames.map((frame) => frame.type),
+      [TYPES.RELEASE_ALL, TYPES.CONTROL_REQUEST],
+    );
+    assert.equal(frames[1].payload.request_id, session.inputRequestId);
+    const pending = session.inputRequestId;
+    session.requestInput();
+    assert.equal(session.inputEnabled, false);
+    assert.notEqual(session.inputRequestId, pending);
+    assert.deepEqual(
+      frames.slice(2).map((frame) => frame.type),
+      [TYPES.RELEASE_ALL, TYPES.CONTROL_REQUEST],
+    );
+  } finally {
+    if (oldDocument) Object.defineProperty(globalThis, "document", oldDocument);
+    else delete globalThis.document;
+  }
+});
 
 test("released or previous input grants cannot enable input or terminate viewing", async () => {
   const oldDocument = Object.getOwnPropertyDescriptor(globalThis, "document");

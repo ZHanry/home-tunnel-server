@@ -1,64 +1,1977 @@
 {
   "schema_version": 1,
-  "protocol": { "name": "ht.rd.v1", "major": 1, "minor": 0, "signal_subprotocol": "ht.rd.signal.v1", "abi": 1 },
+  "protocol": {
+    "name": "ht.rd.v1",
+    "major": 1,
+    "minor": 0,
+    "signal_subprotocol": "ht.rd.signal.v1",
+    "abi": 1
+  },
   "status": "development",
-  "permissions": ["view", "input.keyboard", "input.pointer", "input.text", "audio.system", "audio.microphone", "clipboard.read", "clipboard.write", "files.send", "files.receive"],
+  "permissions": [
+    "view",
+    "input.keyboard",
+    "input.pointer",
+    "input.text",
+    "audio.system",
+    "audio.microphone",
+    "clipboard.read",
+    "clipboard.write",
+    "files.send",
+    "files.receive"
+  ],
   "direction": "Permissions are from the controller perspective: read/receive is host to controller, write/send is controller to host.",
-  "header": { "magic": 21060, "length": 24, "byte_order": "big", "fields": { "magic": 0, "version": 2, "type": 3, "flags": 4, "header_length": 6, "connection_epoch": 8, "input_epoch": 12, "sequence": 16, "payload_length": 20 } },
-  "limits": { "sequence_reconnect_at": 4294963200, "text_bytes": 4096, "clipboard_bytes": 65536, "file_chunk_bytes": 16384, "file_bytes": 8589934592, "batch_file_bytes": 34359738368, "batch_files": 64, "send_queue_bytes": 131072, "input_watchdog_ms": 2000, "input_heartbeat_ms": 250, "ice_deadline_ms": 20000 },
+  "header": {
+    "magic": 21060,
+    "length": 24,
+    "byte_order": "big",
+    "fields": {
+      "magic": 0,
+      "version": 2,
+      "type": 3,
+      "flags": 4,
+      "header_length": 6,
+      "connection_epoch": 8,
+      "input_epoch": 12,
+      "sequence": 16,
+      "payload_length": 20
+    }
+  },
+  "limits": {
+    "sequence_reconnect_at": 4294963200,
+    "text_bytes": 4096,
+    "clipboard_bytes": 65536,
+    "file_chunk_bytes": 16384,
+    "file_bytes": 8589934592,
+    "batch_file_bytes": 34359738368,
+    "batch_files": 64,
+    "send_queue_bytes": 131072,
+    "input_watchdog_ms": 2000,
+    "input_heartbeat_ms": 250,
+    "ice_deadline_ms": 20000
+  },
   "channels": {
-    "control": { "ordered": true, "max_message_bytes": 16384 },
-    "input": { "ordered": true, "max_message_bytes": 8192 },
-    "motion": { "ordered": false, "max_retransmits": 0, "max_message_bytes": 256 },
-    "feedback": { "ordered": false, "max_retransmits": 0, "max_message_bytes": 2048 },
-    "clipboard": { "ordered": true, "max_message_bytes": 16384 },
-    "file": { "ordered": true, "max_message_bytes": 17408 }
+    "control": {
+      "ordered": true,
+      "max_message_bytes": 16384
+    },
+    "input": {
+      "ordered": true,
+      "max_message_bytes": 8192
+    },
+    "motion": {
+      "ordered": false,
+      "max_retransmits": 0,
+      "max_message_bytes": 256
+    },
+    "feedback": {
+      "ordered": false,
+      "max_retransmits": 0,
+      "max_message_bytes": 2048
+    },
+    "clipboard": {
+      "ordered": true,
+      "max_message_bytes": 16384
+    },
+    "file": {
+      "ordered": true,
+      "max_message_bytes": 17408
+    }
   },
   "messages": {
-    "SESSION_HELLO": { "id": 1, "channel": "control", "encoding": "json" },
-    "SESSION_PROOF": { "id": 2, "channel": "control", "encoding": "json" },
-    "PATH_VERIFIED": { "id": 3, "channel": "control", "encoding": "json" },
-    "SESSION_READY": { "id": 4, "channel": "control", "encoding": "json" },
-    "CAPABILITIES": { "id": 5, "channel": "control", "encoding": "json" },
-    "CAPABILITIES_ACK": { "id": 6, "channel": "control", "encoding": "json" },
-    "DISPLAY_LAYOUT": { "id": 7, "channel": "control", "encoding": "json" },
-    "DISPLAY_SELECT": { "id": 8, "channel": "control", "encoding": "json" },
-    "STREAM_CONFIG": { "id": 9, "channel": "control", "encoding": "json" },
-    "STREAM_ACK": { "id": 10, "channel": "control", "encoding": "json" },
-    "PAUSE": { "id": 11, "channel": "control", "encoding": "json" },
-    "RESUME": { "id": 12, "channel": "control", "encoding": "json" },
-    "CONTROL_REQUEST": { "id": 16, "channel": "control", "encoding": "json" },
-    "CONTROL_GRANTED": { "id": 17, "channel": "control", "encoding": "json" },
-    "CONTROL_RELEASED": { "id": 18, "channel": "control", "encoding": "json" },
-    "INPUT_STATE": { "id": 19, "channel": "control", "encoding": "json" },
-    "INPUT_SYNC_ACK": { "id": 20, "channel": "control", "encoding": "json" },
-    "RELEASE_ALL": { "id": 21, "channel": "control", "encoding": "json" },
-    "KEY": { "id": 32, "channel": "input", "encoding": "binary", "payload_bytes": 8 },
-    "BUTTON": { "id": 33, "channel": "input", "encoding": "binary", "payload_bytes": 32, "allowed_flags": 1 },
-    "WHEEL": { "id": 34, "channel": "input", "encoding": "binary", "payload_bytes": 24 },
-    "TEXT_COMMIT": { "id": 35, "channel": "input", "encoding": "binary" },
-    "TEXT_ACK": { "id": 36, "channel": "input", "encoding": "binary", "payload_bytes": 18 },
-    "POINTER_ABS": { "id": 48, "channel": "motion", "encoding": "binary", "payload_bytes": 16 },
-    "POINTER_REL": { "id": 49, "channel": "motion", "encoding": "binary", "payload_bytes": 24 },
-    "INPUT_HEARTBEAT": { "id": 64, "channel": "feedback", "encoding": "json" },
-    "RECEIVER_FEEDBACK": { "id": 65, "channel": "feedback", "encoding": "json" },
-    "CURSOR_POSITION": { "id": 66, "channel": "feedback", "encoding": "json" },
-    "CURSOR_SHAPE": { "id": 67, "channel": "control", "encoding": "json" },
-    "SESSION_CLOSE": { "id": 80, "channel": "control", "encoding": "json" },
-    "PROTOCOL_ERROR": { "id": 81, "channel": "control", "encoding": "json" },
-    "FEATURE_REQUEST": { "id": 96, "channel": "control", "encoding": "json" },
-    "FEATURE_STATE": { "id": 97, "channel": "control", "encoding": "json" },
-    "CLIPBOARD_OFFER": { "id": 112, "channel": "clipboard", "encoding": "json" },
-    "CLIPBOARD_ACCEPT": { "id": 113, "channel": "clipboard", "encoding": "json" },
-    "CLIPBOARD_CHUNK": { "id": 114, "channel": "clipboard", "encoding": "binary" },
-    "CLIPBOARD_ACK": { "id": 115, "channel": "clipboard", "encoding": "json" },
-    "FILE_OFFER": { "id": 128, "channel": "file", "encoding": "json" },
-    "FILE_ACCEPT": { "id": 129, "channel": "file", "encoding": "json" },
-    "FILE_CHUNK": { "id": 130, "channel": "file", "encoding": "binary" },
-    "FILE_COMPLETE": { "id": 131, "channel": "file", "encoding": "json" },
-    "FILE_ACK": { "id": 132, "channel": "file", "encoding": "json" },
-    "FILE_CANCEL": { "id": 133, "channel": "file", "encoding": "json" }
+    "SESSION_HELLO": {
+      "id": 1,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "nonce": {
+            "$ref": "#/$defs/digest32"
+          },
+          "ticket_hash": {
+            "$ref": "#/$defs/digest32"
+          },
+          "protocol": {
+            "$ref": "#/$defs/protocol"
+          },
+          "capability_hash": {
+            "$ref": "#/$defs/digest32"
+          }
+        },
+        "required": [
+          "nonce",
+          "ticket_hash",
+          "protocol",
+          "capability_hash"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "nonce": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "ticket_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "protocol": {
+            "major": 1,
+            "minor": 0
+          },
+          "capability_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "SESSION_PROOF": {
+      "id": 2,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "transcript_version": {
+            "const": 1
+          },
+          "signature": {
+            "$ref": "#/$defs/signature64"
+          },
+          "jkt": {
+            "$ref": "#/$defs/digest32"
+          }
+        },
+        "required": [
+          "transcript_version",
+          "signature",
+          "jkt"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "transcript_version": 1,
+          "signature": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "jkt": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "PATH_VERIFIED": {
+      "id": 3,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "epoch": {
+            "$ref": "#/$defs/positive_epoch"
+          },
+          "protocol": {
+            "const": "udp"
+          },
+          "local_candidate_type": {
+            "enum": [
+              "host",
+              "srflx",
+              "prflx"
+            ]
+          },
+          "remote_candidate_type": {
+            "enum": [
+              "host",
+              "srflx",
+              "prflx"
+            ]
+          }
+        },
+        "required": [
+          "epoch",
+          "protocol",
+          "local_candidate_type",
+          "remote_candidate_type"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "epoch": 1,
+          "protocol": "udp",
+          "local_candidate_type": "host",
+          "remote_candidate_type": "srflx"
+        }
+      ],
+      "profile_note": "The current interoperable body has no proof-summary or verification-version fields; the host independently checks actual selected UDP stats before emitting it.",
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "SESSION_READY": {
+      "id": 4,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "epoch": {
+                "$ref": "#/$defs/positive_epoch"
+              }
+            },
+            "required": [
+              "epoch"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "epoch": {
+                "$ref": "#/$defs/positive_epoch"
+              },
+              "permissions": {
+                "$ref": "#/$defs/permissions"
+              },
+              "lease_seq": {
+                "$ref": "#/$defs/lease_sequence"
+              }
+            },
+            "required": [
+              "epoch",
+              "permissions",
+              "lease_seq"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "epoch": 1,
+          "permissions": [
+            "view"
+          ],
+          "lease_seq": 1
+        },
+        {
+          "epoch": 1
+        }
+      ],
+      "directional_variants": {
+        "host_to_controller": 0,
+        "controller_to_host": 1
+      },
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "CAPABILITIES": {
+      "id": 5,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 8192,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "$ref": "#/$defs/permissions"
+          },
+          "codecs": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "H264",
+                "VP8",
+                "AV1",
+                "HEVC"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 4,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "permissions",
+          "codecs"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 8192
+      },
+      "examples": [
+        {
+          "permissions": [
+            "view"
+          ],
+          "codecs": [
+            "VP8"
+          ]
+        }
+      ],
+      "profile_note": "Current view profile: permissions/codecs only; full platform/display/input capability negotiation is not implemented.",
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "CAPABILITIES_ACK": {
+      "id": 6,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "capability_hash": {
+            "$ref": "#/$defs/digest32"
+          },
+          "permissions": {
+            "$ref": "#/$defs/permissions"
+          }
+        },
+        "required": [
+          "capability_hash",
+          "permissions"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "capability_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "permissions": [
+            "view"
+          ]
+        }
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "DISPLAY_LAYOUT": {
+      "id": 7,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "layout_epoch": {
+            "$ref": "#/$defs/positive_epoch"
+          },
+          "active_display": {
+            "$ref": "#/$defs/display_id"
+          },
+          "displays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/display"
+            },
+            "minItems": 1,
+            "maxItems": 16,
+            "x-uniqueBy": [
+              "id",
+              "slot"
+            ]
+          }
+        },
+        "required": [
+          "layout_epoch",
+          "active_display",
+          "displays"
+        ],
+        "additionalProperties": false,
+        "x-fieldInArray": {
+          "field": "active_display",
+          "array": "displays",
+          "key": "id"
+        },
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "layout_epoch": 1,
+          "active_display": "0",
+          "displays": [
+            {
+              "id": "0",
+              "slot": 0,
+              "width_px": 1920,
+              "height_px": 1080
+            }
+          ]
+        }
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "DISPLAY_SELECT": {
+      "id": 8,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "display_id": {
+            "$ref": "#/$defs/display_id"
+          },
+          "layout_epoch": {
+            "$ref": "#/$defs/positive_epoch"
+          }
+        },
+        "required": [
+          "display_id",
+          "layout_epoch"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "display_id": "0",
+          "layout_epoch": 1
+        }
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "STREAM_CONFIG": {
+      "id": 9,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "reserved",
+      "body_schema": false,
+      "reserved_reason": "Only a semantic target-output description exists; exact codec/color wire is not implemented.",
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "STREAM_ACK": {
+      "id": 10,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "reserved",
+      "body_schema": false,
+      "reserved_reason": "No stream-revision negotiation implementation emits or consumes this body.",
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "PAUSE": {
+      "id": 11,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "$ref": "#/$defs/reason"
+          },
+          "resume_allowed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "reason",
+          "resume_allowed"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "reason": "desktop_locked",
+          "resume_allowed": true
+        }
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "RESUME": {
+      "id": 12,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "reserved",
+      "body_schema": false,
+      "reserved_reason": "Resume version fields have not been frozen or implemented.",
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "CONTROL_REQUEST": {
+      "id": 16,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "$ref": "#/$defs/uuid"
+          },
+          "requested_input_permissions": {
+            "$ref": "#/$defs/input_permissions"
+          }
+        },
+        "required": [
+          "request_id",
+          "requested_input_permissions"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "request_id": "00112233-4455-4677-8899-aabbccddeeff",
+          "requested_input_permissions": [
+            "input.keyboard"
+          ]
+        }
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "CONTROL_GRANTED": {
+      "id": 17,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "$ref": "#/$defs/uuid"
+          },
+          "new_input_epoch": {
+            "$ref": "#/$defs/positive_epoch"
+          }
+        },
+        "required": [
+          "request_id",
+          "new_input_epoch"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "request_id": "00112233-4455-4677-8899-aabbccddeeff",
+          "new_input_epoch": 1
+        }
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "CONTROL_RELEASED": {
+      "id": 18,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "$ref": "#/$defs/reason"
+          },
+          "new_input_epoch": {
+            "$ref": "#/$defs/positive_epoch"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "reason": "RD_SCOPE_DENIED"
+        }
+      ],
+      "profile_note": "A denied initial request has reason only; new_input_epoch is optional for a release that invalidates an issued epoch.",
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "INPUT_STATE": {
+      "id": 19,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "$ref": "#/$defs/uuid"
+          },
+          "generation": {
+            "$ref": "#/$defs/positive_epoch"
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/pressed_key"
+            },
+            "minItems": 0,
+            "maxItems": 0
+          },
+          "buttons": {
+            "const": 0
+          },
+          "motion_sequence": {
+            "const": 0
+          }
+        },
+        "required": [
+          "request_id",
+          "generation",
+          "keys",
+          "buttons",
+          "motion_sequence"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "request_id": "00112233-4455-4677-8899-aabbccddeeff",
+          "generation": 1,
+          "keys": [],
+          "buttons": 0,
+          "motion_sequence": 0
+        }
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "INPUT_SYNC_ACK": {
+      "id": 20,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "$ref": "#/$defs/uuid"
+          },
+          "input_epoch": {
+            "$ref": "#/$defs/positive_epoch"
+          },
+          "layout_epoch": {
+            "$ref": "#/$defs/positive_epoch"
+          }
+        },
+        "required": [
+          "request_id",
+          "input_epoch",
+          "layout_epoch"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "request_id": "00112233-4455-4677-8899-aabbccddeeff",
+          "input_epoch": 1,
+          "layout_epoch": 1
+        }
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "RELEASE_ALL": {
+      "id": 21,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "$ref": "#/$defs/reason"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "reason": "controller_released"
+        }
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "KEY": {
+      "id": 32,
+      "channel": "input",
+      "encoding": "binary",
+      "payload_bytes": 8,
+      "max_payload_bytes": 8,
+      "wire_status": "defined",
+      "body_schema": false,
+      "binary_layout": {
+        "byte_order": "big",
+        "fields": [
+          {
+            "name": "usage_page",
+            "type": "uint16",
+            "offset": 0,
+            "bytes": 2,
+            "const": 7
+          },
+          {
+            "name": "usage",
+            "type": "uint16",
+            "offset": 2,
+            "bytes": 2,
+            "minimum": 4,
+            "maximum": 231
+          },
+          {
+            "name": "action",
+            "type": "uint8",
+            "offset": 4,
+            "bytes": 1,
+            "enum": [
+              0,
+              1
+            ]
+          },
+          {
+            "name": "repeat",
+            "type": "uint8",
+            "offset": 5,
+            "bytes": 1,
+            "enum": [
+              0,
+              1
+            ]
+          },
+          {
+            "name": "reserved",
+            "type": "uint16",
+            "offset": 6,
+            "bytes": 2,
+            "const": 0
+          }
+        ],
+        "state_constraints": [
+          "Key-up requires repeat=0; repeat requires an already pressed key."
+        ]
+      },
+      "min_payload_bytes": 8,
+      "permission_rule": {
+        "controller_to_host": "input.keyboard"
+      }
+    },
+    "BUTTON": {
+      "id": 33,
+      "channel": "input",
+      "encoding": "binary",
+      "payload_bytes": 32,
+      "allowed_flags": 1,
+      "max_payload_bytes": 32,
+      "wire_status": "defined",
+      "body_schema": false,
+      "binary_layout": {
+        "byte_order": "big",
+        "fields": [
+          {
+            "name": "layout_epoch",
+            "type": "uint32",
+            "offset": 0,
+            "bytes": 4,
+            "minimum": 1
+          },
+          {
+            "name": "display_slot",
+            "type": "uint16",
+            "offset": 4,
+            "bytes": 2
+          },
+          {
+            "name": "x",
+            "type": "uint16",
+            "offset": 6,
+            "bytes": 2
+          },
+          {
+            "name": "y",
+            "type": "uint16",
+            "offset": 8,
+            "bytes": 2
+          },
+          {
+            "name": "button",
+            "type": "uint8",
+            "offset": 10,
+            "bytes": 1,
+            "minimum": 1,
+            "maximum": 5
+          },
+          {
+            "name": "action",
+            "type": "uint8",
+            "offset": 11,
+            "bytes": 1,
+            "enum": [
+              0,
+              1
+            ]
+          },
+          {
+            "name": "motion_seq",
+            "type": "uint32",
+            "offset": 12,
+            "bytes": 4
+          },
+          {
+            "name": "cumulative_dx",
+            "type": "int64",
+            "offset": 16,
+            "bytes": 8
+          },
+          {
+            "name": "cumulative_dy",
+            "type": "int64",
+            "offset": 24,
+            "bytes": 8
+          }
+        ],
+        "state_constraints": [
+          "Flag bit0 selects relative mode; all other bits are zero. Absolute mode requires cumulative_dx=cumulative_dy=0.",
+          "Relative injection is not supported by the current Windows input backend."
+        ]
+      },
+      "min_payload_bytes": 32,
+      "permission_rule": {
+        "controller_to_host": "input.pointer"
+      }
+    },
+    "WHEEL": {
+      "id": 34,
+      "channel": "input",
+      "encoding": "binary",
+      "payload_bytes": 24,
+      "max_payload_bytes": 24,
+      "wire_status": "defined",
+      "body_schema": false,
+      "binary_layout": {
+        "byte_order": "big",
+        "fields": [
+          {
+            "name": "layout_epoch",
+            "type": "uint32",
+            "offset": 0,
+            "bytes": 4,
+            "minimum": 1
+          },
+          {
+            "name": "display_slot",
+            "type": "uint16",
+            "offset": 4,
+            "bytes": 2
+          },
+          {
+            "name": "x",
+            "type": "uint16",
+            "offset": 6,
+            "bytes": 2
+          },
+          {
+            "name": "y",
+            "type": "uint16",
+            "offset": 8,
+            "bytes": 2
+          },
+          {
+            "name": "reserved",
+            "type": "uint16",
+            "offset": 10,
+            "bytes": 2,
+            "const": 0
+          },
+          {
+            "name": "delta_x",
+            "type": "int32",
+            "offset": 12,
+            "bytes": 4,
+            "minimum": -12000,
+            "maximum": 12000
+          },
+          {
+            "name": "delta_y",
+            "type": "int32",
+            "offset": 16,
+            "bytes": 4,
+            "minimum": -12000,
+            "maximum": 12000
+          },
+          {
+            "name": "motion_seq",
+            "type": "uint32",
+            "offset": 20,
+            "bytes": 4
+          }
+        ],
+        "state_constraints": [
+          "Requires the current layout/input epochs and selected display slot."
+        ]
+      },
+      "min_payload_bytes": 24,
+      "permission_rule": {
+        "controller_to_host": "input.pointer"
+      }
+    },
+    "TEXT_COMMIT": {
+      "id": 35,
+      "channel": "input",
+      "encoding": "binary",
+      "max_payload_bytes": 4116,
+      "wire_status": "defined",
+      "body_schema": false,
+      "binary_layout": {
+        "byte_order": "big",
+        "fields": [
+          {
+            "name": "submission_id",
+            "type": "uuid16",
+            "offset": 0,
+            "bytes": 16
+          },
+          {
+            "name": "text_length",
+            "type": "uint32",
+            "offset": 16,
+            "bytes": 4,
+            "minimum": 0,
+            "maximum": 4096
+          },
+          {
+            "name": "text",
+            "type": "utf8",
+            "offset": 20,
+            "bytes": "text_length"
+          }
+        ],
+        "state_constraints": [
+          "text_length equals the remaining bytes; final text must be valid UTF-8. Browser emits non-empty text; native parser also accepts empty text.",
+          "Submission IDs are deduplicated within the session; reconnect never replays automatically."
+        ]
+      },
+      "min_payload_bytes": 20,
+      "permission_rule": {
+        "transfer_permission": "input.text",
+        "direction": "controller_to_host"
+      }
+    },
+    "TEXT_ACK": {
+      "id": 36,
+      "channel": "input",
+      "encoding": "binary",
+      "payload_bytes": 18,
+      "max_payload_bytes": 18,
+      "wire_status": "defined",
+      "body_schema": false,
+      "binary_layout": {
+        "byte_order": "big",
+        "fields": [
+          {
+            "name": "submission_id",
+            "type": "uuid16",
+            "offset": 0,
+            "bytes": 16
+          },
+          {
+            "name": "result_code",
+            "type": "uint16",
+            "offset": 16,
+            "bytes": 2
+          }
+        ],
+        "state_constraints": [
+          "Result-code meanings are not frozen; browser UI handling is not implemented."
+        ]
+      },
+      "min_payload_bytes": 18,
+      "permission_rule": {
+        "transfer_permission": "input.text",
+        "direction": "host_to_controller"
+      }
+    },
+    "POINTER_ABS": {
+      "id": 48,
+      "channel": "motion",
+      "encoding": "binary",
+      "payload_bytes": 16,
+      "max_payload_bytes": 16,
+      "wire_status": "defined",
+      "body_schema": false,
+      "binary_layout": {
+        "byte_order": "big",
+        "fields": [
+          {
+            "name": "layout_epoch",
+            "type": "uint32",
+            "offset": 0,
+            "bytes": 4,
+            "minimum": 1
+          },
+          {
+            "name": "display_slot",
+            "type": "uint16",
+            "offset": 4,
+            "bytes": 2
+          },
+          {
+            "name": "x",
+            "type": "uint16",
+            "offset": 6,
+            "bytes": 2
+          },
+          {
+            "name": "y",
+            "type": "uint16",
+            "offset": 8,
+            "bytes": 2
+          },
+          {
+            "name": "reserved",
+            "type": "uint16",
+            "offset": 10,
+            "bytes": 2,
+            "const": 0
+          },
+          {
+            "name": "motion_seq",
+            "type": "uint32",
+            "offset": 12,
+            "bytes": 4
+          }
+        ],
+        "state_constraints": [
+          "Requires the current layout/input epochs and selected display slot."
+        ]
+      },
+      "min_payload_bytes": 16,
+      "permission_rule": {
+        "controller_to_host": "input.pointer"
+      }
+    },
+    "POINTER_REL": {
+      "id": 49,
+      "channel": "motion",
+      "encoding": "binary",
+      "payload_bytes": 24,
+      "max_payload_bytes": 24,
+      "wire_status": "defined",
+      "body_schema": false,
+      "binary_layout": {
+        "byte_order": "big",
+        "fields": [
+          {
+            "name": "layout_epoch",
+            "type": "uint32",
+            "offset": 0,
+            "bytes": 4,
+            "minimum": 1
+          },
+          {
+            "name": "motion_seq",
+            "type": "uint32",
+            "offset": 4,
+            "bytes": 4
+          },
+          {
+            "name": "cumulative_dx",
+            "type": "int64",
+            "offset": 8,
+            "bytes": 8
+          },
+          {
+            "name": "cumulative_dy",
+            "type": "int64",
+            "offset": 16,
+            "bytes": 8
+          }
+        ],
+        "state_constraints": [
+          "Encoding/parser exists; relative injection is not supported by the current Windows input backend."
+        ]
+      },
+      "min_payload_bytes": 24,
+      "permission_rule": {
+        "controller_to_host": "input.pointer"
+      }
+    },
+    "INPUT_HEARTBEAT": {
+      "id": 64,
+      "channel": "feedback",
+      "encoding": "json",
+      "max_payload_bytes": 2024,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "input_epoch": {
+            "$ref": "#/$defs/positive_epoch"
+          },
+          "state_version": {
+            "$ref": "#/$defs/lease_sequence"
+          },
+          "keys": {
+            "$ref": "#/$defs/pressed_keys"
+          },
+          "buttons": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 31
+          }
+        },
+        "required": [
+          "input_epoch",
+          "state_version",
+          "keys",
+          "buttons"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 2024
+      },
+      "examples": [
+        {
+          "input_epoch": 1,
+          "state_version": 1,
+          "keys": [],
+          "buttons": 0
+        }
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "RECEIVER_FEEDBACK": {
+      "id": 65,
+      "channel": "feedback",
+      "encoding": "json",
+      "max_payload_bytes": 2024,
+      "wire_status": "reserved",
+      "body_schema": false,
+      "reserved_reason": "Statistics field names and units have not been frozen; the native view worker currently ignores this type.",
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "CURSOR_POSITION": {
+      "id": 66,
+      "channel": "feedback",
+      "encoding": "json",
+      "max_payload_bytes": 2024,
+      "wire_status": "reserved",
+      "body_schema": false,
+      "reserved_reason": "No remote cursor feedback implementation is active.",
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "CURSOR_SHAPE": {
+      "id": 67,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "reserved",
+      "body_schema": false,
+      "reserved_reason": "Chunked cursor-shape fields and format negotiation are not implemented.",
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "SESSION_CLOSE": {
+      "id": 80,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "$ref": "#/$defs/reason"
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "reason": "controller_closed"
+        },
+        {}
+      ],
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      },
+      "profile_note": "A close body may be empty for compatibility with existing peers; a provided reason is bounded and non-sensitive."
+    },
+    "PROTOCOL_ERROR": {
+      "id": 81,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "reserved",
+      "body_schema": false,
+      "reserved_reason": "Rejected-type field spelling and interoperable error body are not implemented.",
+      "permission_rule": {
+        "session_permission": "view",
+        "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
+      }
+    },
+    "FEATURE_REQUEST": {
+      "id": 96,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "permission": {
+            "$ref": "#/$defs/feature_permission"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "permission",
+          "enabled"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "permission": "audio.system",
+          "enabled": true
+        }
+      ],
+      "permission_rule": {
+        "field": "permission",
+        "must_be_in_signed_permissions": true,
+        "host_agreement_required": true
+      }
+    },
+    "FEATURE_STATE": {
+      "id": 97,
+      "channel": "control",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "permission": {
+            "$ref": "#/$defs/feature_permission"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "error_code": {
+            "$ref": "#/$defs/error_code"
+          }
+        },
+        "required": [
+          "permission",
+          "enabled"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "permission": "audio.system",
+          "enabled": false,
+          "error_code": "RD_FEATURE_UNAVAILABLE"
+        }
+      ],
+      "permission_rule": {
+        "field": "permission",
+        "must_be_in_signed_permissions": true,
+        "host_agreement_required": true
+      }
+    },
+    "CLIPBOARD_OFFER": {
+      "id": 112,
+      "channel": "clipboard",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/uuid"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65536
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256_hex"
+          },
+          "mime": {
+            "const": "text/plain;charset=utf-8"
+          }
+        },
+        "required": [
+          "id",
+          "size",
+          "sha256",
+          "mime"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "id": "00112233-4455-4677-8899-aabbccddeeff",
+          "size": 0,
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "mime": "text/plain;charset=utf-8"
+        }
+      ],
+      "permission_rule": {
+        "controller_to_host": "clipboard.write",
+        "host_to_controller": "clipboard.read"
+      }
+    },
+    "CLIPBOARD_ACCEPT": {
+      "id": 113,
+      "channel": "clipboard",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/uuid"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "id": "00112233-4455-4677-8899-aabbccddeeff"
+        }
+      ],
+      "permission_rule": {
+        "controller_to_host": "clipboard.read",
+        "host_to_controller": "clipboard.write"
+      }
+    },
+    "CLIPBOARD_CHUNK": {
+      "id": 114,
+      "channel": "clipboard",
+      "encoding": "binary",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": false,
+      "binary_layout": {
+        "byte_order": "big",
+        "fields": [
+          {
+            "name": "transfer_id",
+            "type": "uuid16",
+            "offset": 0,
+            "bytes": 16
+          },
+          {
+            "name": "offset",
+            "type": "uint64",
+            "offset": 16,
+            "bytes": 8,
+            "minimum": 0,
+            "maximum": 65536
+          },
+          {
+            "name": "content",
+            "type": "bytes",
+            "offset": 24,
+            "bytes": "remaining",
+            "minimum_bytes": 1,
+            "maximum_bytes": 16336
+          }
+        ],
+        "state_constraints": [
+          "UUID and offset match an explicitly accepted offer; chunks must be contiguous and fit the declared total.",
+          "UTF-8 is validated after full reassembly, because a chunk may split a code point. Browser emits at most 8192 data bytes; channel size bounds another peer to 16336 data bytes."
+        ]
+      },
+      "min_payload_bytes": 25,
+      "permission_rule": {
+        "controller_to_host": "clipboard.write",
+        "host_to_controller": "clipboard.read"
+      }
+    },
+    "CLIPBOARD_ACK": {
+      "id": 115,
+      "channel": "clipboard",
+      "encoding": "json",
+      "max_payload_bytes": 16360,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/uuid"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 16360
+      },
+      "examples": [
+        {
+          "id": "00112233-4455-4677-8899-aabbccddeeff"
+        }
+      ],
+      "permission_rule": {
+        "controller_to_host": "clipboard.read",
+        "host_to_controller": "clipboard.write"
+      }
+    },
+    "FILE_OFFER": {
+      "id": 128,
+      "channel": "file",
+      "encoding": "json",
+      "max_payload_bytes": 17384,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/uuid"
+          },
+          "name": {
+            "$ref": "#/$defs/file_name"
+          },
+          "size": {
+            "$ref": "#/$defs/file_size"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "size"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 17384
+      },
+      "examples": [
+        {
+          "id": "00112233-4455-4677-8899-aabbccddeeff",
+          "name": "example.txt",
+          "size": 1
+        }
+      ],
+      "permission_rule": {
+        "offer_direction": "controller_to_host:files.send;host_to_controller:files.receive",
+        "other_messages": "Must match the accepted transfer id, participant roles and original offer direction; ACK/ACCEPT flow opposite to content."
+      }
+    },
+    "FILE_ACCEPT": {
+      "id": 129,
+      "channel": "file",
+      "encoding": "json",
+      "max_payload_bytes": 17384,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/uuid"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 17384
+      },
+      "examples": [
+        {
+          "id": "00112233-4455-4677-8899-aabbccddeeff"
+        }
+      ],
+      "permission_rule": {
+        "offer_direction": "controller_to_host:files.send;host_to_controller:files.receive",
+        "other_messages": "Must match the accepted transfer id, participant roles and original offer direction; ACK/ACCEPT flow opposite to content."
+      }
+    },
+    "FILE_CHUNK": {
+      "id": 130,
+      "channel": "file",
+      "encoding": "binary",
+      "max_payload_bytes": 16408,
+      "wire_status": "defined",
+      "body_schema": false,
+      "binary_layout": {
+        "byte_order": "big",
+        "fields": [
+          {
+            "name": "transfer_id",
+            "type": "uuid16",
+            "offset": 0,
+            "bytes": 16
+          },
+          {
+            "name": "offset",
+            "type": "uint64",
+            "offset": 16,
+            "bytes": 8,
+            "minimum": 0,
+            "maximum": 8589934592
+          },
+          {
+            "name": "content",
+            "type": "bytes",
+            "offset": 24,
+            "bytes": "remaining",
+            "minimum_bytes": 1,
+            "maximum_bytes": 16384
+          }
+        ],
+        "state_constraints": [
+          "UUID and offset match an explicitly accepted offer; chunks must be contiguous and fit the declared total.",
+          "One unacknowledged chunk per active file; at most two active files."
+        ]
+      },
+      "min_payload_bytes": 25,
+      "permission_rule": {
+        "offer_direction": "controller_to_host:files.send;host_to_controller:files.receive",
+        "other_messages": "Must match the accepted transfer id, participant roles and original offer direction; ACK/ACCEPT flow opposite to content."
+      }
+    },
+    "FILE_COMPLETE": {
+      "id": 131,
+      "channel": "file",
+      "encoding": "json",
+      "max_payload_bytes": 17384,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/uuid"
+          },
+          "size": {
+            "$ref": "#/$defs/file_size"
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256_hex"
+          }
+        },
+        "required": [
+          "id",
+          "size",
+          "sha256"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 17384
+      },
+      "examples": [
+        {
+          "id": "00112233-4455-4677-8899-aabbccddeeff",
+          "size": 1,
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "permission_rule": {
+        "offer_direction": "controller_to_host:files.send;host_to_controller:files.receive",
+        "other_messages": "Must match the accepted transfer id, participant roles and original offer direction; ACK/ACCEPT flow opposite to content."
+      }
+    },
+    "FILE_ACK": {
+      "id": 132,
+      "channel": "file",
+      "encoding": "json",
+      "max_payload_bytes": 17384,
+      "wire_status": "defined",
+      "body_schema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/uuid"
+              },
+              "offset": {
+                "$ref": "#/$defs/file_size"
+              }
+            },
+            "required": [
+              "id",
+              "offset"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/uuid"
+              },
+              "sha256": {
+                "$ref": "#/$defs/sha256_hex"
+              }
+            },
+            "required": [
+              "id",
+              "sha256"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "x-maxEncodedBytes": 17384
+      },
+      "examples": [
+        {
+          "id": "00112233-4455-4677-8899-aabbccddeeff",
+          "offset": 1
+        },
+        {
+          "id": "00112233-4455-4677-8899-aabbccddeeff",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "permission_rule": {
+        "offer_direction": "controller_to_host:files.send;host_to_controller:files.receive",
+        "other_messages": "Must match the accepted transfer id, participant roles and original offer direction; ACK/ACCEPT flow opposite to content."
+      }
+    },
+    "FILE_CANCEL": {
+      "id": 133,
+      "channel": "file",
+      "encoding": "json",
+      "max_payload_bytes": 17384,
+      "wire_status": "defined",
+      "body_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/uuid"
+          },
+          "reason": {
+            "$ref": "#/$defs/reason"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false,
+        "x-maxEncodedBytes": 17384
+      },
+      "examples": [
+        {
+          "id": "00112233-4455-4677-8899-aabbccddeeff",
+          "reason": "cancelled"
+        },
+        {
+          "id": "00112233-4455-4677-8899-aabbccddeeff"
+        }
+      ],
+      "permission_rule": {
+        "offer_direction": "controller_to_host:files.send;host_to_controller:files.receive",
+        "other_messages": "Must match the accepted transfer id, participant roles and original offer direction; ACK/ACCEPT flow opposite to content."
+      }
+    }
   },
-  "proof_transcript": { "domain": "ht-rd-proof-v1", "length_prefix": "uint32-big-endian", "fields": ["domain:utf8:prefixed", "session_id:uuid16:prefixed", "connection_epoch:uint32-big-endian", "controller_nonce:bytes32:prefixed", "host_nonce:bytes32:prefixed", "offer_jws_sha256:bytes32:prefixed", "answer_jws_sha256:bytes32:prefixed", "ticket_sha256:bytes32:prefixed"] },
-  "data_transfer": { "chunk_prefix": "uuid16 transfer_id + uint64-big-endian offset", "clipboard_format": "text/plain;charset=utf-8", "integrity": "sha256", "maximum_parallel_files": 2, "automatic_open": false, "resume": "A disconnected transfer requires a new offer and explicit receiver acceptance; no automatic replay." }
+  "proof_transcript": {
+    "domain": "ht-rd-proof-v1",
+    "length_prefix": "uint32-big-endian",
+    "fields": [
+      "domain:utf8:prefixed",
+      "session_id:uuid16:prefixed",
+      "connection_epoch:uint32-big-endian",
+      "controller_nonce:bytes32:prefixed",
+      "host_nonce:bytes32:prefixed",
+      "offer_jws_sha256:bytes32:prefixed",
+      "answer_jws_sha256:bytes32:prefixed",
+      "ticket_sha256:bytes32:prefixed"
+    ]
+  },
+  "data_transfer": {
+    "chunk_prefix": "uuid16 transfer_id + uint64-big-endian offset",
+    "clipboard_format": "text/plain;charset=utf-8",
+    "integrity": "sha256",
+    "maximum_parallel_files": 2,
+    "automatic_open": false,
+    "resume": "A disconnected transfer requires a new offer and explicit receiver acceptance; no automatic replay."
+  },
+  "schema_dialect": "https://json-schema.org/draft/2020-12/schema",
+  "schema_notes": "Body validation does not authorize a message: peer proof, current epoch, lease, negotiated permission, role, request ownership and state transitions must be checked separately. wire_status=defined describes an encoding, not a supported backend feature. Reserved bodies are always rejected.",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "uint32": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "positive_epoch": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "lease_sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "digest32": {
+      "type": "string",
+      "minLength": 43,
+      "maxLength": 43,
+      "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$"
+    },
+    "signature64": {
+      "type": "string",
+      "minLength": 86,
+      "maxLength": 86,
+      "pattern": "^[A-Za-z0-9_-]{85}[AQgw]$"
+    },
+    "sha256_hex": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "protocol": {
+      "type": "object",
+      "properties": {
+        "major": {
+          "const": 1
+        },
+        "minor": {
+          "const": 0
+        }
+      },
+      "required": [
+        "major",
+        "minor"
+      ],
+      "additionalProperties": false
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "view",
+          "input.keyboard",
+          "input.pointer",
+          "input.text",
+          "audio.system",
+          "audio.microphone",
+          "clipboard.read",
+          "clipboard.write",
+          "files.send",
+          "files.receive"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "contains": {
+        "const": "view"
+      }
+    },
+    "input_permissions": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "input.keyboard",
+          "input.pointer",
+          "input.text"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 3,
+      "uniqueItems": true
+    },
+    "feature_permission": {
+      "enum": [
+        "audio.system",
+        "audio.microphone",
+        "clipboard.read",
+        "clipboard.write",
+        "files.send",
+        "files.receive"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "error_code": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 80,
+      "pattern": "^RD_[A-Z0-9_]+$"
+    },
+    "display_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "display": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/display_id"
+        },
+        "slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "width_px": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32768
+        },
+        "height_px": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32768
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "id",
+        "slot",
+        "width_px",
+        "height_px"
+      ],
+      "additionalProperties": false
+    },
+    "pressed_key": {
+      "type": "object",
+      "properties": {
+        "usage_page": {
+          "const": 7
+        },
+        "usage": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 231
+        }
+      },
+      "required": [
+        "usage_page",
+        "usage"
+      ],
+      "additionalProperties": false
+    },
+    "pressed_keys": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pressed_key"
+      },
+      "minItems": 0,
+      "maxItems": 128,
+      "uniqueItems": true
+    },
+    "file_size": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 8589934592
+    },
+    "file_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|$))(?!.*[. ]$)[^/\\\\:<>\"|?*\\u0000-\\u001f\\u007f]+$"
+    }
+  }
 }
