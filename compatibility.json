@@ -1,15 +1,15 @@
 {
   "component": "server",
-  "stage": "internal-testing",
+  "stage": "public-release",
   "api_major": 1,
-  "contract_ref": "api-v1.2.0-rc.1",
-  "support_policy": "8.0 development: RD is disabled by default. Keep the 7.0 tunnel clients compatible; RD requires matching 8.0 protocol implementations. Candidate contract and artifacts are not a published stable release. FRP follows its separate upstream version.",
-  "version": "8.0.0-rc.1",
+  "contract_ref": "api-v1.2.0",
+  "support_policy": "8.0 release: RD is disabled by default and exposes only available, authorized endpoint capabilities. Preserve 7.0 tunnel compatibility; RD requires matching 8.0 protocol implementations. Read component evidence and known limitations before enabling RD. FRP follows its separate upstream version.",
+  "version": "8.0.0",
   "minimum_server": "7.0.0",
   "tested_combination": {
-    "server": "8.0.0-rc.1",
-    "client": "8.0.0-rc.1",
-    "android": "8.0.0-rc.1",
-    "agent": "8.0.0-rc.1"
+    "server": "8.0.0",
+    "client": "8.0.0",
+    "android": "8.0.0",
+    "agent": "8.0.0"
   }
 }
