@@ -1,18 +1,18 @@
 {
   "repository": "ZHanry/home-tunnel-client",
-  "tag": "v7.0.0",
-  "version": "7.0.0",
+  "tag": "v8.0.0",
+  "version": "8.0.0",
   "packages": {
     "amd64": {
-      "file": "home-tunnel-linux-7.0.0-amd64.tar.gz",
-      "sha256": "fb5ef803e0285a969274155a936dab5618f9eab21a435e9ee923614b9e0257cb",
-      "url": "https://github.com/ZHanry/home-tunnel-client/releases/download/v7.0.0/home-tunnel-linux-7.0.0-amd64.tar.gz"
+      "file": "home-tunnel-linux-8.0.0-amd64.tar.gz",
+      "sha256": "ff68081e94be047e1a731864036f96bfd6181dd80b37e0622de63a90e13b5f52",
+      "url": "https://github.com/ZHanry/home-tunnel-client/releases/download/v8.0.0/home-tunnel-linux-8.0.0-amd64.tar.gz"
     },
     "arm64": {
-      "file": "home-tunnel-linux-7.0.0-arm64.tar.gz",
-      "sha256": "a15b7063132f8eb8af66651265160a8250d21fcbd4fa5430b3871939b54b7730",
-      "url": "https://github.com/ZHanry/home-tunnel-client/releases/download/v7.0.0/home-tunnel-linux-7.0.0-arm64.tar.gz"
+      "file": "home-tunnel-linux-8.0.0-arm64.tar.gz",
+      "sha256": "854cf29432e68f47706fd2381bd6fd5dc6d884b7ad188e98f51905781a79f490",
+      "url": "https://github.com/ZHanry/home-tunnel-client/releases/download/v8.0.0/home-tunnel-linux-8.0.0-arm64.tar.gz"
     }
   },
-  "revision": "6e9dc52f17ba8f3afdf1813d135a1c33528b4e4a"
+  "revision": "16d55f0e65b8d0f61d21d9770ecf0f6e94115af3"
 }
