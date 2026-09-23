@@ -1,10 +1,11 @@
-# Home Tunnel 8.0.0-rc.1
+# Home Tunnel 8.0.0
 
-This candidate adds the remote-desktop control plane under `/api/v1/rd` while
+This release adds the remote-desktop control plane under `/api/v1/rd` while
 preserving the API v1 tunnel interface. The contract is 1.2.0; RD and the native
-ABI have their own versions. Existing stable download and deployment defaults
-remain 7.0.0. Use this candidate only in a separate test deployment and select
-both candidate service images using the supplied `compose.release.yaml` overlay.
+ABI have their own versions. Deployment defaults select 8.0.0. Verify the
+deployment archive and use its `compose.release.yaml` overlay to select both
+service images by their published immutable digests. Validate upgrades in a
+separate deployment before migrating an existing database.
 
 - Add endpoint keys, DPoP, explicit pairing and host-local session approval,
   ES256 tickets and leases, persistent quotas, revocation and bounded signaling.
@@ -28,16 +29,18 @@ files in both directions over the data channel, checked their bytes and hashes,
 and confirmed viewing continued after file permissions were disabled. File
 selection used isolated test fixtures; the native and browser file pickers were
 not exercised. These results use development builds, not the final signed or
-packaged candidate bytes.
+packaged release bytes. The release's attached acceptance report identifies the
+exact distributed worker that passed final native verification.
 
-The control plane and these Windows paths are implemented, but the final
-candidate still requires package installation, update/recovery and exact-artifact
-verification. Cross-network traversal and the full platform matrix remain
+The control plane and these Windows paths are implemented. Package installation,
+update/recovery and exact-artifact verification are separate checks; consult the
+attached component reports for their outcomes. Cross-network traversal and the full platform matrix remain
 unverified. macOS/Wayland hosting, desktop native viewing, Android media decoding,
 system audio, virtual microphone and AV1/HEVC remain incomplete. Linux X11 and
 native text clipboard support also require platform and end-to-end acceptance.
-The final candidate's component reports must define its tested subset and
-unavailable features. This is not the final 8.0.0 release.
+The 8.0.0 version identifies this release and does not establish acceptance for
+those unavailable or unverified capabilities. Component reports define the
+tested subset and unavailable features.
 
 Before upgrading, retain a verified encrypted backup. Prefer disabling RD as
 rollback; do not run a 7.0 server against a migrated 8.0 database. Recovery must

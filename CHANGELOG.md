@@ -1,6 +1,6 @@
 # Changelog
 
-## 8.0.0 — development, not yet released
+## 8.0.0
 
 - Add an opt-in remote desktop control plane with independent P-256 identities, DPoP, signed pairing, durable authorization leases and four controller windows per account.
 - Preserve 7.0 tunnel authentication and realtime behavior; RD introduces no media relay or TURN fallback.

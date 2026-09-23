@@ -1,6 +1,6 @@
 # 自托管部署指南
 
-本指南用于部署 Home Tunnel 7.0.0 正式版。请将示例域名、IP 和邮箱替换为自己的配置。已有部署请先阅读 [升级指南](UPGRADING.md)。
+本指南用于部署 Home Tunnel 8.0.0 正式版。请将示例域名、IP 和邮箱替换为自己的配置。已有部署请先阅读 [升级指南](UPGRADING.md)。
 
 ## 环境和 DNS
 
@@ -20,9 +20,9 @@
 推荐从 [Release](https://github.com/ZHanry/home-tunnel-server/releases/latest) 下载部署包。建立版本目录并解压：
 
 ```sh
-mkdir home-tunnel-server-7.0.0
-tar -xzf home-tunnel-server-7.0.0.tar.gz -C home-tunnel-server-7.0.0
-cd home-tunnel-server-7.0.0
+mkdir home-tunnel-server-8.0.0
+tar -xzf home-tunnel-server-8.0.0.tar.gz -C home-tunnel-server-8.0.0
+cd home-tunnel-server-8.0.0
 ```
 
 也可以使用源码：`git clone https://github.com/ZHanry/home-tunnel-server.git`，再进入 `home-tunnel-server` 目录。两种方式共用以下配置步骤。
@@ -199,7 +199,7 @@ SQLite 位于 `sqlite-data` 卷的 `/data/home-tunnel.db`，Caddy 的状态使�
 
 ## 客户端创建 RTSP、TCP 和 UDP
 
-服务端和客户端统一使用 7.0.0，可从客户端直接创建连接。先按上文启用所需传输的 Compose 覆盖文件、明确端口范围并开放主机／云防火墙。随后，管理员可以在自己的设备上创建；普通用户需在 Web 控制台“系统设置”中打开“允许普通用户自行创建 TCP/UDP 连接”。
+服务端和客户端统一使用 8.0.0，可从客户端直接创建连接。先按上文启用所需传输的 Compose 覆盖文件、明确端口范围并开放主机／云防火墙。随后，管理员可以在自己的设备上创建；普通用户需在 Web 控制台“系统设置”中打开“允许普通用户自行创建 TCP/UDP 连接”。
 
 端口由服务端在允许范围内自动分配，客户端不能指定范围外端口。关闭自助创建授权不会停掉已建立的连接。HTTP/HTTPS 的原有创建流程保持兼容。
 

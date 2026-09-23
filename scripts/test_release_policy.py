@@ -34,6 +34,12 @@ class ReleasePolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "prereleases only"):
             module.validate_release_tag("v0.1.0", "0.1.0", "internal-testing")
 
+    def test_stable_8_release_requires_matching_non_candidate_source(self):
+        self.assertEqual(module.validate_release_tag("v8.0.0", "8.0.0", "public-release"), ("8.0.0", None))
+        for source in ("8.0.0-rc.1", "7.0.0"):
+            with self.subTest(source=source), self.assertRaisesRegex(SystemExit, "source version"):
+                module.validate_release_tag("v8.0.0", source, "public-release")
+
     def test_source_version_must_match(self):
         with self.assertRaisesRegex(SystemExit, "source version"):
             module.validate_release_tag("v0.2.0-rc.1", "0.1.0", "internal-testing")

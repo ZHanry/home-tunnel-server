@@ -3,7 +3,7 @@
   "info": {
     "title": "Home Tunnel API",
     "version": "1.2.0",
-    "description": "Home Tunnel 8.0 development contract. Additive remote-desktop control plane; direct UDP media is never relayed here. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md for authentication, compatibility and replay semantics.",
+    "description": "Home Tunnel 8.0 API contract. Additive remote-desktop control plane; direct UDP media is never relayed here. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md for authentication, compatibility and replay semantics.",
     "license": {
       "name": "Apache-2.0"
     }
@@ -20623,5 +20623,5 @@
       }
     }
   },
-  "x-contract-ref": "api-v1.2.0-rc.1"
+  "x-contract-ref": "api-v1.2.0"
 }

@@ -1,4 +1,4 @@
-import { localeTag } from "./locale.js?v=8.0.0-rc.1";
+import { localeTag } from "./locale.js?v=8.0.0";
 
 export function escapeHtml(value) {
   return String(value ?? "")
