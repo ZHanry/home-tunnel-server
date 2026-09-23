@@ -7,6 +7,7 @@ from pathlib import Path
 import json
 import re
 import sys
+from remote_api_spec import install as install_remote_api
 
 ROOT = Path(__file__).resolve().parents[1]
 S = {"type": "string"}
@@ -190,14 +191,17 @@ op('post','/internal/frps/plugin/{token}',obj({"reject":B,"reject_reason":S,"unc
 
 op('post','/internal/monitoring/alerts',obj({'accepted':I}),obj({'alerts':array(obj({'status':enum('firing','resolved'),'fingerprint':string(128),'labels':obj({'alertname':string(120,1),'severity':string(32)},['alertname']),'annotations':obj({'summary':string(500),'description':string(2000)},['summary'])},['status','fingerprint','labels','annotations']),100)},['alerts']),description='Authenticated Alertmanager receiver. Relays to deployment-configured Webhook/Telegram destinations only; retries failed delivery.')
 
+install_remote_api(globals())
+
 # Every concrete router operation must be represented. Dynamic route paths must
 # add an explicit entry and extend this scanner; they must never silently vanish.
 source_routes=set()
 for source in (ROOT/'control-center/src/routes').rglob('*.ts'):
     prefix='/admin' if source.parent.name=='admin' else {'auth.ts':'/auth','account-security.ts':'/auth','public.ts':'/public','internal.ts':'/internal'}.get(source.name,'')
-    for match in re.finditer(r'(router|publicRouter)\.(get|post|patch|delete)\(\s*("[^"]+"|\[[^\]]+\])',source.read_text(encoding='utf-8')):
+    for match in re.finditer(r'(router|publicRouter|admin)\.(get|post|put|patch|delete)\(\s*("[^"]+"|\[[^\]]+\])',source.read_text(encoding='utf-8')):
         for path in re.findall(r'"([^"]+)"',match[3]):
-            path=re.sub(r':([a-zA-Z]+)',r'{\1}',prefix+path)
+            route_prefix = ('/admin/rd' if match[1] == 'admin' else '/rd') if source.name == 'remote-desktop.ts' else prefix
+            path=re.sub(r':([a-zA-Z]+)',r'{\1}',route_prefix+path)
             full=path if path.startswith('/internal/') else '/api/v1'+path
             source_routes.add((match[2],full))
 health=obj({'status':enum('healthy','unhealthy'),'version':S,'at':DATE},['status','version','at'])
@@ -209,9 +213,9 @@ documented={(method,path) for path,methods in paths.items() for method in method
 assert source_routes==documented, f"Route drift: missing={source_routes-documented}, removed={documented-source_routes}"
 errors=sorted(set(re.findall(r'new HttpError\(\s*\d+,\s*"([A-Z0-9_]+)"', '\n'.join(p.read_text(encoding='utf-8') for p in (ROOT/'control-center/src').rglob('*.ts') if not p.name.endswith('.test.ts')))))
 schemas['Error']['properties']['error_code']['description']='Known codes (consumers must handle unknown codes): '+', '.join(errors)
-document={"openapi":"3.1.0","info":{"title":"Home Tunnel API","version":"1.1.0","description":"Home Tunnel 7.0.0. Complete control-center REST surface, including network-private service hooks. WebSocket envelopes remain in home-tunnel.v1.json. See docs/API.md for authentication, pagination, compatibility, and replay semantics.","license":{"name":"Apache-2.0"}},"servers":[{"url":"https://console.example.com"}],"security":[{"bearerAuth":[]},{"sessionCookie":[]}],"paths":paths,"components":{"securitySchemes":{"bearerAuth":{"type":"http","scheme":"bearer"},"sessionCookie":{"type":"apiKey","in":"cookie","name":"ht_access"},"internalKey":{"type":"apiKey","in":"header","name":"x-home-tunnel-key"}},"schemas":schemas},"x-contract-ref":"api-v1.1.0"}
+document={"openapi":"3.1.0","info":{"title":"Home Tunnel API","version":"1.2.0","description":"Home Tunnel 8.0 development contract. Additive remote-desktop control plane; direct UDP media is never relayed here. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md for authentication, compatibility and replay semantics.","license":{"name":"Apache-2.0"}},"servers":[{"url":"https://console.example.com"}],"security":[{"bearerAuth":[]},{"sessionCookie":[]}],"paths":paths,"components":{"securitySchemes":{"bearerAuth":{"type":"http","scheme":"bearer"},"sessionCookie":{"type":"apiKey","in":"cookie","name":"ht_access"},"internalKey":{"type":"apiKey","in":"header","name":"x-home-tunnel-key"},"dpopAuth":{"type":"http","scheme":"DPoP","description":"Short-lived endpoint token; requires a matching DPoP proof."},"dpopProof":{"type":"apiKey","in":"header","name":"DPoP","description":"ES256 proof binds token hash, nonce, HTTP method, canonical URL, timestamp and unique jti."}},"schemas":schemas},"x-contract-ref":"api-v1.2.0-rc.1"}
 encoded=json.dumps(document,ensure_ascii=False,indent=2)+'\n'
-json_schema={"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://zhanry.github.io/home-tunnel/schemas/api-v1.1.0.json","$defs":schemas}
+json_schema={"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://zhanry.github.io/home-tunnel/schemas/api-v1.2.0.json","$defs":schemas}
 schema_encoded=json.dumps(json_schema,ensure_ascii=False,indent=2).replace('#/components/schemas/','#/$defs/')+'\n'
 outputs={'contracts/openapi.v1.json':encoded,'contracts/api.schema.json':schema_encoded,'control-center/public/openapi.json':encoded,'control-center/public/api-schema.json':schema_encoded}
 for name,content in outputs.items():

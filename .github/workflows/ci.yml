@@ -206,9 +206,9 @@ jobs:
             throw 'An offline PowerShell release path does not accept RC versions'
           }
         }
-        if ($buildUi -notmatch '\$sourceVersion\s*=.*-replace' -or
-            $buildServer -notmatch '\$sourceVersion\s*=.*-replace') {
-          throw 'Offline builders must compare RC tags to the source base version'
+        if ($buildUi -notmatch '\$sourceVersion\s*=\s*\$Version\s*[\r\n]' -or
+            $buildServer -notmatch '\$sourceVersion\s*=\s*\$Version\s*[\r\n]') {
+          throw 'Offline builders must compare the complete RC version with the source'
         }
     - name: Validate RC-aware remote update script
       run: |
@@ -216,8 +216,25 @@ jobs:
         # The grep expressions below intentionally match literal shell/JavaScript source.
         bash -n deploy/scripts/update-ui.sh
         grep -Fq '(-rc\.[0-9]+)?$' deploy/scripts/update-ui.sh
-        grep -Fq 'source_version="${version%%-rc.*}"' deploy/scripts/update-ui.sh
+        grep -Fq 'source_version="$version"' deploy/scripts/update-ui.sh
         grep -Fq "b.version!=='\$source_version'" deploy/scripts/update-ui.sh
+  stun-runtime:
+    name: Isolated STUN-only runtime
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - name: Install namespace firewall tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nftables
+    - name: Exercise the pinned deployment without publishing any port
+      run: python3 tests/stun-runtime.py
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      if: ${{ always() }}
+      with:
+        name: stun-runtime-evidence
+        path: outputs/stun-runtime.json
+        if-no-files-found: error
   repository:
     name: Repository boundaries
     runs-on: ubuntu-latest
@@ -262,7 +279,7 @@ jobs:
       run: |
         set -euo pipefail
         export TEST_RESTORE_BUNDLE_PATH="$RUNNER_TEMP/ht-restored-bundle"
-        node --test deploy/backup/runner.test.mjs
+        node --test deploy/backup/runner.test.mjs deploy/backup/bundle.test.mjs
         python3 deploy/scripts/import-restore.py --bundle "$TEST_RESTORE_BUNDLE_PATH" --verify-only
         python3 deploy/scripts/import-restore.py --bundle "$TEST_RESTORE_BUNDLE_PATH" --destination "$RUNNER_TEMP/ht-restored-project" --project ht-restore-ci
         python3 tests/verify-restored-volume.py
@@ -300,6 +317,7 @@ jobs:
     - deployment
     - repository
     - platform-operations
+    - stun-runtime
     steps:
     - name: Require all component checks
       env:

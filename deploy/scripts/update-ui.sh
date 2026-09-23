@@ -24,7 +24,7 @@ is_sha256() {
 }
 
 printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$' || { echo "Invalid version" >&2; exit 1; }
-source_version="${version%%-rc.*}"
+source_version="$version"
 is_sha256 "$expected_images_sha" || { echo "Invalid image archive SHA-256" >&2; exit 1; }
 is_sha256 "$expected_caddy_sha" || { echo "Invalid Caddy SHA-256" >&2; exit 1; }
 printf '%s' "$expected_caddy_inode" | grep -Eq '^[0-9]+$' || { echo "Invalid Caddy inode" >&2; exit 1; }

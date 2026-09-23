@@ -1,15 +1,15 @@
 {
   "component": "server",
-  "stage": "public-release",
+  "stage": "internal-testing",
   "api_major": 1,
-  "contract_ref": "api-v1.1.0",
-  "support_policy": "Stable 7.0 line. Upgrade the server, Web, desktop/CLI, Android and managed Agent together. 6.x clients are not supported with 7.0 pagination and security controls. FRP follows its separate upstream version.",
-  "version": "7.0.0",
+  "contract_ref": "api-v1.2.0-rc.1",
+  "support_policy": "8.0 development: RD is disabled by default. Keep the 7.0 tunnel clients compatible; RD requires matching 8.0 protocol implementations. Candidate contract and artifacts are not a published stable release. FRP follows its separate upstream version.",
+  "version": "8.0.0-rc.1",
   "minimum_server": "7.0.0",
   "tested_combination": {
-    "server": "7.0.0",
-    "client": "7.0.0",
-    "android": "7.0.0",
-    "agent": "7.0.0"
+    "server": "8.0.0-rc.1",
+    "client": "8.0.0-rc.1",
+    "android": "8.0.0-rc.1",
+    "agent": "8.0.0-rc.1"
   }
 }

@@ -31,11 +31,11 @@ def local_version():
 def validate_release_tag(tag, source_version, stage):
     if stage not in ("internal-testing", "public-release"):
         raise SystemExit("Unknown release stage; set compatibility.json explicitly")
-    match = re.fullmatch(r"v(\d+\.\d+\.\d+)(?:-rc\.(\d+))?", tag)
+    match = re.fullmatch(r"v(\d+\.\d+\.\d+)(?:-rc\.([1-9]\d*))?", tag)
     if not match:
         raise SystemExit("Release tags must be vX.Y.Z or vX.Y.Z-rc.N")
     version, candidate = match.groups()
-    if version != source_version:
+    if tag.removeprefix("v") != source_version:
         raise SystemExit("Tag does not match this component's source version")
     if stage == "internal-testing" and candidate is None:
         raise SystemExit("Internal testing publishes prereleases only; use vX.Y.Z-rc.N")
@@ -70,7 +70,8 @@ def required_assets(directory):
     elif COMPONENT == "android":
         expected = [f"HomeTunnel-Android-{version}-arm64-v8a.apk", f"HomeTunnel-Android-{version}.aab", "android-release-evidence.json"]
     else:
-        expected = ["image-control-center.json", "image-traffic-gateway.json", "home-tunnel.v1.json", "openapi.v1.json", "api.schema.json"]
+        expected = ["image-control-center.json", "image-traffic-gateway.json", "home-tunnel.v1.json", "openapi.v1.json", "api.schema.json",
+                    "remote-desktop.v1.json", "remote-authorization-vectors.json", "REMOTE_PROTOCOL.md"]
         for name in ("control-center", "traffic-gateway"):
             record = json.loads((directory / f"image-{name}.json").read_text())
             if record["revision"] != SHA or not re.fullmatch(r"sha256:[a-f0-9]{64}", record["digest"]):
@@ -94,7 +95,7 @@ def seal():
         import tarfile
         archive = directory/f'home-tunnel-server-{local_version()}.tar.gz'
         with tarfile.open(archive, 'w:gz') as bundle:
-            for entry in ['compose.yaml', '.env.example', 'README.md', 'README.en.md', 'LICENSE', 'deploy', 'docs', 'contracts']:
+            for entry in ['compose.yaml', '.env.example', 'README.md', 'README.en.md', 'LICENSE', 'compatibility.json', 'control-center/package.json', 'control-center/migrations', 'deploy', 'docs', 'contracts']:
                 bundle.add(ROOT/entry, arcname=entry, filter=lambda item: None if '__pycache__' in item.name or item.name.endswith('.pyc') else item)
             bundle.add(directory/'compose.release.yaml',arcname='compose.release.yaml')
     lines=[]
@@ -137,6 +138,11 @@ def publish(stable=False):
     directory=ROOT/'release'
     stable = re.fullmatch(r"v\d+\.\d+\.\d+", TAG) is not None
     identity=verify(directory,TAG)
+    if COMPONENT == 'server':
+        for arch in ('amd64', 'arm64'):
+            report = json.loads((directory / f'stun-runtime-{arch}.json').read_text())
+            if report.get('status') != 'passed' or report.get('repository_revision') != SHA:
+                raise SystemExit('The exact tagged STUN deployment must pass its isolated runtime check')
     if COMPONENT=='server' and stable:
         for name in ('control-center','traffic-gateway'):
             record=json.loads((directory/f'image-{name}.json').read_text())
@@ -155,7 +161,7 @@ def publish(stable=False):
     packages=public_asset_names(COMPONENT,local_version())
     downloads='\n'.join(f'- [{name}](https://github.com/{REPO}/releases/download/{TAG}/{name})' for name in packages)
     checksums=''.join(f"{hashlib.sha256((public/name).read_bytes()).hexdigest()}  {name}\n" for name in packages)
-    title=f'Home Tunnel {COMPONENT} {local_version()}' + ('' if stable else f' ({TAG.rsplit("-",1)[1]})')
+    title=f'Home Tunnel {COMPONENT} {local_version()}'
     notes=ROOT/'release-notes.md'
     summary=(ROOT/'docs/RELEASE_NOTES.md').read_text(encoding='utf-8')
     run_url=f"https://github.com/{REPO}/actions/runs/{os.environ['GITHUB_RUN_ID']}"

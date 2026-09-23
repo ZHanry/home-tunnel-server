@@ -126,6 +126,13 @@ router.post(
         body.client_type,
         request.header("user-agent"),
       );
+      // Password and the configured second factor were verified in this transaction.
+      // A fresh account login is already recent RD verification; device login below
+      // intentionally never receives this marker.
+      if (user.password_state === "normal")
+        await client.query("UPDATE sessions SET rd_verified_at=home_tunnel_now() WHERE id=?", [
+          issued.sessionId,
+        ]);
       await audit(
         client,
         request,

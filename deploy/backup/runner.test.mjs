@@ -32,7 +32,7 @@ test("encrypted repository roundtrip restores database, config and keys without 
     const env=await readFile(join(restored,"config/.env"),"utf8");
     assert.ok(env.includes("HOME_TUNNEL_VERSION=7.0.0"));assert.ok(!env.includes(password));assert.ok(!env.includes("not-in-bundle"));
     assert.equal(await readFile(join(restored,"config/deploy/secrets/lease_signing_key"),"utf8"),"fixture-lease_signing_key");
-    const manifest=await runner.verifyBundle(restored);assert.equal(manifest.version,"7.0.0");
+    const manifest=await runner.verifyBundle(restored);assert.equal(manifest.version,JSON.parse(await readFile(new URL("../../control-center/package.json",import.meta.url),"utf8")).version);assert.ok(manifest.schema_version>=13);
     if (process.env.TEST_RESTORE_BUNDLE_PATH) await cp(restored,process.env.TEST_RESTORE_BUNDLE_PATH,{recursive:true,errorOnExist:true,force:false});
     await assert.rejects(runner.main(["restore",result.snapshot,"--target",restored]),/empty/);
     await writeFile(join(restored,"config/compose.yaml"),"tampered");

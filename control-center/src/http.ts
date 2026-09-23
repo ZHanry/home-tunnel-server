@@ -89,10 +89,10 @@ export function requestContext(
   response.setHeader("x-content-type-options", "nosniff");
   response.setHeader("x-frame-options", "DENY");
   response.setHeader("referrer-policy", "no-referrer");
-  response.setHeader("permissions-policy", "camera=(), microphone=(), geolocation=()");
+  response.setHeader("permissions-policy", "camera=(), microphone=(self), geolocation=()");
   response.setHeader(
     "content-security-policy",
-    "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'",
+    "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'; img-src 'self' data:; media-src 'self' blob:; style-src 'self'; script-src 'self'",
   );
   next();
 }
@@ -371,6 +371,8 @@ export function errorMiddleware(
   if (response.headersSent) return;
   const requestId = request.requestId ?? randomUUID();
   if (error instanceof HttpError) {
+    if (error.status === 429 && !response.hasHeader("retry-after"))
+      response.setHeader("retry-after", "60");
     response.status(error.status).json({
       error_code: error.errorCode,
       message: error.message,

@@ -1,4 +1,50 @@
-# Home Tunnel 7.0.0
+# Home Tunnel 8.0.0-rc.1
+
+This candidate adds the remote-desktop control plane under `/api/v1/rd` while
+preserving the API v1 tunnel interface. The contract is 1.2.0; RD and the native
+ABI have their own versions. Existing stable download and deployment defaults
+remain 7.0.0. Use this candidate only in a separate test deployment and select
+both candidate service images using the supplied `compose.release.yaml` overlay.
+
+- Add endpoint keys, DPoP, explicit pairing and host-local session approval,
+  ES256 tickets and leases, persistent quotas, revocation and bounded signaling.
+- Add a browser viewer with permission-gated input, display selection and
+  diagnostics. Features remain unavailable when the selected host lacks the
+  required backend or permission.
+- Add additive database migrations, validated migration history, independent
+  signing keys and chained rotation. Encrypted recovery advances `restore_epoch`,
+  closes previous sessions and leaves RD disabled until locally re-authorized.
+- Provide a pinned STUN-only deployment, firewall limits and isolated runtime
+  checks. It cannot replace real public-network traversal and bandwidth tests.
+- Publish API/RD contracts and authorization vectors alongside image identities,
+  deployment archives, checksums, build evidence and integration reports.
+
+RD is off by default. All remote payloads require direct UDP; no relay fallback
+is supplied. Development tests have exercised Windows-to-Chromium H.264 and VP8
+video, keyboard/pointer/Unicode input and stale input rejection on one machine.
+The input test observed held-input release within two seconds after heartbeat
+loss and worker termination. A separate same-machine test transferred actual
+files in both directions over the data channel, checked their bytes and hashes,
+and confirmed viewing continued after file permissions were disabled. File
+selection used isolated test fixtures; the native and browser file pickers were
+not exercised. These results use development builds, not the final signed or
+packaged candidate bytes.
+
+The control plane and these Windows paths are implemented, but the final
+candidate still requires package installation, update/recovery and exact-artifact
+verification. Cross-network traversal and the full platform matrix remain
+unverified. macOS/Wayland hosting, desktop native viewing, Android media decoding,
+system audio, virtual microphone and AV1/HEVC remain incomplete. Linux X11 and
+native text clipboard support also require platform and end-to-end acceptance.
+The final candidate's component reports must define its tested subset and
+unavailable features. This is not the final 8.0.0 release.
+
+Before upgrading, retain a verified encrypted backup. Prefer disabling RD as
+rollback; do not run a 7.0 server against a migrated 8.0 database. Recovery must
+use the documented fresh-project/empty-volume procedure. See
+[remote desktop operations](REMOTE_DESKTOP_OPERATIONS.md).
+
+## Previous stable release: 7.0.0
 
 All first-party components and the managed Agent now use 7.0.0. Upgrade the server,
 desktop/CLI and Android together; FRP remains at its independent 0.70.1 version.

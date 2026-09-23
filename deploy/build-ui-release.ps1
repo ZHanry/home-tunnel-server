@@ -22,12 +22,9 @@ if ($OutputRoot -ne $allowedOutputRoot -and -not $OutputRoot.StartsWith($allowed
 
 $controlPackage = Get-Content -Raw -LiteralPath (Join-Path $controlRoot "package.json") | ConvertFrom-Json
 $gatewayPackage = Get-Content -Raw -LiteralPath (Join-Path $gatewayRoot "package.json") | ConvertFrom-Json
-$deploymentVersion = (Get-Content -LiteralPath (Join-Path $workspace ".env.example") |
-    Where-Object { $_ -match '^HOME_TUNNEL_VERSION=' } |
-    Select-Object -First 1) -replace '^HOME_TUNNEL_VERSION=', ''
-if (-not $Version) { $Version = $deploymentVersion }
+if (-not $Version) { $Version = [string]$controlPackage.version }
 if ($Version -notmatch '^\d+\.\d+\.\d+(?:-rc\.\d+)?$') { throw "Version must use MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-rc.N format" }
-$sourceVersion = $Version -replace '-rc\.\d+$', ''
+$sourceVersion = $Version
 if ($controlPackage.version -ne $sourceVersion) { throw "Control-center package version does not match source version $sourceVersion" }
 if ($gatewayPackage.version -ne $sourceVersion) { throw "Traffic-gateway package version does not match source version $sourceVersion" }
 $versionSource = Get-Content -Raw -LiteralPath (Join-Path $controlRoot "src\version.ts")
@@ -38,6 +35,7 @@ if ($versionSource -notmatch 'APP_VERSION\s*=\s*"([^"\r\n]+)"' -or $Matches[1] -
 $imageTag = "home-tunnel/control-center:$Version-arm64"
 $gatewayImageTag = "home-tunnel/traffic-gateway:$Version-arm64"
 $composeSource = Get-Content -Raw -LiteralPath (Join-Path $deployRoot "compose.yaml")
+$composeSource = [regex]::Replace($composeSource, '(?m)^(    image: home-tunnel/(?:control-center|traffic-gateway):)\d+\.\d+\.\d+(?:-rc\.\d+)?(-arm64)[ \t]*\r?$', { param($match) $match.Groups[1].Value + $Version + $match.Groups[2].Value })
 foreach ($expectedImage in @($imageTag, $gatewayImageTag)) {
     if ($composeSource -notmatch "(?m)^    image: $([regex]::Escape($expectedImage))\s*$") {
         throw "Compose does not reference $expectedImage"

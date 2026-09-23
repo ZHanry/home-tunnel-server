@@ -1,0 +1,470 @@
+{
+  "schema_version": 1,
+  "description": "Public-only verification fixture. Join jws_parts with a dot. No private fixture key is stored or used in production.",
+  "reference_time_unix": 1790035320,
+  "identities": {
+    "server": {
+      "public_jwk": {
+        "crv": "P-256",
+        "kty": "EC",
+        "x": "cka0YnEKrKziSFvJHjZolHX0rjnx2_ForrGTvImY9Z4",
+        "y": "4JqXBWHwJp9ajA7F_rsQRFdAvzGHZ7Izba9CXHypK94"
+      },
+      "jkt": "JOewVf5sQFcyzS-6jXfrpzwtyXGAr59YqkBZVFxZD84"
+    },
+    "host": {
+      "public_jwk": {
+        "crv": "P-256",
+        "kty": "EC",
+        "x": "lnC4umAZ-y1E5pjdBpqvxb8p9gpYySym4MfqzC-nCjs",
+        "y": "WjZhJIvASfYg211A67lm1b1q9Ex2xwIdgJu-z50qUU8"
+      },
+      "jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w"
+    },
+    "controller": {
+      "public_jwk": {
+        "crv": "P-256",
+        "kty": "EC",
+        "x": "NPn-wZbOfhte10MbwhU1InELMwCStMQ58WI1FQktdH8",
+        "y": "9HWx-tm20gD_K9g_voAcSZOUxV4TWwy7Aj-dpHOIi9w"
+      },
+      "jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0"
+    }
+  },
+  "keyset": {
+    "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+    "restore_epoch": 2,
+    "keyset_version": 1,
+    "active_kid": "JOewVf5sQFcyzS-6jXfrpzwtyXGAr59YqkBZVFxZD84",
+    "rotation_proofs": [],
+    "keys": [
+      {
+        "kid": "JOewVf5sQFcyzS-6jXfrpzwtyXGAr59YqkBZVFxZD84",
+        "alg": "ES256",
+        "public_jwk": {
+          "crv": "P-256",
+          "kty": "EC",
+          "x": "cka0YnEKrKziSFvJHjZolHX0rjnx2_ForrGTvImY9Z4",
+          "y": "4JqXBWHwJp9ajA7F_rsQRFdAvzGHZ7Izba9CXHypK94"
+        },
+        "not_before": "2026-09-21T23:02:00.000Z",
+        "not_after": "2026-09-23T00:02:00.000Z"
+      }
+    ]
+  },
+  "expected_binding": {
+    "iss": "https://rd-fixture.example.test",
+    "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+    "restore_epoch": 2,
+    "session_id": "b0000000-0000-4000-8000-000000000001",
+    "session_request_id": "c0000000-0000-4000-8000-000000000001",
+    "connection_epoch": 3,
+    "owner_user_id": "d0000000-0000-4000-8000-000000000001",
+    "controller_endpoint_id": "e0000000-0000-4000-8000-000000000001",
+    "host_endpoint_id": "f0000000-0000-4000-8000-000000000001",
+    "controller_jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0",
+    "host_jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w",
+    "permissions": [
+      "view",
+      "input.keyboard",
+      "input.pointer",
+      "input.text"
+    ],
+    "grant_id": "a1000000-0000-4000-8000-000000000001",
+    "grant_version": 4,
+    "user_token_version": 5,
+    "iat": 1790035320,
+    "nbf": 1790035320
+  },
+  "valid": {
+    "ticket": {
+      "claims": {
+        "iss": "https://rd-fixture.example.test",
+        "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+        "restore_epoch": 2,
+        "session_id": "b0000000-0000-4000-8000-000000000001",
+        "session_request_id": "c0000000-0000-4000-8000-000000000001",
+        "connection_epoch": 3,
+        "owner_user_id": "d0000000-0000-4000-8000-000000000001",
+        "controller_endpoint_id": "e0000000-0000-4000-8000-000000000001",
+        "host_endpoint_id": "f0000000-0000-4000-8000-000000000001",
+        "controller_jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0",
+        "host_jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w",
+        "permissions": [
+          "view",
+          "input.keyboard",
+          "input.pointer",
+          "input.text"
+        ],
+        "grant_id": "a1000000-0000-4000-8000-000000000001",
+        "grant_version": 4,
+        "user_token_version": 5,
+        "iat": 1790035320,
+        "nbf": 1790035320,
+        "aud": "ht-rd-start",
+        "jti": "a2000000-0000-4000-8000-000000000001",
+        "exp": 1790035380
+      },
+      "jws_parts": [
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6Imh0LXJkLXRpY2tldCtqd3QiLCJraWQiOiJKT2V3VmY1c1FGY3l6Uy02alhmcnB6d3R5WEdBcjU5WXFrQlpWRnhaRDg0In0",
+        "eyJpc3MiOiJodHRwczovL3JkLWZpeHR1cmUuZXhhbXBsZS50ZXN0Iiwic2VydmVyX2luc3RhbmNlX2lkIjoiYTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwicmVzdG9yZV9lcG9jaCI6Miwic2Vzc2lvbl9pZCI6ImIwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsInNlc3Npb25fcmVxdWVzdF9pZCI6ImMwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbm5lY3Rpb25fZXBvY2giOjMsIm93bmVyX3VzZXJfaWQiOiJkMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJjb250cm9sbGVyX2VuZHBvaW50X2lkIjoiZTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiaG9zdF9lbmRwb2ludF9pZCI6ImYwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbnRyb2xsZXJfamt0IjoiYkFYOWVkdnhGQW94cE0xdHpZMUwwWldMNTJqdVV2czgzZF9mUi14T2Z6MCIsImhvc3Rfamt0IjoibXFZUTlvTE5VYkR6RmNqcWVjVUY5WmJZRHVEdll1VVpXa1l3QWFHTWI3dyIsInBlcm1pc3Npb25zIjpbInZpZXciLCJpbnB1dC5rZXlib2FyZCIsImlucHV0LnBvaW50ZXIiLCJpbnB1dC50ZXh0Il0sImdyYW50X2lkIjoiYTEwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZ3JhbnRfdmVyc2lvbiI6NCwidXNlcl90b2tlbl92ZXJzaW9uIjo1LCJpYXQiOjE3OTAwMzUzMjAsIm5iZiI6MTc5MDAzNTMyMCwiYXVkIjoiaHQtcmQtc3RhcnQiLCJqdGkiOiJhMjAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjE3OTAwMzUzODB9",
+        "6B8o9uWlYZqAiHhTnIefjHc3VROcVfDXUhK8Rv9TQS3GVRs9qGPJrPd1s_bwC3CUxllPrcaFXicnvKPt2Zl0MA"
+      ]
+    },
+    "lease": {
+      "claims": {
+        "iss": "https://rd-fixture.example.test",
+        "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+        "restore_epoch": 2,
+        "session_id": "b0000000-0000-4000-8000-000000000001",
+        "session_request_id": "c0000000-0000-4000-8000-000000000001",
+        "connection_epoch": 3,
+        "owner_user_id": "d0000000-0000-4000-8000-000000000001",
+        "controller_endpoint_id": "e0000000-0000-4000-8000-000000000001",
+        "host_endpoint_id": "f0000000-0000-4000-8000-000000000001",
+        "controller_jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0",
+        "host_jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w",
+        "permissions": [
+          "view",
+          "input.keyboard",
+          "input.pointer",
+          "input.text"
+        ],
+        "grant_id": "a1000000-0000-4000-8000-000000000001",
+        "grant_version": 4,
+        "user_token_version": 5,
+        "iat": 1790035320,
+        "nbf": 1790035320,
+        "aud": "ht-rd-use",
+        "jti": "a3000000-0000-4000-8000-000000000001",
+        "exp": 1790036220,
+        "lease_seq": 1
+      },
+      "jws_parts": [
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6Imh0LXJkLWxlYXNlK2p3dCIsImtpZCI6IkpPZXdWZjVzUUZjeXpTLTZqWGZycHp3dHlYR0FyNTlZcWtCWlZGeFpEODQifQ",
+        "eyJpc3MiOiJodHRwczovL3JkLWZpeHR1cmUuZXhhbXBsZS50ZXN0Iiwic2VydmVyX2luc3RhbmNlX2lkIjoiYTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwicmVzdG9yZV9lcG9jaCI6Miwic2Vzc2lvbl9pZCI6ImIwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsInNlc3Npb25fcmVxdWVzdF9pZCI6ImMwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbm5lY3Rpb25fZXBvY2giOjMsIm93bmVyX3VzZXJfaWQiOiJkMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJjb250cm9sbGVyX2VuZHBvaW50X2lkIjoiZTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiaG9zdF9lbmRwb2ludF9pZCI6ImYwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbnRyb2xsZXJfamt0IjoiYkFYOWVkdnhGQW94cE0xdHpZMUwwWldMNTJqdVV2czgzZF9mUi14T2Z6MCIsImhvc3Rfamt0IjoibXFZUTlvTE5VYkR6RmNqcWVjVUY5WmJZRHVEdll1VVpXa1l3QWFHTWI3dyIsInBlcm1pc3Npb25zIjpbInZpZXciLCJpbnB1dC5rZXlib2FyZCIsImlucHV0LnBvaW50ZXIiLCJpbnB1dC50ZXh0Il0sImdyYW50X2lkIjoiYTEwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZ3JhbnRfdmVyc2lvbiI6NCwidXNlcl90b2tlbl92ZXJzaW9uIjo1LCJpYXQiOjE3OTAwMzUzMjAsIm5iZiI6MTc5MDAzNTMyMCwiYXVkIjoiaHQtcmQtdXNlIiwianRpIjoiYTMwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZXhwIjoxNzkwMDM2MjIwLCJsZWFzZV9zZXEiOjF9",
+        "4wXVo6nWJzOvbnEHAxKgpsBZIASenlsVK38iU1clx6Acl4bQLGytNClcgj968EKmHIf2phApUcBfdvc-RcW9Rg"
+      ]
+    },
+    "grant": {
+      "claims": {
+        "id": "a1000000-0000-4000-8000-000000000001",
+        "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+        "owner_user_id": "d0000000-0000-4000-8000-000000000001",
+        "host_endpoint_id": "f0000000-0000-4000-8000-000000000001",
+        "controller_endpoint_id": "e0000000-0000-4000-8000-000000000001",
+        "host_jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w",
+        "controller_jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0",
+        "scope": [
+          "view",
+          "input.keyboard",
+          "input.pointer",
+          "input.text"
+        ],
+        "mode": "one_session",
+        "one_session_request_id": "c0000000-0000-4000-8000-000000000001",
+        "grant_version": 4,
+        "expires_at": "2026-09-22T01:02:00.000Z"
+      },
+      "jws_parts": [
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6Imh0LXJkLWdyYW50K2p3dCJ9",
+        "eyJpZCI6ImExMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsInNlcnZlcl9pbnN0YW5jZV9pZCI6ImEwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsIm93bmVyX3VzZXJfaWQiOiJkMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJob3N0X2VuZHBvaW50X2lkIjoiZjAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiY29udHJvbGxlcl9lbmRwb2ludF9pZCI6ImUwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImhvc3Rfamt0IjoibXFZUTlvTE5VYkR6RmNqcWVjVUY5WmJZRHVEdll1VVpXa1l3QWFHTWI3dyIsImNvbnRyb2xsZXJfamt0IjoiYkFYOWVkdnhGQW94cE0xdHpZMUwwWldMNTJqdVV2czgzZF9mUi14T2Z6MCIsInNjb3BlIjpbInZpZXciLCJpbnB1dC5rZXlib2FyZCIsImlucHV0LnBvaW50ZXIiLCJpbnB1dC50ZXh0Il0sIm1vZGUiOiJvbmVfc2Vzc2lvbiIsIm9uZV9zZXNzaW9uX3JlcXVlc3RfaWQiOiJjMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJncmFudF92ZXJzaW9uIjo0LCJleHBpcmVzX2F0IjoiMjAyNi0wOS0yMlQwMTowMjowMC4wMDBaIn0",
+        "omo7_mEkO2E2o6nxfNgs0aRVY3WJFKh7koMaPHIU9MmhS3WFtjLYfilEt2XfILCqQCqnvrLtI1lICRs-1jQQ7w"
+      ]
+    }
+  },
+  "rejected": [
+    {
+      "name": "ticket_wrong_audience",
+      "kind": "ticket",
+      "claims": {
+        "iss": "https://rd-fixture.example.test",
+        "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+        "restore_epoch": 2,
+        "session_id": "b0000000-0000-4000-8000-000000000001",
+        "session_request_id": "c0000000-0000-4000-8000-000000000001",
+        "connection_epoch": 3,
+        "owner_user_id": "d0000000-0000-4000-8000-000000000001",
+        "controller_endpoint_id": "e0000000-0000-4000-8000-000000000001",
+        "host_endpoint_id": "f0000000-0000-4000-8000-000000000001",
+        "controller_jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0",
+        "host_jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w",
+        "permissions": [
+          "view",
+          "input.keyboard",
+          "input.pointer",
+          "input.text"
+        ],
+        "grant_id": "a1000000-0000-4000-8000-000000000001",
+        "grant_version": 4,
+        "user_token_version": 5,
+        "iat": 1790035320,
+        "nbf": 1790035320,
+        "aud": "ht-rd-use",
+        "jti": "a2000000-0000-4000-8000-000000000001",
+        "exp": 1790035380
+      },
+      "jws_parts": [
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6Imh0LXJkLXRpY2tldCtqd3QiLCJraWQiOiJKT2V3VmY1c1FGY3l6Uy02alhmcnB6d3R5WEdBcjU5WXFrQlpWRnhaRDg0In0",
+        "eyJpc3MiOiJodHRwczovL3JkLWZpeHR1cmUuZXhhbXBsZS50ZXN0Iiwic2VydmVyX2luc3RhbmNlX2lkIjoiYTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwicmVzdG9yZV9lcG9jaCI6Miwic2Vzc2lvbl9pZCI6ImIwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsInNlc3Npb25fcmVxdWVzdF9pZCI6ImMwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbm5lY3Rpb25fZXBvY2giOjMsIm93bmVyX3VzZXJfaWQiOiJkMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJjb250cm9sbGVyX2VuZHBvaW50X2lkIjoiZTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiaG9zdF9lbmRwb2ludF9pZCI6ImYwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbnRyb2xsZXJfamt0IjoiYkFYOWVkdnhGQW94cE0xdHpZMUwwWldMNTJqdVV2czgzZF9mUi14T2Z6MCIsImhvc3Rfamt0IjoibXFZUTlvTE5VYkR6RmNqcWVjVUY5WmJZRHVEdll1VVpXa1l3QWFHTWI3dyIsInBlcm1pc3Npb25zIjpbInZpZXciLCJpbnB1dC5rZXlib2FyZCIsImlucHV0LnBvaW50ZXIiLCJpbnB1dC50ZXh0Il0sImdyYW50X2lkIjoiYTEwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZ3JhbnRfdmVyc2lvbiI6NCwidXNlcl90b2tlbl92ZXJzaW9uIjo1LCJpYXQiOjE3OTAwMzUzMjAsIm5iZiI6MTc5MDAzNTMyMCwiYXVkIjoiaHQtcmQtdXNlIiwianRpIjoiYTIwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZXhwIjoxNzkwMDM1MzgwfQ",
+        "k05qZ6fgHgFSOvz9ZioYMoeMoLvTkQbeXVB7HbAUDRiXHfMlPD4RCVEjlzqGuIqIvmMahAiF0sdSx_lp075QvQ"
+      ]
+    },
+    {
+      "name": "ticket_wrong_epoch",
+      "kind": "ticket",
+      "claims": {
+        "iss": "https://rd-fixture.example.test",
+        "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+        "restore_epoch": 2,
+        "session_id": "b0000000-0000-4000-8000-000000000001",
+        "session_request_id": "c0000000-0000-4000-8000-000000000001",
+        "connection_epoch": 2,
+        "owner_user_id": "d0000000-0000-4000-8000-000000000001",
+        "controller_endpoint_id": "e0000000-0000-4000-8000-000000000001",
+        "host_endpoint_id": "f0000000-0000-4000-8000-000000000001",
+        "controller_jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0",
+        "host_jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w",
+        "permissions": [
+          "view",
+          "input.keyboard",
+          "input.pointer",
+          "input.text"
+        ],
+        "grant_id": "a1000000-0000-4000-8000-000000000001",
+        "grant_version": 4,
+        "user_token_version": 5,
+        "iat": 1790035320,
+        "nbf": 1790035320,
+        "aud": "ht-rd-start",
+        "jti": "a2000000-0000-4000-8000-000000000001",
+        "exp": 1790035380
+      },
+      "jws_parts": [
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6Imh0LXJkLXRpY2tldCtqd3QiLCJraWQiOiJKT2V3VmY1c1FGY3l6Uy02alhmcnB6d3R5WEdBcjU5WXFrQlpWRnhaRDg0In0",
+        "eyJpc3MiOiJodHRwczovL3JkLWZpeHR1cmUuZXhhbXBsZS50ZXN0Iiwic2VydmVyX2luc3RhbmNlX2lkIjoiYTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwicmVzdG9yZV9lcG9jaCI6Miwic2Vzc2lvbl9pZCI6ImIwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsInNlc3Npb25fcmVxdWVzdF9pZCI6ImMwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbm5lY3Rpb25fZXBvY2giOjIsIm93bmVyX3VzZXJfaWQiOiJkMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJjb250cm9sbGVyX2VuZHBvaW50X2lkIjoiZTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiaG9zdF9lbmRwb2ludF9pZCI6ImYwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbnRyb2xsZXJfamt0IjoiYkFYOWVkdnhGQW94cE0xdHpZMUwwWldMNTJqdVV2czgzZF9mUi14T2Z6MCIsImhvc3Rfamt0IjoibXFZUTlvTE5VYkR6RmNqcWVjVUY5WmJZRHVEdll1VVpXa1l3QWFHTWI3dyIsInBlcm1pc3Npb25zIjpbInZpZXciLCJpbnB1dC5rZXlib2FyZCIsImlucHV0LnBvaW50ZXIiLCJpbnB1dC50ZXh0Il0sImdyYW50X2lkIjoiYTEwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZ3JhbnRfdmVyc2lvbiI6NCwidXNlcl90b2tlbl92ZXJzaW9uIjo1LCJpYXQiOjE3OTAwMzUzMjAsIm5iZiI6MTc5MDAzNTMyMCwiYXVkIjoiaHQtcmQtc3RhcnQiLCJqdGkiOiJhMjAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjE3OTAwMzUzODB9",
+        "V1G-5JI9glXUAROSEEMHc_-4Ro30qZpKFEzWRbBj1pr9XMV8FE-amyRnBfOCWev7OYjr6RVA8VpLh1bqic9zEA"
+      ]
+    },
+    {
+      "name": "ticket_wrong_request",
+      "kind": "ticket",
+      "claims": {
+        "iss": "https://rd-fixture.example.test",
+        "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+        "restore_epoch": 2,
+        "session_id": "b0000000-0000-4000-8000-000000000001",
+        "session_request_id": "c0000000-0000-4000-8000-000000000002",
+        "connection_epoch": 3,
+        "owner_user_id": "d0000000-0000-4000-8000-000000000001",
+        "controller_endpoint_id": "e0000000-0000-4000-8000-000000000001",
+        "host_endpoint_id": "f0000000-0000-4000-8000-000000000001",
+        "controller_jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0",
+        "host_jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w",
+        "permissions": [
+          "view",
+          "input.keyboard",
+          "input.pointer",
+          "input.text"
+        ],
+        "grant_id": "a1000000-0000-4000-8000-000000000001",
+        "grant_version": 4,
+        "user_token_version": 5,
+        "iat": 1790035320,
+        "nbf": 1790035320,
+        "aud": "ht-rd-start",
+        "jti": "a2000000-0000-4000-8000-000000000001",
+        "exp": 1790035380
+      },
+      "jws_parts": [
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6Imh0LXJkLXRpY2tldCtqd3QiLCJraWQiOiJKT2V3VmY1c1FGY3l6Uy02alhmcnB6d3R5WEdBcjU5WXFrQlpWRnhaRDg0In0",
+        "eyJpc3MiOiJodHRwczovL3JkLWZpeHR1cmUuZXhhbXBsZS50ZXN0Iiwic2VydmVyX2luc3RhbmNlX2lkIjoiYTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwicmVzdG9yZV9lcG9jaCI6Miwic2Vzc2lvbl9pZCI6ImIwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsInNlc3Npb25fcmVxdWVzdF9pZCI6ImMwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMiIsImNvbm5lY3Rpb25fZXBvY2giOjMsIm93bmVyX3VzZXJfaWQiOiJkMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJjb250cm9sbGVyX2VuZHBvaW50X2lkIjoiZTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiaG9zdF9lbmRwb2ludF9pZCI6ImYwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbnRyb2xsZXJfamt0IjoiYkFYOWVkdnhGQW94cE0xdHpZMUwwWldMNTJqdVV2czgzZF9mUi14T2Z6MCIsImhvc3Rfamt0IjoibXFZUTlvTE5VYkR6RmNqcWVjVUY5WmJZRHVEdll1VVpXa1l3QWFHTWI3dyIsInBlcm1pc3Npb25zIjpbInZpZXciLCJpbnB1dC5rZXlib2FyZCIsImlucHV0LnBvaW50ZXIiLCJpbnB1dC50ZXh0Il0sImdyYW50X2lkIjoiYTEwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZ3JhbnRfdmVyc2lvbiI6NCwidXNlcl90b2tlbl92ZXJzaW9uIjo1LCJpYXQiOjE3OTAwMzUzMjAsIm5iZiI6MTc5MDAzNTMyMCwiYXVkIjoiaHQtcmQtc3RhcnQiLCJqdGkiOiJhMjAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjE3OTAwMzUzODB9",
+        "gMyV5_giI5d2YBnXW0YHbRbOKh79ENwDyjtbRD5o8K2j-WQv_amCmW1ozUAIAEQoCgqYXWd0bHzS1G3I-UnH3g"
+      ]
+    },
+    {
+      "name": "ticket_wrong_owner",
+      "kind": "ticket",
+      "claims": {
+        "iss": "https://rd-fixture.example.test",
+        "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+        "restore_epoch": 2,
+        "session_id": "b0000000-0000-4000-8000-000000000001",
+        "session_request_id": "c0000000-0000-4000-8000-000000000001",
+        "connection_epoch": 3,
+        "owner_user_id": "d0000000-0000-4000-8000-000000000002",
+        "controller_endpoint_id": "e0000000-0000-4000-8000-000000000001",
+        "host_endpoint_id": "f0000000-0000-4000-8000-000000000001",
+        "controller_jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0",
+        "host_jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w",
+        "permissions": [
+          "view",
+          "input.keyboard",
+          "input.pointer",
+          "input.text"
+        ],
+        "grant_id": "a1000000-0000-4000-8000-000000000001",
+        "grant_version": 4,
+        "user_token_version": 5,
+        "iat": 1790035320,
+        "nbf": 1790035320,
+        "aud": "ht-rd-start",
+        "jti": "a2000000-0000-4000-8000-000000000001",
+        "exp": 1790035380
+      },
+      "jws_parts": [
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6Imh0LXJkLXRpY2tldCtqd3QiLCJraWQiOiJKT2V3VmY1c1FGY3l6Uy02alhmcnB6d3R5WEdBcjU5WXFrQlpWRnhaRDg0In0",
+        "eyJpc3MiOiJodHRwczovL3JkLWZpeHR1cmUuZXhhbXBsZS50ZXN0Iiwic2VydmVyX2luc3RhbmNlX2lkIjoiYTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwicmVzdG9yZV9lcG9jaCI6Miwic2Vzc2lvbl9pZCI6ImIwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsInNlc3Npb25fcmVxdWVzdF9pZCI6ImMwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbm5lY3Rpb25fZXBvY2giOjMsIm93bmVyX3VzZXJfaWQiOiJkMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDIiLCJjb250cm9sbGVyX2VuZHBvaW50X2lkIjoiZTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiaG9zdF9lbmRwb2ludF9pZCI6ImYwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbnRyb2xsZXJfamt0IjoiYkFYOWVkdnhGQW94cE0xdHpZMUwwWldMNTJqdVV2czgzZF9mUi14T2Z6MCIsImhvc3Rfamt0IjoibXFZUTlvTE5VYkR6RmNqcWVjVUY5WmJZRHVEdll1VVpXa1l3QWFHTWI3dyIsInBlcm1pc3Npb25zIjpbInZpZXciLCJpbnB1dC5rZXlib2FyZCIsImlucHV0LnBvaW50ZXIiLCJpbnB1dC50ZXh0Il0sImdyYW50X2lkIjoiYTEwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZ3JhbnRfdmVyc2lvbiI6NCwidXNlcl90b2tlbl92ZXJzaW9uIjo1LCJpYXQiOjE3OTAwMzUzMjAsIm5iZiI6MTc5MDAzNTMyMCwiYXVkIjoiaHQtcmQtc3RhcnQiLCJqdGkiOiJhMjAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjE3OTAwMzUzODB9",
+        "tYoRognxxCJp_AN3JDeJ4tdmawZOjofyPwFPdhcB-SVE4tgLJ0dzOcOmvwaBgJscQMxxTxzjM6uHBPZwZEz-5g"
+      ]
+    },
+    {
+      "name": "ticket_expired",
+      "kind": "ticket",
+      "claims": {
+        "iss": "https://rd-fixture.example.test",
+        "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+        "restore_epoch": 2,
+        "session_id": "b0000000-0000-4000-8000-000000000001",
+        "session_request_id": "c0000000-0000-4000-8000-000000000001",
+        "connection_epoch": 3,
+        "owner_user_id": "d0000000-0000-4000-8000-000000000001",
+        "controller_endpoint_id": "e0000000-0000-4000-8000-000000000001",
+        "host_endpoint_id": "f0000000-0000-4000-8000-000000000001",
+        "controller_jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0",
+        "host_jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w",
+        "permissions": [
+          "view",
+          "input.keyboard",
+          "input.pointer",
+          "input.text"
+        ],
+        "grant_id": "a1000000-0000-4000-8000-000000000001",
+        "grant_version": 4,
+        "user_token_version": 5,
+        "iat": 1790035320,
+        "nbf": 1790035320,
+        "aud": "ht-rd-start",
+        "jti": "a2000000-0000-4000-8000-000000000001",
+        "exp": 1790035320
+      },
+      "jws_parts": [
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6Imh0LXJkLXRpY2tldCtqd3QiLCJraWQiOiJKT2V3VmY1c1FGY3l6Uy02alhmcnB6d3R5WEdBcjU5WXFrQlpWRnhaRDg0In0",
+        "eyJpc3MiOiJodHRwczovL3JkLWZpeHR1cmUuZXhhbXBsZS50ZXN0Iiwic2VydmVyX2luc3RhbmNlX2lkIjoiYTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwicmVzdG9yZV9lcG9jaCI6Miwic2Vzc2lvbl9pZCI6ImIwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsInNlc3Npb25fcmVxdWVzdF9pZCI6ImMwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbm5lY3Rpb25fZXBvY2giOjMsIm93bmVyX3VzZXJfaWQiOiJkMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJjb250cm9sbGVyX2VuZHBvaW50X2lkIjoiZTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiaG9zdF9lbmRwb2ludF9pZCI6ImYwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbnRyb2xsZXJfamt0IjoiYkFYOWVkdnhGQW94cE0xdHpZMUwwWldMNTJqdVV2czgzZF9mUi14T2Z6MCIsImhvc3Rfamt0IjoibXFZUTlvTE5VYkR6RmNqcWVjVUY5WmJZRHVEdll1VVpXa1l3QWFHTWI3dyIsInBlcm1pc3Npb25zIjpbInZpZXciLCJpbnB1dC5rZXlib2FyZCIsImlucHV0LnBvaW50ZXIiLCJpbnB1dC50ZXh0Il0sImdyYW50X2lkIjoiYTEwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZ3JhbnRfdmVyc2lvbiI6NCwidXNlcl90b2tlbl92ZXJzaW9uIjo1LCJpYXQiOjE3OTAwMzUzMjAsIm5iZiI6MTc5MDAzNTMyMCwiYXVkIjoiaHQtcmQtc3RhcnQiLCJqdGkiOiJhMjAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjE3OTAwMzUzMjB9",
+        "UqBJeabhntuiKwOWHK70zKhYc0qdOhfkSzy-iIBrSphXydGViYRVsu_0uFZ3n9JRoW1N3H62ffpJ6NTUnhqMrg"
+      ]
+    },
+    {
+      "name": "lease_widens_permissions",
+      "kind": "lease",
+      "claims": {
+        "iss": "https://rd-fixture.example.test",
+        "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+        "restore_epoch": 2,
+        "session_id": "b0000000-0000-4000-8000-000000000001",
+        "session_request_id": "c0000000-0000-4000-8000-000000000001",
+        "connection_epoch": 3,
+        "owner_user_id": "d0000000-0000-4000-8000-000000000001",
+        "controller_endpoint_id": "e0000000-0000-4000-8000-000000000001",
+        "host_endpoint_id": "f0000000-0000-4000-8000-000000000001",
+        "controller_jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0",
+        "host_jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w",
+        "permissions": [
+          "view",
+          "input.keyboard",
+          "input.pointer",
+          "input.text",
+          "files.send"
+        ],
+        "grant_id": "a1000000-0000-4000-8000-000000000001",
+        "grant_version": 4,
+        "user_token_version": 5,
+        "iat": 1790035320,
+        "nbf": 1790035320,
+        "aud": "ht-rd-use",
+        "jti": "a3000000-0000-4000-8000-000000000001",
+        "exp": 1790036220,
+        "lease_seq": 1
+      },
+      "jws_parts": [
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6Imh0LXJkLWxlYXNlK2p3dCIsImtpZCI6IkpPZXdWZjVzUUZjeXpTLTZqWGZycHp3dHlYR0FyNTlZcWtCWlZGeFpEODQifQ",
+        "eyJpc3MiOiJodHRwczovL3JkLWZpeHR1cmUuZXhhbXBsZS50ZXN0Iiwic2VydmVyX2luc3RhbmNlX2lkIjoiYTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwicmVzdG9yZV9lcG9jaCI6Miwic2Vzc2lvbl9pZCI6ImIwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsInNlc3Npb25fcmVxdWVzdF9pZCI6ImMwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbm5lY3Rpb25fZXBvY2giOjMsIm93bmVyX3VzZXJfaWQiOiJkMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJjb250cm9sbGVyX2VuZHBvaW50X2lkIjoiZTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiaG9zdF9lbmRwb2ludF9pZCI6ImYwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbnRyb2xsZXJfamt0IjoiYkFYOWVkdnhGQW94cE0xdHpZMUwwWldMNTJqdVV2czgzZF9mUi14T2Z6MCIsImhvc3Rfamt0IjoibXFZUTlvTE5VYkR6RmNqcWVjVUY5WmJZRHVEdll1VVpXa1l3QWFHTWI3dyIsInBlcm1pc3Npb25zIjpbInZpZXciLCJpbnB1dC5rZXlib2FyZCIsImlucHV0LnBvaW50ZXIiLCJpbnB1dC50ZXh0IiwiZmlsZXMuc2VuZCJdLCJncmFudF9pZCI6ImExMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImdyYW50X3ZlcnNpb24iOjQsInVzZXJfdG9rZW5fdmVyc2lvbiI6NSwiaWF0IjoxNzkwMDM1MzIwLCJuYmYiOjE3OTAwMzUzMjAsImF1ZCI6Imh0LXJkLXVzZSIsImp0aSI6ImEzMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImV4cCI6MTc5MDAzNjIyMCwibGVhc2Vfc2VxIjoxfQ",
+        "pC53Wi1fiM-cQubowb1klSLcWBe2LlVHwidgRXi-fuKavSVTs_7hedjIiy7CRIkownOryZ7KhTsko2YyIE8bDA"
+      ]
+    },
+    {
+      "name": "lease_restore_rollback",
+      "kind": "lease",
+      "claims": {
+        "iss": "https://rd-fixture.example.test",
+        "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+        "restore_epoch": 1,
+        "session_id": "b0000000-0000-4000-8000-000000000001",
+        "session_request_id": "c0000000-0000-4000-8000-000000000001",
+        "connection_epoch": 3,
+        "owner_user_id": "d0000000-0000-4000-8000-000000000001",
+        "controller_endpoint_id": "e0000000-0000-4000-8000-000000000001",
+        "host_endpoint_id": "f0000000-0000-4000-8000-000000000001",
+        "controller_jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0",
+        "host_jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w",
+        "permissions": [
+          "view",
+          "input.keyboard",
+          "input.pointer",
+          "input.text"
+        ],
+        "grant_id": "a1000000-0000-4000-8000-000000000001",
+        "grant_version": 4,
+        "user_token_version": 5,
+        "iat": 1790035320,
+        "nbf": 1790035320,
+        "aud": "ht-rd-use",
+        "jti": "a3000000-0000-4000-8000-000000000001",
+        "exp": 1790036220,
+        "lease_seq": 1
+      },
+      "jws_parts": [
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6Imh0LXJkLWxlYXNlK2p3dCIsImtpZCI6IkpPZXdWZjVzUUZjeXpTLTZqWGZycHp3dHlYR0FyNTlZcWtCWlZGeFpEODQifQ",
+        "eyJpc3MiOiJodHRwczovL3JkLWZpeHR1cmUuZXhhbXBsZS50ZXN0Iiwic2VydmVyX2luc3RhbmNlX2lkIjoiYTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwicmVzdG9yZV9lcG9jaCI6MSwic2Vzc2lvbl9pZCI6ImIwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsInNlc3Npb25fcmVxdWVzdF9pZCI6ImMwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbm5lY3Rpb25fZXBvY2giOjMsIm93bmVyX3VzZXJfaWQiOiJkMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJjb250cm9sbGVyX2VuZHBvaW50X2lkIjoiZTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiaG9zdF9lbmRwb2ludF9pZCI6ImYwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbnRyb2xsZXJfamt0IjoiYkFYOWVkdnhGQW94cE0xdHpZMUwwWldMNTJqdVV2czgzZF9mUi14T2Z6MCIsImhvc3Rfamt0IjoibXFZUTlvTE5VYkR6RmNqcWVjVUY5WmJZRHVEdll1VVpXa1l3QWFHTWI3dyIsInBlcm1pc3Npb25zIjpbInZpZXciLCJpbnB1dC5rZXlib2FyZCIsImlucHV0LnBvaW50ZXIiLCJpbnB1dC50ZXh0Il0sImdyYW50X2lkIjoiYTEwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZ3JhbnRfdmVyc2lvbiI6NCwidXNlcl90b2tlbl92ZXJzaW9uIjo1LCJpYXQiOjE3OTAwMzUzMjAsIm5iZiI6MTc5MDAzNTMyMCwiYXVkIjoiaHQtcmQtdXNlIiwianRpIjoiYTMwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZXhwIjoxNzkwMDM2MjIwLCJsZWFzZV9zZXEiOjF9",
+        "_xh5uWJFS7evSvzsktu-ptda1rxVSk0uWB1aTo4LGnwX9lXJhLFZw9NvmYVIMceyggTh_2SpF3Kyuk1IdJNb3g"
+      ]
+    },
+    {
+      "name": "lease_grant_version_rollback",
+      "kind": "lease",
+      "claims": {
+        "iss": "https://rd-fixture.example.test",
+        "server_instance_id": "a0000000-0000-4000-8000-000000000001",
+        "restore_epoch": 2,
+        "session_id": "b0000000-0000-4000-8000-000000000001",
+        "session_request_id": "c0000000-0000-4000-8000-000000000001",
+        "connection_epoch": 3,
+        "owner_user_id": "d0000000-0000-4000-8000-000000000001",
+        "controller_endpoint_id": "e0000000-0000-4000-8000-000000000001",
+        "host_endpoint_id": "f0000000-0000-4000-8000-000000000001",
+        "controller_jkt": "bAX9edvxFAoxpM1tzY1L0ZWL52juUvs83d_fR-xOfz0",
+        "host_jkt": "mqYQ9oLNUbDzFcjqecUF9ZbYDuDvYuUZWkYwAaGMb7w",
+        "permissions": [
+          "view",
+          "input.keyboard",
+          "input.pointer",
+          "input.text"
+        ],
+        "grant_id": "a1000000-0000-4000-8000-000000000001",
+        "grant_version": 3,
+        "user_token_version": 5,
+        "iat": 1790035320,
+        "nbf": 1790035320,
+        "aud": "ht-rd-use",
+        "jti": "a3000000-0000-4000-8000-000000000001",
+        "exp": 1790036220,
+        "lease_seq": 1
+      },
+      "jws_parts": [
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6Imh0LXJkLWxlYXNlK2p3dCIsImtpZCI6IkpPZXdWZjVzUUZjeXpTLTZqWGZycHp3dHlYR0FyNTlZcWtCWlZGeFpEODQifQ",
+        "eyJpc3MiOiJodHRwczovL3JkLWZpeHR1cmUuZXhhbXBsZS50ZXN0Iiwic2VydmVyX2luc3RhbmNlX2lkIjoiYTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwicmVzdG9yZV9lcG9jaCI6Miwic2Vzc2lvbl9pZCI6ImIwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsInNlc3Npb25fcmVxdWVzdF9pZCI6ImMwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbm5lY3Rpb25fZXBvY2giOjMsIm93bmVyX3VzZXJfaWQiOiJkMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJjb250cm9sbGVyX2VuZHBvaW50X2lkIjoiZTAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiaG9zdF9lbmRwb2ludF9pZCI6ImYwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImNvbnRyb2xsZXJfamt0IjoiYkFYOWVkdnhGQW94cE0xdHpZMUwwWldMNTJqdVV2czgzZF9mUi14T2Z6MCIsImhvc3Rfamt0IjoibXFZUTlvTE5VYkR6RmNqcWVjVUY5WmJZRHVEdll1VVpXa1l3QWFHTWI3dyIsInBlcm1pc3Npb25zIjpbInZpZXciLCJpbnB1dC5rZXlib2FyZCIsImlucHV0LnBvaW50ZXIiLCJpbnB1dC50ZXh0Il0sImdyYW50X2lkIjoiYTEwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZ3JhbnRfdmVyc2lvbiI6MywidXNlcl90b2tlbl92ZXJzaW9uIjo1LCJpYXQiOjE3OTAwMzUzMjAsIm5iZiI6MTc5MDAzNTMyMCwiYXVkIjoiaHQtcmQtdXNlIiwianRpIjoiYTMwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIiwiZXhwIjoxNzkwMDM2MjIwLCJsZWFzZV9zZXEiOjF9",
+        "jqMZ3RTzrI4WG0YAU3L2ATeMWaSlOpwxyc36pPHVUEJ5QE6b1kUlRhPddjar31ZauOUKtXPjhSu734CBO3eVuQ"
+      ]
+    }
+  ]
+}

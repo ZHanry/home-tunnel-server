@@ -1,5 +1,5 @@
-import { createConnectionsView } from "./modules/connections.js?v=7.0.0";
-import { createAccountSecurityView } from "./modules/account-security.js?v=7.0.0";
+import { createConnectionsView } from "./modules/connections.js?v=8.0.0-rc.1";
+import { createAccountSecurityView } from "./modules/account-security.js?v=8.0.0-rc.1";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -7,9 +7,10 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=7.0.0";
-import { createDevicesView } from "./modules/devices.js?v=7.0.0";
-import { api, refreshSession, allPages } from "./modules/api.js?v=7.0.0";
+} from "./modules/forms.js?v=8.0.0-rc.1";
+import { createDevicesView } from "./modules/devices.js?v=8.0.0-rc.1";
+import { createRemoteView } from "./modules/remote/view.js?v=8.0.0-rc.1";
+import { api, refreshSession, allPages } from "./modules/api.js?v=8.0.0-rc.1";
 import {
   componentLabel,
   configState,
@@ -18,10 +19,10 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=7.0.0";
-import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=7.0.0";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=7.0.0";
-import { state } from "./modules/state.js?v=7.0.0";
+} from "./modules/format.js?v=8.0.0-rc.1";
+import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=8.0.0-rc.1";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=8.0.0-rc.1";
+import { state } from "./modules/state.js?v=8.0.0-rc.1";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -41,6 +42,7 @@ const modalEyebrow = document.querySelector("#modal-eyebrow");
 const modalError = document.querySelector("#modal-error");
 const toastRegion = document.querySelector("#toast-region");
 const skipLink = document.querySelector("#skip-link");
+const { renderRemote, closeRemote } = createRemoteView({ api, state, viewContent, escapeHtml });
 const { renderSecurity } = createAccountSecurityView({api,state,viewContent,escapeHtml,formatDate,openModal,field,modal,showSecret,toast,renderAccount});
 
 const { renderDevices } = createDevicesView({api,state,devicesPath,viewContent,escapeHtml,statusBadge,configState,formatDate,emptyState,isAdmin});
@@ -68,6 +70,7 @@ const viewMeta = {
   dashboard: ["系统总览", "运行状态"],
   users: ["用户管理", "身份与权限"],
   devices: ["设备管理", "设备信任"],
+  remote: ["远程桌面（P2P）", "本机授权 · UDP 直连"],
   connections: ["连接管理", "受管隧道"],
   audit: ["审计事件", "操作轨迹"],
   settings: ["系统设置", "部署策略"],
@@ -209,6 +212,7 @@ function setPendingCurrentPassword(password) {
 }
 
 function showLogin(message = "") {
+  closeRemote();
   document.body.classList.add("auth-active");
   if (modal.open) {
     rememberDraft();
@@ -312,6 +316,7 @@ async function renderView(view, { background = false } = {}) {
     if (view === "dashboard") await renderDashboard(renderId);
     if (view === "users") await renderUsers(renderId);
     if (view === "devices") await renderDevices(renderId);
+    if (view === "remote") await renderRemote(renderId);
     if (view === "connections") await renderConnections(renderId);
     if (view === "audit") await renderAudit(renderId);
     if (view === "settings") await renderSettings(renderId);
@@ -904,8 +909,10 @@ viewContent.addEventListener("change", () => {
   viewContent.dataset.dirty = "true";
 });
 window.addEventListener("session-expired", () => {
+  closeRemote();
   showLogin("会话已失效，请重新登录");
 });
+window.addEventListener("pagehide", closeRemote);
 window.addEventListener("realtime-status", (event) => {
   if (state.me) updateSyncStatus(event.detail);
 });
@@ -1925,6 +1932,7 @@ document.querySelector("#logout-button").addEventListener("click", () => {
     "退出后需要重新输入账号密码。未保存的对话框内容会丢失。",
     "确认退出",
     async () => {
+      closeRemote();
       try {
         await api("/api/v1/auth/logout", { method: "POST", body: "{}" }, false);
       } catch {}

@@ -115,6 +115,7 @@ jobs:
         merge-multiple: true
     - run: |
         cp contracts/home-tunnel.v1.json contracts/openapi.v1.json contracts/api.schema.json release/
+        cp contracts/remote-desktop.v1.json contracts/remote-authorization-vectors.json contracts/REMOTE_PROTOCOL.md release/
         cp deploy/frps/dependency.json release/frps-dependency.json
         cp deploy/frps/dependency.sigstore.json release/frps-dependency.json.sigstore.json
     - env:
@@ -167,6 +168,13 @@ jobs:
         mkdir -p integration
         cp release-smoke-evidence/release-smoke.json "integration/server-smoke-$SMOKE_ARCH.json"
         cp release-smoke-evidence/e2e-smoke.json "integration/server-port-settings-$SMOKE_ARCH.json"
+    - name: Verify real STUN-only runtime in an isolated namespace
+      env:
+        SMOKE_ARCH: ${{ matrix.arch }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nftables
+        python3 tests/stun-runtime.py --output "integration/stun-runtime-$SMOKE_ARCH.json"
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
         name: server-smoke-${{ matrix.arch }}

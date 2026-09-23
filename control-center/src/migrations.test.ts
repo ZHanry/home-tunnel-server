@@ -356,6 +356,44 @@ test("the L4 migration copies legacy TCP and mirrors canonical TCP/UDP fields", 
   }
 });
 
+test("RD reconnect migration preserves prior recovery attempts independently of display epochs", () => {
+  const database = new DatabaseSync(":memory:", { enableForeignKeyConstraints: false });
+  try {
+    const index = migrations.findIndex((name) => name.startsWith("016_"));
+    assert.ok(index > 0);
+    apply(database, migrations.slice(0, index));
+    const insert = database.prepare(
+      `INSERT INTO rd_sessions(id,owner_user_id,host_endpoint_id,controller_endpoint_id,
+        user_token_version,grant_id,grant_version,permissions_json,display_id,state,
+        connection_epoch,restore_epoch,approval_expires_at,created_at,updated_at)
+        VALUES(?,'owner','host','controller',1,'grant',1,'["view"]','display-1','active',?,1,
+        '2030-01-01','2026-01-01','2026-01-01')`,
+    );
+    for (const epoch of [1, 2, 4]) insert.run(`session-${epoch}`, epoch);
+    apply(database, migrations.slice(index));
+    assert.deepEqual(
+      database
+        .prepare("SELECT network_reconnect_count FROM rd_sessions ORDER BY connection_epoch")
+        .all()
+        .map((row) => row.network_reconnect_count),
+      [0, 1, 3],
+    );
+    database.exec("UPDATE rd_sessions SET connection_epoch=99 WHERE id='session-1'");
+    assert.equal(
+      database.prepare("SELECT network_reconnect_count FROM rd_sessions WHERE id='session-1'").get()
+        ?.network_reconnect_count,
+      0,
+    );
+    assert.throws(() => database.exec("UPDATE rd_sessions SET network_reconnect_count=4"), /CHECK/);
+    assert.throws(
+      () => database.exec("UPDATE rd_sessions SET network_reconnect_count=-1"),
+      /CHECK/,
+    );
+  } finally {
+    database.close();
+  }
+});
+
 test("a file backup restores data and can continue to accept writes", async () => {
   const directory = mkdtempSync(join(tmpdir(), "home-tunnel-restore-test-"));
   const sourcePath = join(directory, "source.sqlite3");

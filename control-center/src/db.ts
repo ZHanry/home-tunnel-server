@@ -306,10 +306,28 @@ export async function migrate(): Promise<void> {
         .all()
         .map((row) => Number(row.version)),
     );
+    const hasJournalChecksums = database
+      .prepare("PRAGMA table_info(schema_migrations)")
+      .all()
+      .some((column) => column.name === "checksum_sha256");
     for (const migration of migrations) {
-      if (applied.has(migration.version)) continue;
       const sql = readFileSync(join(migrationsDirectory, migration.name), "utf8");
       const checksum = createHash("sha256").update(sql).digest("hex");
+      if (applied.has(migration.version)) {
+        if (hasJournalChecksums) {
+          const recorded = database
+            .prepare("SELECT checksum_sha256 FROM schema_migrations WHERE version=?")
+            .get(migration.version)?.checksum_sha256;
+          if (recorded && recorded !== checksum)
+            throw new Error(`Migration ${migration.version} checksum mismatch`);
+          // Historical pre-journal rows have no checksum. Pin the shipped bytes once.
+          if (!recorded)
+            database
+              .prepare("UPDATE schema_migrations SET checksum_sha256=? WHERE version=?")
+              .run(checksum, migration.version);
+        }
+        continue;
+      }
       database.exec("BEGIN IMMEDIATE");
       try {
         database.exec(sql);

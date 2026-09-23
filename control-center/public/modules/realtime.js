@@ -1,4 +1,4 @@
-import { state } from "./state.js?v=7.0.0";
+import { state } from "./state.js?v=8.0.0-rc.1";
 
 const refreshEvents = new Set([
   "config.version.changed",

@@ -1,5 +1,12 @@
 # Changelog
 
+## 8.0.0 — development, not yet released
+
+- Add an opt-in remote desktop control plane with independent P-256 identities, DPoP, signed pairing, durable authorization leases and four controller windows per account.
+- Preserve 7.0 tunnel authentication and realtime behavior; RD introduces no media relay or TURN fallback.
+- Add remote protocol fixtures and security tests. Platform media, public-network and release validation remain separate acceptance gates.
+- Extend backup verification and isolated restore to invalidate old RD epochs while keeping RD disabled after recovery.
+
 ## 7.0.0 — 2026-09-19
 
 All first-party components and the managed Agent now use 7.0.0. Upgrade the server,

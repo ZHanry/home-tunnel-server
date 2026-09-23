@@ -1,0 +1,19 @@
+# Opt in explicitly: generate the dedicated key before using this overlay.
+services:
+  control-center:
+    environment:
+      RD_ENABLED: ${HOME_TUNNEL_RD_ENABLED:-false}
+      RD_SIGNING_KEY_FILE: /run/secrets/rd_signing_key
+      RD_STUN_URLS: ${HOME_TUNNEL_RD_STUN_URLS:-}
+      RD_UDP_ONLY: "true"
+      RD_ALLOW_TURN: "false"
+      RD_ALLOW_ICE_TCP: "false"
+      RD_MAX_ENDPOINTS_PER_USER: ${HOME_TUNNEL_RD_MAX_ENDPOINTS:-8}
+      RD_MAX_SESSIONS_PER_USER: ${HOME_TUNNEL_RD_MAX_SESSIONS:-4}
+      RD_MAX_SESSIONS_PER_CONTROLLER: ${HOME_TUNNEL_RD_MAX_WINDOWS:-4}
+      RD_MAX_SESSIONS_PER_HOST: "1"
+    secrets:
+      - rd_signing_key
+secrets:
+  rd_signing_key:
+    file: ./deploy/secrets/rd_signing_key

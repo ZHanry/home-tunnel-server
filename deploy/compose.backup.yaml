@@ -5,7 +5,8 @@ services:
   backup:
     profiles: [backup]
     build:
-      context: ./deploy/backup
+      context: .
+      dockerfile: deploy/backup/Dockerfile
     environment:
       RESTIC_REPOSITORY: ${HOME_TUNNEL_BACKUP_REPOSITORY:?set encrypted offsite repository}
       RESTIC_PASSWORD_FILE: /run/secrets/backup_repository_password
