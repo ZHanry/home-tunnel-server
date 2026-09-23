@@ -656,13 +656,17 @@ test("final file commit completing after cancellation does not ACK success", asy
     { transfers, frames } = transferHarness({ onProgress: (value) => progress.push(value) });
   t.after(() => transfers.close());
   const id = crypto.randomUUID();
-  let finish;
+  let finish, started;
+  const committing = new Promise((resolve) => {
+    started = resolve;
+  });
   await transfers.onFrame({ type: TYPES.FILE_OFFER, payload: { id, name: "empty.txt", size: 0 } });
   await transfers.acceptFile(id, {
     write: async () => {},
     close: () =>
       new Promise((resolve) => {
         finish = resolve;
+        started();
       }),
     abort: async () => {},
   });
@@ -670,6 +674,7 @@ test("final file commit completing after cancellation does not ACK success", asy
     type: TYPES.FILE_COMPLETE,
     payload: { id, size: 0, sha256: createHash("sha256").digest("hex") },
   });
+  await committing;
   assert.equal((await transfers.cancel(id)).mayBeSaved, true);
   finish();
   await pending;
@@ -1086,6 +1091,8 @@ test("clipboard rejects native-unrepresentable text before sending and preserves
 function featureHarness(t) {
   const frames = [],
     received = [],
+    offers = [],
+    progress = [],
     failures = [],
     sequences = new Map();
   const session = new RemoteSession({
@@ -1094,7 +1101,7 @@ function featureHarness(t) {
     session: {
       session_id: crypto.randomUUID(),
       connection_epoch: 1,
-      permissions: ["view", "clipboard.read", "clipboard.write"],
+      permissions: ["view", "clipboard.read", "clipboard.write", "files.send", "files.receive"],
     },
     video: { pause() {}, srcObject: null },
     onState: (phase, error) => {
@@ -1109,9 +1116,16 @@ function featureHarness(t) {
   channel.bufferedAmount = 0;
   channel.close = () => {};
   session.channels.set("clipboard", channel);
+  const fileChannel = new EventTarget();
+  fileChannel.readyState = "open";
+  fileChannel.bufferedAmount = 0;
+  fileChannel.close = () => {};
+  session.channels.set("file", fileChannel);
   const transfers = new RemoteTransfers(session, {
     canUseClipboard: () => true,
     onClipboard: (text) => received.push(text),
+    onOffer: (body) => offers.push(body),
+    onProgress: (body) => progress.push(body),
   });
   session.onControl = (frame) => transfers.onFrame(frame);
   session.onFeatureRevoked = (permission) => {
@@ -1142,8 +1156,267 @@ function featureHarness(t) {
     await transfers.close();
     await Promise.all(session.frameQueues.values());
   });
-  return { session, transfers, frames, received, failures, deliver, offer };
+  return { session, transfers, frames, received, offers, progress, failures, deliver, offer };
 }
+
+test("file offers wait for control approval without allocating destinations or blocking viewing", async (t) => {
+  const { session, transfers, offers, frames, failures, deliver } = featureHarness(t);
+  const enabled = session.setFeature("files.receive", true);
+  const body = { id: crypto.randomUUID(), name: "待接收.bin", size: 1 };
+  const queued = deliver(TYPES.FILE_OFFER, body, "file");
+  await immediate();
+  assert.equal(transfers.incoming.size, 0);
+  assert.deepEqual(offers, []);
+  assert.equal(session.pendingCount, 1);
+  await deliver(TYPES.FEATURE_STATE, { permission: "files.receive", enabled: true });
+  await Promise.all([enabled, queued]);
+  assert.deepEqual(
+    offers.map((offer) => ({ ...offer })),
+    [body],
+  );
+  assert.equal(transfers.incoming.get(body.id).sink, undefined);
+  assert.equal(frames.filter((frame) => frame.type === TYPES.FILE_ACCEPT).length, 0);
+  assert.equal(session.pendingBytes, 0);
+  assert.equal(session.closed, false);
+  assert.deepEqual(failures, []);
+});
+
+test("denied file approval cancels queued offers and late data without ending the session", async (t) => {
+  const { session, transfers, offers, frames, failures, deliver } = featureHarness(t);
+  const enabled = assert.rejects(session.setFeature("files.receive", true), /RD_FEATURE_DENIED/);
+  const id = crypto.randomUUID();
+  const queued = deliver(TYPES.FILE_OFFER, { id, name: "denied.bin", size: 1 }, "file");
+  await immediate();
+  await deliver(TYPES.FEATURE_STATE, { permission: "files.receive", enabled: false });
+  await Promise.all([enabled, queued]);
+  await deliver(TYPES.FILE_CHUNK, chunk(id, 0, Uint8Array.of(1)), "file");
+  await deliver(TYPES.FILE_COMPLETE, { id, size: 1, sha256: "0".repeat(64) }, "file");
+  assert.equal(transfers.incoming.size, 0);
+  assert.deepEqual(offers, []);
+  assert.deepEqual(
+    frames.filter((frame) => frame.type !== TYPES.FEATURE_REQUEST).map((frame) => frame.type),
+    [TYPES.FILE_CANCEL],
+  );
+  assert.equal(session.pendingBytes, 0);
+  assert.equal(session.closed, false);
+  assert.deepEqual(failures, []);
+});
+
+test("disabling pending file approval drains old traffic and re-enable cannot revive cancelled IDs", async (t) => {
+  const { session, transfers, offers, failures, deliver } = featureHarness(t);
+  const enabled = assert.rejects(session.setFeature("files.receive", true), /RD_FEATURE_CANCELLED/);
+  const body = { id: crypto.randomUUID(), name: "cancelled.bin", size: 1 };
+  const queued = deliver(TYPES.FILE_OFFER, body, "file");
+  await immediate();
+  const disabled = session.setFeature("files.receive", false);
+  await Promise.all([enabled, queued]);
+  await deliver(TYPES.FEATURE_STATE, { permission: "files.receive", enabled: true });
+  await immediate();
+  assert.equal(session.featureState.has("files.receive"), false);
+  await deliver(TYPES.FEATURE_STATE, { permission: "files.receive", enabled: false });
+  await disabled;
+  const reenabled = session.setFeature("files.receive", true);
+  await deliver(TYPES.FEATURE_STATE, { permission: "files.receive", enabled: true });
+  await reenabled;
+  await deliver(TYPES.FILE_OFFER, body, "file");
+  await deliver(TYPES.FILE_CHUNK, chunk(body.id, 0, Uint8Array.of(1)), "file");
+  await deliver(TYPES.FILE_COMPLETE, { id: body.id, size: 1, sha256: "0".repeat(64) }, "file");
+  assert.equal(transfers.incoming.size, 0);
+  assert.deepEqual(offers, []);
+  const fresh = { ...body, id: crypto.randomUUID() };
+  await deliver(TYPES.FILE_OFFER, fresh, "file");
+  assert.deepEqual(
+    offers.map((offer) => ({ ...offer })),
+    [fresh],
+  );
+  assert.equal(session.closed, false);
+  assert.deepEqual(failures, []);
+});
+
+test("file revocation during a disk write aborts every destination immediately and suppresses later ACKs and commits", async (t) => {
+  const { session, transfers, frames, failures, deliver } = featureHarness(t);
+  session.featureState.add("files.receive");
+  const ids = [crypto.randomUUID(), crypto.randomUUID()];
+  let finishWrite,
+    started,
+    aborts = 0,
+    commits = 0;
+  const writing = new Promise((resolve) => {
+    started = resolve;
+  });
+  for (const id of ids) {
+    await deliver(TYPES.FILE_OFFER, { id, name: "pending.bin", size: 1 }, "file");
+    await transfers.acceptFile(id, {
+      write: () =>
+        new Promise((resolve) => {
+          finishWrite = resolve;
+          started();
+        }),
+      close: async () => {
+        commits++;
+      },
+      abort: async () => {
+        aborts++;
+      },
+    });
+  }
+  const queued = deliver(TYPES.FILE_CHUNK, chunk(ids[0], 0, Uint8Array.of(1)), "file");
+  await writing;
+  const disabled = session.setFeature("files.receive", false);
+  assert.equal(transfers.incoming.size, 0, "all IDs revoked synchronously before yielding");
+  await deliver(TYPES.FEATURE_STATE, { permission: "files.receive", enabled: false });
+  await disabled;
+  assert.equal(aborts, 2);
+  finishWrite();
+  await queued;
+  for (const id of ids) {
+    await deliver(TYPES.FILE_CHUNK, chunk(id, 0, Uint8Array.of(1)), "file");
+    await deliver(TYPES.FILE_COMPLETE, { id, size: 1, sha256: "0".repeat(64) }, "file");
+  }
+  assert.equal(commits, 0);
+  assert.equal(frames.filter((frame) => frame.type === TYPES.FILE_ACK).length, 0);
+  assert.equal(session.closed, false);
+  assert.deepEqual(failures, []);
+});
+
+test("file revocation during commit preserves uncertainty and never acknowledges success", async (t) => {
+  const { session, transfers, frames, failures, deliver } = featureHarness(t);
+  session.featureState.add("files.receive");
+  const id = crypto.randomUUID();
+  let finishCommit,
+    started,
+    aborts = 0;
+  const committing = new Promise((resolve) => {
+    started = resolve;
+  });
+  await deliver(TYPES.FILE_OFFER, { id, name: "empty.bin", size: 0 }, "file");
+  await transfers.acceptFile(id, {
+    write: async () => {},
+    close: () =>
+      new Promise((resolve) => {
+        finishCommit = resolve;
+        started();
+      }),
+    abort: async () => {
+      aborts++;
+    },
+  });
+  const queued = deliver(
+    TYPES.FILE_COMPLETE,
+    { id, size: 0, sha256: createHash("sha256").digest("hex") },
+    "file",
+  );
+  await committing;
+  const cancelled = await transfers.cancel(id);
+  assert.equal(cancelled.mayBeSaved, true);
+  const disabled = session.setFeature("files.receive", false);
+  await deliver(TYPES.FEATURE_STATE, { permission: "files.receive", enabled: false });
+  await disabled;
+  finishCommit();
+  await queued;
+  assert.equal(aborts, 1);
+  assert.equal(frames.filter((frame) => frame.type === TYPES.FILE_ACK).length, 0);
+  assert.equal(session.closed, false);
+  assert.deepEqual(failures, []);
+});
+
+test("file send revocation releases chunk ACK waiters and drains late ACCEPT and ACK frames", async (t) => {
+  const { session, transfers, frames, failures, deliver } = featureHarness(t);
+  session.featureState.add("files.send");
+  let reads = 0;
+  const file = {
+    name: "out.bin",
+    size: 32768,
+    slice: () => ({
+      arrayBuffer: async () => {
+        reads++;
+        return new Uint8Array(16384).buffer;
+      },
+    }),
+  };
+  await transfers.offerFiles([file, file]);
+  const ids = frames
+    .filter((frame) => frame.type === TYPES.FILE_OFFER)
+    .map((frame) => frame.payload.id);
+  await deliver(TYPES.FILE_ACCEPT, { id: ids[0] }, "file");
+  await immediate();
+  assert.equal(reads, 1);
+  const disabled = session.setFeature("files.send", false);
+  assert.equal(transfers.outgoing.size, 0);
+  await deliver(TYPES.FILE_ACCEPT, { id: ids[1] }, "file");
+  await deliver(TYPES.FILE_ACK, { id: ids[0], offset: 16384 }, "file");
+  await deliver(TYPES.FILE_ACK, { id: ids[0], sha256: "0".repeat(64) }, "file");
+  await deliver(TYPES.FEATURE_STATE, { permission: "files.send", enabled: false });
+  await disabled;
+  await immediate();
+  assert.equal(reads, 1);
+  assert.equal(frames.filter((frame) => frame.type === TYPES.FILE_COMPLETE).length, 0);
+  assert.equal(session.closed, false);
+  assert.deepEqual(failures, []);
+});
+
+test("file cancellation releases backpressured offers and accepted sends without publishing or reading again", async (t) => {
+  const { session, transfers, frames, failures, deliver } = featureHarness(t);
+  session.featureState.add("files.send");
+  let reads = 0;
+  const file = {
+    name: "out.bin",
+    size: 1,
+    slice: () => ({
+      arrayBuffer: async () => {
+        reads++;
+        return Uint8Array.of(1).buffer;
+      },
+    }),
+  };
+  const channel = session.channels.get("file");
+  channel.bufferedAmount = 70000;
+  const offering = assert.rejects(transfers.offerFiles([file]), /RD_FILE_CANCELLED/);
+  await immediate();
+  assert.equal(transfers.waiters.size, 1);
+  await transfers.cancel([...transfers.outgoing.keys()][0]);
+  await offering;
+  assert.equal(transfers.waiters.size, 0);
+  assert.equal(frames.filter((frame) => frame.type === TYPES.FILE_OFFER).length, 0);
+  channel.bufferedAmount = 0;
+  await transfers.offerFiles([file]);
+  const id = frames.find((frame) => frame.type === TYPES.FILE_OFFER).payload.id;
+  channel.bufferedAmount = 70000;
+  await deliver(TYPES.FILE_ACCEPT, { id }, "file");
+  await immediate();
+  assert.equal(transfers.waiters.size, 1);
+  const disabled = session.setFeature("files.send", false);
+  await deliver(TYPES.FEATURE_STATE, { permission: "files.send", enabled: false });
+  await disabled;
+  await immediate();
+  assert.equal(transfers.waiters.size, 0);
+  assert.equal(reads, 0);
+  assert.equal(frames.filter((frame) => frame.type === TYPES.FILE_CHUNK).length, 0);
+  assert.equal(session.closed, false);
+  assert.deepEqual(failures, []);
+});
+
+test("disabled files still reject malformed schemas and binary bounds before ignoring stale IDs", async (t) => {
+  const { transfers, session } = transferHarness();
+  t.after(() => transfers.close());
+  session.featureState.clear();
+  const id = crypto.randomUUID();
+  transfers.remember(id);
+  for (const [type, payload] of [
+    [TYPES.FILE_OFFER, { id, name: "../invalid", size: 0 }],
+    [TYPES.FILE_ACCEPT, { id, extra: true }],
+    [TYPES.FILE_ACK, { id, offset: 0, sha256: "0".repeat(64) }],
+    [TYPES.FILE_COMPLETE, { id, size: 1, sha256: "bad" }],
+    [TYPES.FILE_CANCEL, { id, reason: 4 }],
+    [TYPES.FILE_CHUNK, new Uint8Array(24)],
+    [TYPES.FILE_CHUNK, new Uint8Array(24 + 16385)],
+    [TYPES.FILE_CHUNK, chunk(id, 8589934592n, Uint8Array.of(1))],
+    [TYPES.FILE_CHUNK, chunk(id, 0xffffffffffffffffn, Uint8Array.of(1))],
+  ])
+    await assert.rejects(transfers.onFrame({ type, payload }));
+  assert.equal(transfers.incoming.size, 0);
+  assert.equal(transfers.outgoing.size, 0);
+});
 
 test("clipboard offers await requested approval without blocking the independent control queue", async (t) => {
   const { session, transfers, frames, received, failures, deliver, offer } = featureHarness(t);

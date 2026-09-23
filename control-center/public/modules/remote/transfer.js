@@ -1,4 +1,5 @@
 import { RD, TYPES, uuidBytes } from "./protocol.js";
+import { validateJsonBody } from "./payload.generated.js";
 import { sha256 } from "./identity.js";
 import { Sha256Stream } from "./sha256-stream.js";
 
@@ -15,7 +16,7 @@ export class RemoteTransfers {
   constructor(session, { onOffer, onProgress, onClipboard, canUseClipboard = () => !document.hidden, timeoutMs = 30000 } = {}) {
     this.session = session; this.onOffer = onOffer; this.onProgress = onProgress; this.onClipboard = onClipboard;
     this.outgoing = new Map(); this.incoming = new Map(); this.clipboard = null; this.seen = new Set(); this.closed = false;
-    this.canUseClipboard = canUseClipboard; this.timeoutMs = timeoutMs; this.waiters = new Set(); this.clipboardWaiters = new Set();
+    this.canUseClipboard = canUseClipboard; this.timeoutMs = timeoutMs; this.waiters = new Set(); this.clipboardWaiters = new Set(); this.fileGenerations = new Map();
   }
   allowed(permission) { return !this.closed && this.session.ready && this.session.lease.valid() && this.session.featureState.has(permission) && (!permission.startsWith("clipboard.") || this.canUseClipboard()); }
   expire(id, item, collection) {
@@ -25,17 +26,20 @@ export class RemoteTransfers {
       void this.cancel(id).catch(() => {}); this.onProgress?.({ id, error: "RD_FILE_TIMEOUT" });
     }, this.timeoutMs);
   }
-  async room(channelName) {
+  async room(channelName, item) {
     const channel = this.session.channels.get(channelName);
+    if (item?.canceled) throw new Error("RD_FILE_CANCELLED");
     if (!channel || channel.readyState !== "open" || this.closed) throw new Error("RD_MEDIA_FAILED");
     if (channel.bufferedAmount <= 65536) return;
     channel.bufferedAmountLowThreshold = 32768;
     await new Promise((resolve, reject) => {
-      const cleanup = () => { clearTimeout(timer); this.waiters.delete(closed); this.clipboardWaiters.delete(closed); channel.removeEventListener("bufferedamountlow", low); channel.removeEventListener("close", closed); };
+      const cleanup = () => { clearTimeout(timer); this.waiters.delete(closed); this.clipboardWaiters.delete(closed); item?.waiters?.delete(cancelled); channel.removeEventListener("bufferedamountlow", low); channel.removeEventListener("close", closed); };
       const low = () => { cleanup(); resolve(); }, closed = () => { cleanup(); reject(new Error("RD_MEDIA_FAILED")); };
+      const cancelled = () => { cleanup(); reject(new Error("RD_FILE_CANCELLED")); };
       const timer = setTimeout(() => { cleanup(); reject(new Error("RD_MEDIA_BACKPRESSURE")); }, 10000);
       this.waiters.add(closed);
       if (channelName === "clipboard") this.clipboardWaiters.add(closed);
+      if (item) (item.waiters ??= new Set()).add(cancelled);
       channel.addEventListener("bufferedamountlow", low, { once: true }); channel.addEventListener("close", closed, { once: true });
       if (channel.readyState !== "open" || this.closed) closed(); else if (channel.bufferedAmount <= 65536) low();
     });
@@ -50,7 +54,11 @@ export class RemoteTransfers {
       if (!this.allowed("files.send")) throw new Error("RD_SCOPE_DENIED");
       const id = crypto.randomUUID(), item = { file, running: false, canceled: false };
       this.outgoing.set(id, item); this.expire(id, item, this.outgoing);
-      try { await this.room("file"); this.session.send(TYPES.FILE_OFFER, { id, name: file.name, size: file.size }); }
+      try {
+        await this.room("file", item);
+        if (item.canceled || this.outgoing.get(id) !== item || !this.allowed("files.send")) throw new Error("RD_FILE_CANCELLED");
+        this.session.send(TYPES.FILE_OFFER, { id, name: file.name, size: file.size }); item.offered = true;
+      }
       catch (error) { await this.cancel(id, false); throw error; }
       this.onProgress?.({ id, name: file.name, size: file.size, offered: true });
     }
@@ -69,7 +77,8 @@ export class RemoteTransfers {
     try {
       for (let offset = 0; offset < item.file.size; offset += RD.limits.file_chunk_bytes) {
         if (item.canceled || !this.allowed("files.send")) throw new Error("RD_FILE_CANCELLED");
-        await this.room("file");
+        await this.room("file", item);
+        if (item.canceled || !this.allowed("files.send")) throw new Error("RD_FILE_CANCELLED");
         const content = new Uint8Array(await item.file.slice(offset, offset + RD.limits.file_chunk_bytes).arrayBuffer());
         if (item.canceled || !this.allowed("files.send") || content.length !== Math.min(RD.limits.file_chunk_bytes, item.file.size - offset)) throw new Error("RD_FILE_CANCELLED");
         const payload = new Uint8Array(content.length + 24); payload.set(uuidBytes(id)); new DataView(payload.buffer).setBigUint64(16, BigInt(offset)); payload.set(content, 24);
@@ -84,7 +93,7 @@ export class RemoteTransfers {
         });
         this.onProgress?.({ id, sent: offset + content.length, size: item.file.size });
       }
-      await this.room("file");
+      await this.room("file", item);
       if (item.canceled || !this.allowed("files.send")) throw new Error("RD_FILE_CANCELLED");
       item.digest = item.hash.digest(); this.session.send(TYPES.FILE_COMPLETE, { id, size: item.file.size, sha256: item.digest }); this.expire(id, item, this.outgoing);
     } catch (error) { await this.cancel(id).catch(() => {}); this.onProgress?.({ id, error: error.message }); }
@@ -107,6 +116,34 @@ export class RemoteTransfers {
   }
   async onFrame(frame) {
     const body = frame.payload;
+    if ([TYPES.FILE_OFFER, TYPES.FILE_ACCEPT, TYPES.FILE_CHUNK, TYPES.FILE_COMPLETE, TYPES.FILE_ACK, TYPES.FILE_CANCEL].includes(frame.type)) {
+      // Validate before dropping stale traffic: revocation is not permission to
+      // bypass the wire schema, chunk bounds, or cross-direction identities.
+      let id;
+      if (frame.type === TYPES.FILE_CHUNK) {
+        if (!(body instanceof Uint8Array) || body.length <= 24 || body.length > RD.limits.file_chunk_bytes + 24) throw new Error("RD_FILE_INVALID");
+        if (new DataView(body.buffer, body.byteOffset, body.byteLength).getBigUint64(16) + BigInt(body.length - 24) > BigInt(RD.limits.file_bytes)) throw new Error("RD_FILE_OFFSET");
+        id = uuid(body.subarray(0,16));
+      } else {
+        validateJsonBody(frame.type, body); id = body.id;
+        if (frame.type === TYPES.FILE_OFFER) safeFilename(body.name);
+      }
+      if (frame.type !== TYPES.FILE_CANCEL) {
+        const incoming = [TYPES.FILE_OFFER, TYPES.FILE_CHUNK, TYPES.FILE_COMPLETE].includes(frame.type);
+        const permission = incoming ? "files.receive" : "files.send";
+        if ((incoming ? this.outgoing : this.incoming).has(id)) throw new Error("RD_FILE_INVALID");
+        if (this.seen.has(id)) return;
+        const generation = this.fileGenerations.get(permission) ?? 0;
+        const approved = await this.session.waitForFeature?.(permission);
+        if (approved === false || !this.allowed(permission) || generation !== (this.fileGenerations.get(permission) ?? 0)) {
+          const owned = (incoming ? this.incoming : this.outgoing).has(id);
+          await this.cancel(id);
+          if (!owned && frame.type === TYPES.FILE_OFFER && !this.closed && !this.session.closed && this.session.lease.valid()) this.session.send(TYPES.FILE_CANCEL, { id, reason: "cancelled" });
+          return;
+        }
+        if (this.seen.has(id)) return;
+      }
+    }
     if ([TYPES.CLIPBOARD_OFFER, TYPES.CLIPBOARD_CHUNK, TYPES.CLIPBOARD_ACCEPT, TYPES.CLIPBOARD_ACK].includes(frame.type)) {
       const permission = [TYPES.CLIPBOARD_OFFER, TYPES.CLIPBOARD_CHUNK].includes(frame.type) ? "clipboard.read" : "clipboard.write";
       const approved = await this.session.waitForFeature?.(permission);
@@ -114,7 +151,6 @@ export class RemoteTransfers {
     }
     if ([TYPES.CLIPBOARD_OFFER, TYPES.CLIPBOARD_ACCEPT, TYPES.CLIPBOARD_CHUNK, TYPES.CLIPBOARD_ACK].includes(frame.type) && !this.canUseClipboard()) { this.clearClipboard(); return; }
     if (frame.type === TYPES.FILE_OFFER) {
-      if (!this.allowed("files.receive")) throw new Error("RD_SCOPE_DENIED");
       uuidBytes(body.id); safeFilename(body.name); size(body.size, RD.limits.file_bytes);
       if (this.incoming.has(body.id) || this.seen.has(body.id) || this.incoming.size >= RD.limits.batch_files) throw new Error("RD_FILE_LIMIT");
       size([...this.incoming.values()].reduce((total, value) => total + value.offer.size, body.size), RD.limits.batch_file_bytes);
@@ -122,12 +158,11 @@ export class RemoteTransfers {
     }
     if (frame.type === TYPES.FILE_ACCEPT) {
       const item = this.outgoing.get(body.id); if (!item) throw new Error("RD_FILE_INVALID");
-      if (item.accepted || item.digest) throw new Error("RD_FILE_INVALID");
+      if (!item.offered || item.accepted || item.digest) throw new Error("RD_FILE_INVALID");
       item.accepted = true;
       void this.sendFile(body.id, item).catch(async (error) => { await this.cancel(body.id).catch(() => {}); this.onProgress?.({ id: body.id, error: error.message }); }); return;
     }
     if (frame.type === TYPES.FILE_CHUNK) {
-      if (!this.allowed("files.receive") || body.byteLength <= 24 || body.byteLength > RD.limits.file_chunk_bytes + 24) throw new Error("RD_FILE_INVALID");
       const id = uuid(body.subarray(0,16)), item = this.incoming.get(id), offset = new DataView(body.buffer, body.byteOffset, body.byteLength).getBigUint64(16);
       if (!item && this.seen.has(id)) return;
       if (!item?.sink || offset !== BigInt(item.offset) || item.offset + body.length - 24 > item.offer.size) throw new Error("RD_FILE_OFFSET");
@@ -141,7 +176,7 @@ export class RemoteTransfers {
     if (frame.type === TYPES.FILE_COMPLETE) {
       const item = this.incoming.get(body.id);
       if (!item && this.seen.has(body.id)) return;
-      if (!this.allowed("files.receive") || !item?.sink || body.size !== item.offer.size || item.offset !== body.size || !/^[0-9a-f]{64}$/.test(body.sha256) || item.hash.digest() !== body.sha256) { await this.cancel(body.id); throw new Error("RD_FILE_HASH_MISMATCH"); }
+      if (!item?.sink || body.size !== item.offer.size || item.offset !== body.size || !/^[0-9a-f]{64}$/.test(body.sha256) || item.hash.digest() !== body.sha256) { await this.cancel(body.id); throw new Error("RD_FILE_HASH_MISMATCH"); }
       clearTimeout(item.timer);
 	  item.committing = true;
       try { await item.sink.close(); } catch { await this.cancel(body.id); this.onProgress?.({ id: body.id, error: "RD_FILE_WRITE_FAILED" }); return; }
@@ -208,7 +243,7 @@ export class RemoteTransfers {
     clearTimeout(item?.timer);
     const outgoing = this.outgoing.get(id); this.outgoing.delete(id); clearTimeout(outgoing?.timer);
 	const mayBeSaved = !!(item?.committing || outgoing?.digest || !item && !outgoing && this.seen.has(id));
-    if (outgoing) { outgoing.canceled = true; outgoing.ack?.reject(new Error("RD_FILE_CANCELLED")); outgoing.ack = null; }
+    if (outgoing) { outgoing.canceled = true; outgoing.ack?.reject(new Error("RD_FILE_CANCELLED")); outgoing.ack = null; for (const cancel of [...outgoing.waiters ?? []]) cancel(); }
     this.remember(id);
     // OS abort can wait for a pending disk commit. Stop peer traffic immediately;
     // do not claim that an already committed destination has been removed.
@@ -223,8 +258,9 @@ export class RemoteTransfers {
   }
   async revoke(permission) {
     if (permission.startsWith("clipboard.")) this.clearClipboard();
+    if (permission.startsWith("files.")) this.fileGenerations.set(permission, (this.fileGenerations.get(permission) ?? 0) + 1);
     const collection = permission === "files.send" ? this.outgoing : permission === "files.receive" ? this.incoming : new Map();
-    for (const id of [...collection.keys()]) await this.cancel(id);
+    await Promise.all([...collection.keys()].map((id) => this.cancel(id)));
   }
   async close() {
     this.closed = true;
