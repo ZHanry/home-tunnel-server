@@ -295,6 +295,37 @@ router.get(
 );
 
 router.get(
+  "/client/remote-devices",
+  asyncHandler(async (request, response) => {
+    const actor = requirePasswordNormal(request);
+    const { page, page_size, offset } = pagination(request.query);
+    const where = "user_id=? AND status='active' AND revoked_at IS NULL";
+    const count = await one<{ total: number }>(
+      `SELECT count(*) AS total FROM devices WHERE ${where}`,
+      [actor.userId],
+    );
+    const rows = await query<{
+      id: string;
+      name: string;
+      status: string;
+      last_seen_at: Date | null;
+    }>(
+      `SELECT id,name,status,last_seen_at FROM devices WHERE ${where} ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?`,
+      [actor.userId, page_size, offset],
+    );
+    response.json({
+      ...pageInfo(page, page_size, Number(count?.total ?? 0)),
+      items: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        status: row.status,
+        online: row.last_seen_at ? Date.now() - row.last_seen_at.getTime() < 90_000 : false,
+      })),
+    });
+  }),
+);
+
+router.get(
   "/client/connections",
   asyncHandler(async (request, response) => {
     const actor = requirePasswordNormal(request);

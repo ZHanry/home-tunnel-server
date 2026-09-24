@@ -3,7 +3,7 @@ import { rdConfig } from "./rd/config.js";
 
 export const apiCapabilities = {
   api_major: 1,
-  contract_version: "1.2.0",
+  contract_version: "1.3.0",
   server_version: APP_VERSION,
   minimum_clients: { desktop: "7.0.0", android: "7.0.0", agent: "7.0.0" },
   openapi_url: "/openapi.json",

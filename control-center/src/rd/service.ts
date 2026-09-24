@@ -1,10 +1,10 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
 import { config } from "../config.js";
 import { one, query, transaction, type DatabaseClient, type DatabaseRow } from "../db.js";
 import { HttpError } from "../http.js";
-import { tokenHash } from "../security.js";
+import { hashPassword, tokenHash, verifyPassword } from "../security.js";
 import type { AuthenticatedActor } from "../types.js";
 import { rdConfig } from "./config.js";
 import { genesisKeyset, parseManifest, verifyKeysetUpdate } from "./keyset.js";
@@ -62,6 +62,8 @@ export type Session = DatabaseRow & {
   id: string;
   session_request_id: string;
   owner_user_id: string;
+  controller_owner_user_id: string;
+  assist_invite_id: string | null;
   host_endpoint_id: string;
   controller_endpoint_id: string;
   controller_parent_session_id: string | null;
@@ -87,6 +89,8 @@ export type Session = DatabaseRow & {
 type Grant = DatabaseRow & {
   id: string;
   owner_user_id: string;
+  controller_owner_user_id: string;
+  assist_invite_id: string | null;
   host_endpoint_id: string;
   controller_endpoint_id: string;
   host_jkt: string;
@@ -743,6 +747,663 @@ export async function updateCapabilities(
   });
 }
 
+type AssistInvite = DatabaseRow & {
+  id: string;
+  device_code: string;
+  host_owner_user_id: string;
+  host_endpoint_id: string;
+  password_salt: string;
+  password_hash: string;
+  state: string;
+  failed_attempts: number;
+  expires_at: string;
+  redeemed_by_user_id: string | null;
+  redeemed_by_endpoint_id: string | null;
+  access_kind: string;
+  profile_revision: number | null;
+};
+
+type AccessProfile = DatabaseRow & {
+  host_endpoint_id: string;
+  host_owner_user_id: string;
+  device_code: string;
+  password_hash: string | null;
+  revision: number;
+  failed_attempts: number;
+  locked_until: string | null;
+};
+
+type AccessRequest = DatabaseRow & {
+  id: string;
+  host_endpoint_id: string;
+  host_owner_user_id: string;
+  controller_endpoint_id: string;
+  controller_owner_user_id: string;
+  state: string;
+  invite_id: string | null;
+  expires_at: string;
+};
+
+const assistPasswordAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+
+async function expireAssistInvites(db: DatabaseClient) {
+  await db.query(
+    "UPDATE rd_assist_invites SET state='expired' WHERE state='active' AND expires_at<=home_tunnel_now()",
+  );
+  await db.query(
+    "DELETE FROM rd_assist_invites WHERE state IN ('expired','revoked','redeemed') AND expires_at<home_tunnel_add_seconds(home_tunnel_now(),-2592000) AND NOT EXISTS(SELECT 1 FROM rd_pairings WHERE assist_invite_id=rd_assist_invites.id) AND NOT EXISTS(SELECT 1 FROM rd_grants WHERE assist_invite_id=rd_assist_invites.id) AND NOT EXISTS(SELECT 1 FROM rd_sessions WHERE assist_invite_id=rd_assist_invites.id)",
+  );
+}
+
+async function redeemedAssistInvite(
+  db: DatabaseClient,
+  id: string,
+  host: Endpoint,
+  controller: Endpoint,
+  requireFresh: boolean,
+) {
+  const invite = await first<AssistInvite>(
+    db,
+    "SELECT * FROM rd_assist_invites WHERE id=? AND state='redeemed' AND host_owner_user_id=? AND host_endpoint_id=? AND redeemed_by_user_id=? AND redeemed_by_endpoint_id=?" +
+      (requireFresh ? " AND expires_at>home_tunnel_now()" : ""),
+    [id, host.owner_user_id, host.id, controller.owner_user_id, controller.id],
+  );
+  if (!invite) fail(403, "RD_INVITE_INVALID", "协助邀请已失效");
+  if (invite.access_kind === "fixed_password") {
+    const profile = await first<AccessProfile>(
+      db,
+      "SELECT * FROM rd_access_profiles WHERE host_endpoint_id=? AND host_owner_user_id=? AND password_hash IS NOT NULL AND revision=?",
+      [host.id, host.owner_user_id, invite.profile_revision],
+    );
+    if (!profile) fail(403, "RD_INVITE_INVALID", "固定密码已变更或关闭");
+  }
+  return invite;
+}
+
+async function accessTarget(db: DatabaseClient, invite: AssistInvite) {
+  const host = await endpointById(db, invite.host_endpoint_id, invite.host_owner_user_id);
+  const owner = await first(db, "SELECT id FROM users WHERE id=? AND status='active'", [
+    invite.host_owner_user_id,
+  ]);
+  if (
+    !owner ||
+    host.status !== "active" ||
+    !host.local_enabled ||
+    JSON.parse(host.capability_json).status !== "ready"
+  )
+    fail(422, "RD_HOST_UNAVAILABLE", "被控端尚未准备好");
+  return {
+    invite_id: invite.id,
+    host_endpoint_id: host.id,
+    host_owner_user_id: host.owner_user_id,
+    host_name: host.name,
+    host_jkt: host.jkt,
+    host_public_jwk: JSON.parse(host.public_jwk) as PublicJwk,
+    capabilities: JSON.parse(host.capability_json) as unknown,
+    expires_at: invite.expires_at,
+  };
+}
+
+async function createRedeemedAccessInvite(
+  db: DatabaseClient,
+  profile: AccessProfile,
+  controller: Endpoint,
+  kind: "fixed_password" | "approved_request",
+) {
+  const id = randomUUID();
+  const expiresAt = afterSeconds(300);
+  await db.query(
+    "INSERT INTO rd_assist_invites(id,device_code,host_owner_user_id,host_endpoint_id,password_salt,password_hash,state,expires_at,created_at,redeemed_at,redeemed_by_user_id,redeemed_by_endpoint_id,access_kind,profile_revision) VALUES(?,?,?,?,?,?,'redeemed',?,?,?,?,?,?,?)",
+    [
+      id,
+      profile.device_code,
+      profile.host_owner_user_id,
+      profile.host_endpoint_id,
+      "",
+      "",
+      expiresAt,
+      nowIso(),
+      nowIso(),
+      controller.owner_user_id,
+      controller.id,
+      kind,
+      kind === "fixed_password" ? profile.revision : null,
+    ],
+  );
+  await audit(
+    db,
+    profile.host_owner_user_id,
+    kind === "fixed_password" ? "FixedPasswordRedeemed" : "AccessRequestApproved",
+    id,
+  );
+  await audit(
+    db,
+    controller.owner_user_id,
+    kind === "fixed_password" ? "FixedPasswordRedeemed" : "AccessRequestApproved",
+    id,
+  );
+  return id;
+}
+
+export async function accessProfile(identity: RdIdentity, create: boolean) {
+  requireHost(identity);
+  return transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    const host = await endpointById(db, identity.endpoint.id, identity.endpoint.owner_user_id);
+    let profile = await first<AccessProfile>(
+      db,
+      "SELECT * FROM rd_access_profiles WHERE host_endpoint_id=?",
+      [host.id],
+    );
+    if (!profile && create) {
+      if (!host.local_enabled || JSON.parse(host.capability_json).status !== "ready")
+        fail(422, "RD_HOST_UNAVAILABLE", "被控端尚未准备好");
+      let deviceCode = "";
+      for (let attempt = 0; attempt < 16; attempt++) {
+        const candidate = String(randomInt(100_000_000, 1_000_000_000));
+        if (
+          !(await first(db, "SELECT host_endpoint_id FROM rd_access_profiles WHERE device_code=?", [
+            candidate,
+          ])) &&
+          !(await first(
+            db,
+            "SELECT id FROM rd_assist_invites WHERE device_code=? AND state='active'",
+            [candidate],
+          ))
+        ) {
+          deviceCode = candidate;
+          break;
+        }
+      }
+      if (!deviceCode) fail(503, "RD_ACCESS_UNAVAILABLE", "暂时无法生成设备 ID");
+      await db.query(
+        "INSERT INTO rd_access_profiles(host_endpoint_id,host_owner_user_id,device_code,created_at,updated_at) VALUES(?,?,?,?,?)",
+        [host.id, host.owner_user_id, deviceCode, nowIso(), nowIso()],
+      );
+      profile = await first<AccessProfile>(
+        db,
+        "SELECT * FROM rd_access_profiles WHERE host_endpoint_id=?",
+        [host.id],
+      );
+      await audit(db, host.owner_user_id, "AccessProfileCreated", host.id);
+    }
+    return profile
+      ? {
+          device_id: profile.device_code,
+          fixed_password_enabled: profile.password_hash !== null,
+          revision: profile.revision,
+        }
+      : { device_id: null, fixed_password_enabled: false, revision: 0 };
+  });
+}
+
+export async function setFixedPassword(identity: RdIdentity, password: string | null) {
+  requireHost(identity);
+  const encoded = password === null ? null : await hashPassword(password);
+  const result = await transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    const profile = await first<AccessProfile>(
+      db,
+      "SELECT * FROM rd_access_profiles WHERE host_endpoint_id=? AND host_owner_user_id=?",
+      [identity.endpoint.id, identity.endpoint.owner_user_id],
+    );
+    if (!profile) fail(404, "RD_NOT_FOUND", "请先创建设备 ID");
+    const revision = profile.revision + 1;
+    const sessions = await db.query<{ id: string }>(
+      "SELECT id FROM rd_sessions WHERE assist_invite_id IN (SELECT id FROM rd_assist_invites WHERE host_endpoint_id=? AND access_kind='fixed_password' AND state='redeemed') AND state NOT IN ('closed','failed','expired','closing')",
+      [profile.host_endpoint_id],
+    );
+    await db.query(
+      "UPDATE rd_access_profiles SET password_hash=?,revision=?,failed_attempts=0,locked_until=NULL,updated_at=home_tunnel_now() WHERE host_endpoint_id=?",
+      [encoded, revision, profile.host_endpoint_id],
+    );
+    await db.query(
+      "UPDATE rd_assist_invites SET state='revoked',revoked_at=home_tunnel_now() WHERE host_endpoint_id=? AND access_kind='fixed_password' AND state='redeemed'",
+      [profile.host_endpoint_id],
+    );
+    await audit(
+      db,
+      profile.host_owner_user_id,
+      password === null ? "FixedPasswordDisabled" : "FixedPasswordChanged",
+      profile.host_endpoint_id,
+    );
+    return {
+      profile: {
+        device_id: profile.device_code,
+        fixed_password_enabled: password !== null,
+        revision,
+      },
+      sessions: sessions.rows.map((session) => session.id),
+    };
+  });
+  for (const sessionId of result.sessions) rdEvents.emit("session", sessionId);
+  return result.profile;
+}
+
+export async function redeemFixedPassword(
+  identity: RdIdentity,
+  deviceCode: string,
+  password: string,
+) {
+  requireController(identity);
+  const result = await transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    const profile = await first<AccessProfile>(
+      db,
+      "SELECT * FROM rd_access_profiles WHERE device_code=?",
+      [deviceCode],
+    );
+    if (
+      !profile ||
+      !profile.password_hash ||
+      profile.host_owner_user_id === identity.endpoint.owner_user_id ||
+      (profile.locked_until && timestamp(profile.locked_until) > Date.now())
+    )
+      return null;
+    const valid = await verifyPassword(profile.password_hash, password);
+    if (!valid) {
+      const failures = profile.failed_attempts + 1;
+      await db.query(
+        "UPDATE rd_access_profiles SET failed_attempts=?,locked_until=? WHERE host_endpoint_id=?",
+        [
+          failures >= 5 ? 0 : failures,
+          failures >= 5 ? afterSeconds(300) : null,
+          profile.host_endpoint_id,
+        ],
+      );
+      await audit(db, profile.host_owner_user_id, "FixedPasswordFailed", profile.host_endpoint_id);
+      return null;
+    }
+    const host = await endpointById(db, profile.host_endpoint_id, profile.host_owner_user_id);
+    const owner = await first(db, "SELECT id FROM users WHERE id=? AND status='active'", [
+      profile.host_owner_user_id,
+    ]);
+    if (
+      !owner ||
+      host.status !== "active" ||
+      !host.local_enabled ||
+      JSON.parse(host.capability_json).status !== "ready"
+    )
+      return null;
+    const recent = await first<{ count: number }>(
+      db,
+      "SELECT count(*) AS count FROM rd_assist_invites WHERE host_endpoint_id=? AND access_kind='fixed_password' AND created_at>home_tunnel_add_seconds(home_tunnel_now(),-3600)",
+      [host.id],
+    );
+    if (Number(recent?.count) >= 30) fail(429, "RD_RATE_LIMITED", "固定密码连接过于频繁");
+    await db.query(
+      "UPDATE rd_access_profiles SET failed_attempts=0,locked_until=NULL WHERE host_endpoint_id=?",
+      [host.id],
+    );
+    const inviteId = await createRedeemedAccessInvite(
+      db,
+      profile,
+      identity.endpoint,
+      "fixed_password",
+    );
+    const invite = await first<AssistInvite>(db, "SELECT * FROM rd_assist_invites WHERE id=?", [
+      inviteId,
+    ]);
+    return accessTarget(db, invite!);
+  });
+  if (!result) fail(401, "RD_ACCESS_INVALID", "设备 ID 或固定密码无效");
+  return result;
+}
+
+export async function createAccessRequest(identity: RdIdentity, deviceCode: string) {
+  requireController(identity);
+  return transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    const profile = await first<AccessProfile>(
+      db,
+      "SELECT * FROM rd_access_profiles WHERE device_code=?",
+      [deviceCode],
+    );
+    if (!profile || profile.host_owner_user_id === identity.endpoint.owner_user_id)
+      fail(404, "RD_NOT_FOUND", "设备不可用");
+    const host = await endpointById(db, profile.host_endpoint_id, profile.host_owner_user_id);
+    const owner = await first(db, "SELECT id FROM users WHERE id=? AND status='active'", [
+      profile.host_owner_user_id,
+    ]);
+    if (
+      !owner ||
+      !host.local_enabled ||
+      host.status !== "active" ||
+      JSON.parse(host.capability_json).status !== "ready"
+    )
+      fail(404, "RD_NOT_FOUND", "设备不可用");
+    const pending = await first<{ count: number }>(
+      db,
+      "SELECT count(*) AS count FROM rd_access_requests WHERE host_endpoint_id=? AND state='pending' AND expires_at>home_tunnel_now()",
+      [host.id],
+    );
+    if (Number(pending?.count) >= 5) fail(429, "RD_RATE_LIMITED", "该设备的请求过多");
+    const id = randomUUID();
+    const expiresAt = afterSeconds(120);
+    await db.query(
+      "INSERT INTO rd_access_requests(id,host_endpoint_id,host_owner_user_id,controller_endpoint_id,controller_owner_user_id,expires_at,created_at) VALUES(?,?,?,?,?,?,?)",
+      [
+        id,
+        host.id,
+        host.owner_user_id,
+        identity.endpoint.id,
+        identity.endpoint.owner_user_id,
+        expiresAt,
+        nowIso(),
+      ],
+    );
+    await audit(db, host.owner_user_id, "AccessRequested", id);
+    await audit(db, identity.endpoint.owner_user_id, "AccessRequested", id);
+    return { id, state: "pending", expires_at: expiresAt };
+  });
+}
+
+export async function listAccessRequests(identity: RdIdentity) {
+  requireHost(identity);
+  return transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    await db.query(
+      "UPDATE rd_access_requests SET state='expired' WHERE state='pending' AND expires_at<=home_tunnel_now()",
+    );
+    const requests = await db.query<AccessRequest>(
+      "SELECT * FROM rd_access_requests WHERE host_endpoint_id=? AND host_owner_user_id=? AND state='pending' ORDER BY created_at LIMIT 5",
+      [identity.endpoint.id, identity.endpoint.owner_user_id],
+    );
+    return {
+      items: requests.rows.map((request) => ({
+        id: request.id,
+        controller_endpoint_id: request.controller_endpoint_id,
+        expires_at: request.expires_at,
+      })),
+    };
+  });
+}
+
+export async function accessRequest(identity: RdIdentity, id: string) {
+  requireController(identity);
+  return transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    const request = await first<AccessRequest>(
+      db,
+      "SELECT * FROM rd_access_requests WHERE id=? AND controller_endpoint_id=? AND controller_owner_user_id=?",
+      [id, identity.endpoint.id, identity.endpoint.owner_user_id],
+    );
+    if (!request) fail(404, "RD_NOT_FOUND", "连接请求不存在");
+    if (
+      ["pending", "preparing"].includes(request.state) &&
+      timestamp(request.expires_at) <= Date.now()
+    ) {
+      await db.query("UPDATE rd_access_requests SET state='expired' WHERE id=?", [id]);
+      return { id, state: "expired" };
+    }
+    if (request.state === "preparing") return { id, state: "pending" };
+    if (request.state !== "approved" || !request.invite_id) return { id, state: request.state };
+    const invite = await first<AssistInvite>(
+      db,
+      "SELECT * FROM rd_assist_invites WHERE id=? AND state='redeemed' AND expires_at>home_tunnel_now()",
+      [request.invite_id],
+    );
+    if (!invite) return { id, state: "expired" };
+    return { id, state: "approved", target: await accessTarget(db, invite) };
+  });
+}
+
+export async function decideAccessRequest(identity: RdIdentity, id: string, approve: boolean) {
+  requireHost(identity);
+  return transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    const request = await first<AccessRequest>(
+      db,
+      "SELECT * FROM rd_access_requests WHERE id=? AND host_endpoint_id=? AND host_owner_user_id=? AND state='pending' AND expires_at>home_tunnel_now()",
+      [id, identity.endpoint.id, identity.endpoint.owner_user_id],
+    );
+    if (!request) fail(404, "RD_NOT_FOUND", "连接请求不存在或已过期");
+    const profile = await first<AccessProfile>(
+      db,
+      "SELECT * FROM rd_access_profiles WHERE host_endpoint_id=?",
+      [request.host_endpoint_id],
+    );
+    const controller = await endpointById(
+      db,
+      request.controller_endpoint_id,
+      request.controller_owner_user_id,
+    );
+    const inviteId = approve
+      ? await createRedeemedAccessInvite(db, profile!, controller, "approved_request")
+      : null;
+    await db.query(
+      "UPDATE rd_access_requests SET state=?,invite_id=?,decided_at=home_tunnel_now() WHERE id=? AND state='pending'",
+      [approve ? "preparing" : "rejected", inviteId, id],
+    );
+    await audit(db, request.host_owner_user_id, approve ? "AccessApproved" : "AccessRejected", id);
+    return {
+      id,
+      state: approve ? "preparing" : "rejected",
+      invite_id: inviteId,
+      expires_at: approve ? afterSeconds(300) : null,
+    };
+  });
+}
+
+export async function activateAccessRequest(identity: RdIdentity, id: string) {
+  requireHost(identity);
+  return transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    const request = await first<AccessRequest>(
+      db,
+      "SELECT * FROM rd_access_requests WHERE id=? AND host_endpoint_id=? AND host_owner_user_id=? AND state='preparing' AND expires_at>home_tunnel_now()",
+      [id, identity.endpoint.id, identity.endpoint.owner_user_id],
+    );
+    if (!request || !request.invite_id) fail(404, "RD_NOT_FOUND", "连接请求不存在或已过期");
+    const invite = await first<AssistInvite>(
+      db,
+      "SELECT * FROM rd_assist_invites WHERE id=? AND state='redeemed' AND expires_at>home_tunnel_now()",
+      [request.invite_id],
+    );
+    if (!invite || invite.access_kind !== "approved_request")
+      fail(404, "RD_NOT_FOUND", "连接请求已失效");
+    await db.query(
+      "UPDATE rd_access_requests SET state='approved' WHERE id=? AND state='preparing'",
+      [id],
+    );
+    return { id, state: "approved" };
+  });
+}
+
+export async function accessInviteAuthorization(identity: RdIdentity, id: string) {
+  requireHost(identity);
+  return transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    const invite = await first<AssistInvite>(
+      db,
+      "SELECT * FROM rd_assist_invites WHERE id=? AND host_endpoint_id=? AND host_owner_user_id=? AND state='redeemed' AND expires_at>home_tunnel_now()",
+      [id, identity.endpoint.id, identity.endpoint.owner_user_id],
+    );
+    if (!invite || invite.access_kind !== "fixed_password")
+      fail(404, "RD_NOT_FOUND", "固定密码授权不存在");
+    const profile = await first<AccessProfile>(
+      db,
+      "SELECT * FROM rd_access_profiles WHERE host_endpoint_id=? AND password_hash IS NOT NULL AND revision=?",
+      [identity.endpoint.id, invite.profile_revision],
+    );
+    if (!profile) fail(404, "RD_NOT_FOUND", "固定密码授权已失效");
+    return {
+      invite_id: id,
+      access_kind: invite.access_kind,
+      profile_revision: invite.profile_revision,
+      expires_at: invite.expires_at,
+    };
+  });
+}
+
+export async function createAssistInvite(identity: RdIdentity) {
+  requireHost(identity);
+  return transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    await expireAssistInvites(db);
+    const host = await endpointById(db, identity.endpoint.id, identity.endpoint.owner_user_id);
+    if (
+      host.status !== "active" ||
+      !host.local_enabled ||
+      JSON.parse(host.capability_json).status !== "ready"
+    )
+      fail(422, "RD_HOST_UNAVAILABLE", "被控端尚未准备好");
+    const recent = await first<{ count: number }>(
+      db,
+      "SELECT count(*) AS count FROM rd_assist_invites WHERE host_endpoint_id=? AND created_at>home_tunnel_add_seconds(home_tunnel_now(),-3600)",
+      [host.id],
+    );
+    if (Number(recent?.count) >= 30) fail(429, "RD_RATE_LIMITED", "协助码创建过于频繁");
+    await db.query(
+      "UPDATE rd_assist_invites SET state='revoked',revoked_at=home_tunnel_now() WHERE host_endpoint_id=? AND state='active'",
+      [host.id],
+    );
+    let deviceCode = "";
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const candidate = String(randomInt(100_000_000, 1_000_000_000));
+      if (
+        !(await first(
+          db,
+          "SELECT id FROM rd_assist_invites WHERE device_code=? AND state='active'",
+          [candidate],
+        ))
+      ) {
+        deviceCode = candidate;
+        break;
+      }
+    }
+    if (!deviceCode) fail(503, "RD_INVITE_UNAVAILABLE", "暂时无法生成协助码");
+    const password = Array.from(
+      { length: 12 },
+      () => assistPasswordAlphabet[randomInt(assistPasswordAlphabet.length)],
+    ).join("");
+    const salt = randomBytes(16).toString("hex");
+    const id = randomUUID();
+    const expiresAt = afterSeconds(300);
+    await db.query(
+      "INSERT INTO rd_assist_invites(id,device_code,host_owner_user_id,host_endpoint_id,password_salt,password_hash,expires_at,created_at) VALUES(?,?,?,?,?,?,?,?)",
+      [
+        id,
+        deviceCode,
+        host.owner_user_id,
+        host.id,
+        salt,
+        tokenHash(`${salt}:${password}`),
+        expiresAt,
+        nowIso(),
+      ],
+    );
+    await audit(db, host.owner_user_id, "AssistInviteCreated", id);
+    return { id, device_id: deviceCode, temporary_password: password, expires_at: expiresAt };
+  });
+}
+
+export async function listAssistInvites(identity: RdIdentity) {
+  requireHost(identity);
+  return transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    await expireAssistInvites(db);
+    const rows = await db.query<{
+      id: string;
+      device_id: string;
+      state: string;
+      expires_at: string;
+      created_at: string;
+      redeemed_at: string | null;
+    }>(
+      "SELECT id,device_code AS device_id,state,expires_at,created_at,redeemed_at FROM rd_assist_invites WHERE host_owner_user_id=? AND host_endpoint_id=? AND state IN ('active','redeemed') ORDER BY created_at DESC LIMIT 30",
+      [identity.endpoint.owner_user_id, identity.endpoint.id],
+    );
+    return { items: rows.rows };
+  });
+}
+
+export async function redeemAssistInvite(
+  identity: RdIdentity,
+  deviceCode: string,
+  password: string,
+) {
+  requireController(identity);
+  const result = await transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    await expireAssistInvites(db);
+    const invite = await first<AssistInvite>(
+      db,
+      "SELECT * FROM rd_assist_invites WHERE device_code=? AND state='active' AND expires_at>home_tunnel_now()",
+      [deviceCode],
+    );
+    if (!invite) return null;
+    const actual = Buffer.from(tokenHash(`${invite.password_salt}:${password}`), "hex");
+    const expected = Buffer.from(invite.password_hash, "hex");
+    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
+      await db.query(
+        "UPDATE rd_assist_invites SET failed_attempts=failed_attempts+1,state=CASE WHEN failed_attempts>=4 THEN 'revoked' ELSE state END,revoked_at=CASE WHEN failed_attempts>=4 THEN home_tunnel_now() ELSE revoked_at END WHERE id=? AND state='active'",
+        [invite.id],
+      );
+      await audit(db, invite.host_owner_user_id, "AssistInviteFailed", invite.id);
+      if (identity.endpoint.owner_user_id !== invite.host_owner_user_id)
+        await audit(db, identity.endpoint.owner_user_id, "AssistInviteFailed", invite.id);
+      return null;
+    }
+    const host = await endpointById(db, invite.host_endpoint_id, invite.host_owner_user_id);
+    if (
+      host.status !== "active" ||
+      !host.local_enabled ||
+      JSON.parse(host.capability_json).status !== "ready"
+    )
+      return null;
+    await db.query(
+      "UPDATE rd_assist_invites SET state='redeemed',redeemed_at=home_tunnel_now(),redeemed_by_user_id=?,redeemed_by_endpoint_id=? WHERE id=? AND state='active'",
+      [identity.endpoint.owner_user_id, identity.endpoint.id, invite.id],
+    );
+    await audit(db, invite.host_owner_user_id, "AssistInviteRedeemed", invite.id);
+    if (identity.endpoint.owner_user_id !== invite.host_owner_user_id)
+      await audit(db, identity.endpoint.owner_user_id, "AssistInviteRedeemed", invite.id);
+    return {
+      invite_id: invite.id,
+      host_endpoint_id: host.id,
+      host_owner_user_id: host.owner_user_id,
+      host_name: host.name,
+      host_jkt: host.jkt,
+      host_public_jwk: JSON.parse(host.public_jwk) as PublicJwk,
+      capabilities: JSON.parse(host.capability_json) as unknown,
+      expires_at: invite.expires_at,
+    };
+  });
+  if (!result) fail(401, "RD_INVITE_INVALID", "协助码或临时密码无效");
+  return result;
+}
+
+export async function revokeAssistInvite(identity: RdIdentity, id: string) {
+  requireHost(identity);
+  const affected = await transaction(async (db) => {
+    await assertLiveIdentity(db, identity);
+    const invite = await first<AssistInvite>(
+      db,
+      "SELECT * FROM rd_assist_invites WHERE id=? AND host_endpoint_id=? AND host_owner_user_id=? AND state IN ('active','redeemed')",
+      [id, identity.endpoint.id, identity.endpoint.owner_user_id],
+    );
+    if (!invite) fail(404, "RD_NOT_FOUND", "协助码不存在或已失效");
+    const sessions = await db.query<{ id: string }>(
+      "SELECT id FROM rd_sessions WHERE assist_invite_id=? AND state NOT IN ('closed','failed','expired')",
+      [id],
+    );
+    const changed = await db.query(
+      "UPDATE rd_assist_invites SET state='revoked',revoked_at=home_tunnel_now() WHERE id=? AND host_endpoint_id=? AND host_owner_user_id=? AND state IN ('active','redeemed')",
+      [id, identity.endpoint.id, identity.endpoint.owner_user_id],
+    );
+    if (!changed.rowCount) fail(404, "RD_NOT_FOUND", "协助码不存在或已失效");
+    await audit(db, identity.endpoint.owner_user_id, "AssistInviteRevoked", id);
+    if (
+      invite.redeemed_by_user_id &&
+      invite.redeemed_by_user_id !== identity.endpoint.owner_user_id
+    )
+      await audit(db, invite.redeemed_by_user_id, "AssistInviteRevoked", id);
+    return sessions.rows.map((session) => session.id);
+  });
+  for (const sessionId of affected) rdEvents.emit("session", sessionId);
+}
+
 export async function createPairing(
   identity: RdIdentity,
   body: {
@@ -751,6 +1412,7 @@ export async function createPairing(
     permissions: Permission[];
     mode: "one_session" | "persistent";
     nonce_controller: string;
+    assist_invite_id?: string;
   },
 ) {
   requireController(identity);
@@ -766,7 +1428,18 @@ export async function createPairing(
     )
       fail(403, "RD_REAUTH_REQUIRED", "持久授权需要最近五分钟内重新验证账号");
     await cleanupRd(db);
-    const host = await endpointById(db, body.host_endpoint_id, identity.endpoint.owner_user_id);
+    const host = await endpointById(
+      db,
+      body.host_endpoint_id,
+      body.assist_invite_id ? undefined : identity.endpoint.owner_user_id,
+    );
+    if (host.owner_user_id !== identity.endpoint.owner_user_id) {
+      if (!body.assist_invite_id || body.mode !== "one_session")
+        fail(403, "RD_INVITE_REQUIRED", "跨账号协助需要一次性邀请");
+      await redeemedAssistInvite(db, body.assist_invite_id, host, identity.endpoint, true);
+    } else if (body.assist_invite_id) {
+      fail(400, "RD_INVITE_NOT_REQUIRED", "同账号设备不需要协助邀请");
+    }
     if (
       host.id === identity.endpoint.id ||
       host.role === "controller" ||
@@ -796,14 +1469,23 @@ export async function createPairing(
       mode: body.mode,
       session_request_id: body.session_request_id,
       expires_at,
+      ...(body.assist_invite_id
+        ? {
+            assist_invite_id: body.assist_invite_id,
+            host_owner_user_id: host.owner_user_id,
+            controller_owner_user_id: identity.endpoint.owner_user_id,
+          }
+        : {}),
     };
     await db.query(
-      "INSERT INTO rd_pairings(id,owner_user_id,host_endpoint_id,controller_endpoint_id,session_request_id,requested_scope_json,transcript_json,expires_at,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+      "INSERT INTO rd_pairings(id,owner_user_id,controller_owner_user_id,host_endpoint_id,controller_endpoint_id,assist_invite_id,session_request_id,requested_scope_json,transcript_json,expires_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
       [
         id,
         host.owner_user_id,
+        identity.endpoint.owner_user_id,
         host.id,
         identity.endpoint.id,
+        body.assist_invite_id ?? null,
         body.session_request_id,
         JSON.stringify(body.permissions),
         JSON.stringify(transcript),
@@ -812,13 +1494,21 @@ export async function createPairing(
       ],
     );
     await audit(db, host.owner_user_id, "PairingRequested", id);
+    if (host.owner_user_id !== identity.endpoint.owner_user_id)
+      await audit(db, identity.endpoint.owner_user_id, "PairingRequested", id);
     return { id, state: "pending", expires_at, transcript };
   });
 }
 export async function pairing(identity: RdIdentity, id: string) {
   const row = await one(
-    "SELECT * FROM rd_pairings WHERE id=? AND owner_user_id=? AND (host_endpoint_id=? OR controller_endpoint_id=?)",
-    [id, identity.endpoint.owner_user_id, identity.endpoint.id, identity.endpoint.id],
+    "SELECT * FROM rd_pairings WHERE id=? AND ((host_endpoint_id=? AND owner_user_id=?) OR (controller_endpoint_id=? AND controller_owner_user_id=?))",
+    [
+      id,
+      identity.endpoint.id,
+      identity.endpoint.owner_user_id,
+      identity.endpoint.id,
+      identity.endpoint.owner_user_id,
+    ],
   );
   if (!row) fail(404, "RD_NOT_FOUND", "配对请求不存在");
   const transcript = JSON.parse(row.transcript_json as string) as Record<string, unknown>;
@@ -846,14 +1536,32 @@ export async function confirmPairing(
     await assertLiveIdentity(db, identity);
     const row = await first(
       db,
-      "SELECT * FROM rd_pairings WHERE id=? AND owner_user_id=? AND (host_endpoint_id=? OR controller_endpoint_id=?)",
-      [id, identity.endpoint.owner_user_id, identity.endpoint.id, identity.endpoint.id],
+      "SELECT * FROM rd_pairings WHERE id=? AND ((host_endpoint_id=? AND owner_user_id=?) OR (controller_endpoint_id=? AND controller_owner_user_id=?))",
+      [
+        id,
+        identity.endpoint.id,
+        identity.endpoint.owner_user_id,
+        identity.endpoint.id,
+        identity.endpoint.owner_user_id,
+      ],
     );
     if (!row) fail(404, "RD_NOT_FOUND", "配对请求不存在");
     if (row.state !== "pending" || timestamp(row.expires_at) <= Date.now())
       fail(409, "RD_PAIRING_EXPIRED", "配对已结束");
     const isHost = row.host_endpoint_id === identity.endpoint.id;
     const transcript = JSON.parse(row.transcript_json as string) as Record<string, unknown>;
+    if (row.assist_invite_id) {
+      const host = await endpointById(db, String(row.host_endpoint_id));
+      const controller = await endpointById(db, String(row.controller_endpoint_id));
+      await redeemedAssistInvite(db, String(row.assist_invite_id), host, controller, true);
+      if (
+        transcript.assist_invite_id !== row.assist_invite_id ||
+        transcript.host_owner_user_id !== host.owner_user_id ||
+        transcript.controller_owner_user_id !== controller.owner_user_id ||
+        transcript.mode !== "one_session"
+      )
+        fail(401, "RD_PROOF_INVALID", "跨账号配对内容不匹配");
+    }
     if (isHost) {
       requireHost(identity);
       if (!body.nonce_host || !body.grant_jws)
@@ -878,7 +1586,15 @@ export async function confirmPairing(
     if (isHost) {
       const host = await endpointById(db, String(row.host_endpoint_id));
       const controller = await endpointById(db, String(row.controller_endpoint_id));
-      await storeGrant(db, host, controller, id, body.grant_jws!, transcript);
+      await storeGrant(
+        db,
+        host,
+        controller,
+        id,
+        body.grant_jws!,
+        transcript,
+        row.assist_invite_id as string | null,
+      );
       await db.query("UPDATE rd_pairings SET host_proof=?,transcript_json=? WHERE id=?", [
         body.signed_proof,
         JSON.stringify(transcript),
@@ -890,6 +1606,8 @@ export async function confirmPairing(
         id,
       ]);
       await audit(db, identity.endpoint.owner_user_id, "PairingConfirmed", id);
+      if (row.owner_user_id !== identity.endpoint.owner_user_id)
+        await audit(db, String(row.owner_user_id), "PairingConfirmed", id);
     }
   });
   return pairing(identity, id);
@@ -901,6 +1619,7 @@ async function storeGrant(
   id: string,
   jws: string,
   transcript?: Record<string, unknown>,
+  assistInviteId?: string | null,
 ) {
   const claims = verifyJws(jws, publicJwk(JSON.parse(host.public_jwk)), "ht-rd-grant+jwt");
   const state = await serverState(db);
@@ -953,6 +1672,18 @@ async function storeGrant(
         claims.one_session_request_id !== transcript.session_request_id))
   )
     fail(400, "RD_GRANT_INVALID", "授权与双方配对内容不同");
+  if (host.owner_user_id !== controller.owner_user_id) {
+    if (
+      !transcript ||
+      !assistInviteId ||
+      transcript.assist_invite_id !== assistInviteId ||
+      claims.mode !== "one_session"
+    )
+      fail(403, "RD_INVITE_REQUIRED", "跨账号授权必须绑定一次性邀请");
+    await redeemedAssistInvite(db, assistInviteId, host, controller, true);
+  } else if (assistInviteId) {
+    fail(400, "RD_INVITE_NOT_REQUIRED", "同账号授权不需要协助邀请");
+  }
   if (claims.mode === "persistent") {
     const user = await first<{ mfa_secret: string | null }>(
       db,
@@ -973,12 +1704,14 @@ async function storeGrant(
   )
     fail(409, "RD_GRANT_VERSION_CONFLICT", "授权已撤销或版本过旧");
   await db.query(
-    `INSERT INTO rd_grants(id,owner_user_id,host_endpoint_id,controller_endpoint_id,host_jkt,controller_jkt,scope_json,mode,one_session_request_id,grant_version,host_signature,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET scope_json=excluded.scope_json,mode=excluded.mode,one_session_request_id=excluded.one_session_request_id,grant_version=excluded.grant_version,host_signature=excluded.host_signature,expires_at=excluded.expires_at,updated_at=excluded.updated_at`,
+    `INSERT INTO rd_grants(id,owner_user_id,controller_owner_user_id,host_endpoint_id,controller_endpoint_id,assist_invite_id,host_jkt,controller_jkt,scope_json,mode,one_session_request_id,grant_version,host_signature,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET scope_json=excluded.scope_json,mode=excluded.mode,one_session_request_id=excluded.one_session_request_id,grant_version=excluded.grant_version,host_signature=excluded.host_signature,expires_at=excluded.expires_at,updated_at=excluded.updated_at`,
     [
       id,
       host.owner_user_id,
+      controller.owner_user_id,
       host.id,
       controller.id,
+      assistInviteId ?? null,
       host.jkt,
       controller.jkt,
       JSON.stringify(claims.scope),
@@ -992,6 +1725,8 @@ async function storeGrant(
     ],
   );
   await audit(db, host.owner_user_id, "GrantStored", id);
+  if (host.owner_user_id !== controller.owner_user_id)
+    await audit(db, controller.owner_user_id, "GrantStored", id);
 }
 export async function putGrant(identity: RdIdentity, id: string, jws: string) {
   requireHost(identity);
@@ -1014,21 +1749,52 @@ export async function putGrant(identity: RdIdentity, id: string, jws: string) {
   });
 }
 export async function rejectPairing(identity: RdIdentity, id: string) {
-  return transaction(async (db) => {
+  const affected = await transaction(async (db) => {
     await assertLiveIdentity(db, identity);
     const result = await db.query(
-      "UPDATE rd_pairings SET state='rejected',host_proof=NULL,controller_proof=NULL WHERE id=? AND owner_user_id=? AND (host_endpoint_id=? OR controller_endpoint_id=?) AND state IN ('pending','rejected')",
-      [id, identity.endpoint.owner_user_id, identity.endpoint.id, identity.endpoint.id],
+      "UPDATE rd_pairings SET state='rejected',host_proof=NULL,controller_proof=NULL WHERE id=? AND ((host_endpoint_id=? AND owner_user_id=?) OR (controller_endpoint_id=? AND controller_owner_user_id=?)) AND state IN ('pending','confirmed','rejected')",
+      [
+        id,
+        identity.endpoint.id,
+        identity.endpoint.owner_user_id,
+        identity.endpoint.id,
+        identity.endpoint.owner_user_id,
+      ],
     );
     if (!result.rowCount) fail(404, "RD_NOT_FOUND", "配对请求不存在或已完成");
     await db.query(
       "UPDATE rd_grants SET status='revoked',grant_version=grant_version+1,revoked_at=home_tunnel_now() WHERE id=? AND status='active'",
       [id],
     );
+    const sessions = await db.query<Session>(
+      "SELECT * FROM rd_sessions WHERE grant_id=? AND state NOT IN ('closed','failed','expired','closing')",
+      [id],
+    );
+    await db.query(
+      "UPDATE rd_sessions SET state='closing',state_version=state_version+1,close_reason='RD_GRANT_REVOKED',updated_at=home_tunnel_now() WHERE grant_id=? AND state NOT IN ('closed','failed','expired','closing')",
+      [id],
+    );
+    await audit(db, identity.endpoint.owner_user_id, "PairingRejected", id);
+    const pairing = await first<{ owner_user_id: string; controller_owner_user_id: string }>(
+      db,
+      "SELECT owner_user_id,controller_owner_user_id FROM rd_pairings WHERE id=?",
+      [id],
+    );
+    if (pairing && pairing.owner_user_id !== pairing.controller_owner_user_id)
+      await audit(
+        db,
+        identity.endpoint.owner_user_id === pairing.owner_user_id
+          ? pairing.controller_owner_user_id
+          : pairing.owner_user_id,
+        "PairingRejected",
+        id,
+      );
+    return sessions.rows.map((session) => session.id);
   });
+  for (const sessionId of affected) rdEvents.emit("session", sessionId);
 }
 export async function revokeGrant(owner: string, id: string, hostId?: string) {
-  return transaction(async (db) => {
+  const affected = await transaction(async (db) => {
     const grant = await first<Grant>(db, "SELECT * FROM rd_grants WHERE id=? AND owner_user_id=?", [
       id,
       owner,
@@ -1039,13 +1805,19 @@ export async function revokeGrant(owner: string, id: string, hostId?: string) {
       "UPDATE rd_grants SET status='revoked',grant_version=grant_version+1,revoked_at=home_tunnel_now() WHERE id=? AND status='active'",
       [id],
     );
+    const sessions = await db.query<Session>(
+      "SELECT * FROM rd_sessions WHERE grant_id=? AND state NOT IN ('closed','failed','expired','closing')",
+      [id],
+    );
     await db.query(
-      "UPDATE rd_sessions SET state='closing',state_version=state_version+1,close_reason='RD_GRANT_REVOKED' WHERE grant_id=? AND state NOT IN ('closed','failed','expired','closing')",
+      "UPDATE rd_sessions SET state='closing',state_version=state_version+1,close_reason='RD_GRANT_REVOKED',updated_at=home_tunnel_now() WHERE grant_id=? AND state NOT IN ('closed','failed','expired','closing')",
       [id],
     );
     await audit(db, owner, "GrantRevoked", id);
     await cleanupRd(db);
+    return sessions.rows.map((session) => session.id);
   });
+  for (const sessionId of affected) rdEvents.emit("session", sessionId);
 }
 
 export async function sessionView(row: Session, participant?: string) {
@@ -1053,6 +1825,8 @@ export async function sessionView(row: Session, participant?: string) {
     id: row.id,
     session_id: row.id,
     session_request_id: row.session_request_id,
+    owner_user_id: row.owner_user_id,
+    controller_owner_user_id: row.controller_owner_user_id,
     host_endpoint_id: row.host_endpoint_id,
     controller_endpoint_id: row.controller_endpoint_id,
     state: row.state,
@@ -1086,10 +1860,10 @@ export async function sessionView(row: Session, participant?: string) {
   };
 }
 export async function getSession(owner: string, id: string, participant?: string) {
-  const row = await one<Session>("SELECT * FROM rd_sessions WHERE id=? AND owner_user_id=?", [
-    id,
-    owner,
-  ]);
+  const row = await one<Session>(
+    "SELECT * FROM rd_sessions WHERE id=? AND (owner_user_id=? OR controller_owner_user_id=?)",
+    [id, owner, owner],
+  );
   if (
     !row ||
     (participant &&
@@ -1103,8 +1877,14 @@ async function sessionFor(db: DatabaseClient, identity: RdIdentity, id: string) 
   await assertLiveIdentity(db, identity);
   const row = await first<Session>(
     db,
-    "SELECT * FROM rd_sessions WHERE id=? AND owner_user_id=? AND (host_endpoint_id=? OR controller_endpoint_id=?)",
-    [id, identity.endpoint.owner_user_id, identity.endpoint.id, identity.endpoint.id],
+    "SELECT * FROM rd_sessions WHERE id=? AND ((host_endpoint_id=? AND owner_user_id=?) OR (controller_endpoint_id=? AND controller_owner_user_id=?))",
+    [
+      id,
+      identity.endpoint.id,
+      identity.endpoint.owner_user_id,
+      identity.endpoint.id,
+      identity.endpoint.owner_user_id,
+    ],
   );
   if (!row) fail(404, "RD_NOT_FOUND", "会话不存在");
   return row;
@@ -1112,11 +1892,26 @@ async function sessionFor(db: DatabaseClient, identity: RdIdentity, id: string) 
 async function liveGrant(db: DatabaseClient, row: Session) {
   const grant = await first<Grant>(
     db,
-    `SELECT g.* FROM rd_grants g JOIN users u ON u.id=g.owner_user_id JOIN rd_endpoints h ON h.id=g.host_endpoint_id JOIN rd_endpoints c ON c.id=g.controller_endpoint_id WHERE g.id=? AND g.status='active' AND (g.expires_at IS NULL OR g.expires_at>home_tunnel_now()) AND u.status='active' AND u.token_version=? AND h.status='active' AND h.local_enabled=1 AND c.status='active' AND EXISTS(SELECT 1 FROM sessions s WHERE s.id=? AND s.revoked_at IS NULL AND s.refresh_expires_at>home_tunnel_now() AND s.token_version=u.token_version)`,
+    `SELECT g.* FROM rd_grants g JOIN users h_owner ON h_owner.id=g.owner_user_id JOIN users c_owner ON c_owner.id=g.controller_owner_user_id JOIN rd_endpoints h ON h.id=g.host_endpoint_id JOIN rd_endpoints c ON c.id=g.controller_endpoint_id WHERE g.id=? AND g.status='active' AND (g.expires_at IS NULL OR g.expires_at>home_tunnel_now()) AND h_owner.status='active' AND c_owner.status='active' AND c_owner.token_version=? AND h.status='active' AND h.local_enabled=1 AND c.status='active' AND h.owner_user_id=g.owner_user_id AND c.owner_user_id=g.controller_owner_user_id AND EXISTS(SELECT 1 FROM sessions s WHERE s.id=? AND s.user_id=c_owner.id AND s.revoked_at IS NULL AND s.refresh_expires_at>home_tunnel_now() AND s.token_version=c_owner.token_version)`,
     [row.grant_id, row.user_token_version, row.controller_parent_session_id],
   );
-  if (!grant || grant.grant_version !== row.grant_version)
+  if (
+    !grant ||
+    grant.grant_version !== row.grant_version ||
+    grant.owner_user_id !== row.owner_user_id ||
+    grant.controller_owner_user_id !== row.controller_owner_user_id ||
+    grant.host_endpoint_id !== row.host_endpoint_id ||
+    grant.controller_endpoint_id !== row.controller_endpoint_id ||
+    grant.assist_invite_id !== row.assist_invite_id
+  )
     fail(403, "RD_GRANT_REVOKED", "授权或父账号会话已失效");
+  if (grant.assist_invite_id) {
+    const host = await endpointById(db, row.host_endpoint_id);
+    const controller = await endpointById(db, row.controller_endpoint_id);
+    await redeemedAssistInvite(db, grant.assist_invite_id, host, controller, false);
+  } else if (grant.owner_user_id !== grant.controller_owner_user_id) {
+    fail(403, "RD_INVITE_REQUIRED", "跨账号授权缺少协助邀请");
+  }
   if (grant.mode === "persistent") {
     const user = await first(db, "SELECT mfa_secret FROM users WHERE id=?", [row.owner_user_id]);
     const host = await endpointById(db, row.host_endpoint_id);
@@ -1210,10 +2005,28 @@ export async function createSession(
     await cleanupRd(db);
     return idempotent(db, identity, "create", key, body, async () => {
       await accountSignalBytes(identity.endpoint.owner_user_id, 0, 0, false, db);
-      const policy = await limits(db, identity.endpoint.owner_user_id);
+      const controllerPolicy = await limits(db, identity.endpoint.owner_user_id);
       if (body.protocol.major !== 1 || body.protocol.minor !== 0)
         fail(422, "RD_PROTOCOL_UNSUPPORTED", "不支持的远程桌面协议");
-      const host = await endpointById(db, body.host_endpoint_id, identity.endpoint.owner_user_id);
+      const grant = await first<Grant>(
+        db,
+        "SELECT * FROM rd_grants WHERE id=? AND controller_owner_user_id=? AND controller_endpoint_id=? AND host_endpoint_id=? AND status='active' AND (expires_at IS NULL OR expires_at>home_tunnel_now())",
+        [
+          body.grant_id,
+          identity.endpoint.owner_user_id,
+          identity.endpoint.id,
+          body.host_endpoint_id,
+        ],
+      );
+      if (!grant) fail(403, "RD_PAIRING_REQUIRED", "请先完成双方配对");
+      const host = await endpointById(db, body.host_endpoint_id, grant.owner_user_id);
+      if (grant.assist_invite_id) {
+        if (grant.mode !== "one_session")
+          fail(403, "RD_INVITE_INVALID", "跨账号授权必须为单次会话");
+        await redeemedAssistInvite(db, grant.assist_invite_id, host, identity.endpoint, false);
+      } else if (host.owner_user_id !== identity.endpoint.owner_user_id) {
+        fail(403, "RD_INVITE_REQUIRED", "跨账号会话缺少协助邀请");
+      }
       if (
         host.id === identity.endpoint.id ||
         host.role === "controller" ||
@@ -1221,13 +2034,7 @@ export async function createSession(
         !host.local_enabled
       )
         fail(422, "RD_HOST_UNAVAILABLE", "被控端当前不可用");
-      const grant = await first<Grant>(
-        db,
-        "SELECT * FROM rd_grants WHERE id=? AND owner_user_id=? AND host_endpoint_id=? AND controller_endpoint_id=? AND status='active' AND (expires_at IS NULL OR expires_at>home_tunnel_now())",
-        [body.grant_id, host.owner_user_id, host.id, identity.endpoint.id],
-      );
       if (
-        !grant ||
         !(await first(db, "SELECT id FROM rd_pairings WHERE id=? AND state='confirmed'", [
           body.grant_id,
         ]))
@@ -1270,9 +2077,13 @@ export async function createSession(
         "SELECT session_id FROM rd_session_slots WHERE (endpoint_id=? AND role='host') OR endpoint_id=?",
         [identity.endpoint.id, host.id],
       );
+      const hostPolicy =
+        host.owner_user_id === identity.endpoint.owner_user_id
+          ? controllerPolicy
+          : await limits(db, host.owner_user_id);
       if (
-        Number(count?.count) >= policy.sessions_per_user ||
-        Number(controllerCount?.count) >= policy.sessions_per_controller ||
+        Number(count?.count) >= hostPolicy.sessions_per_user ||
+        Number(controllerCount?.count) >= controllerPolicy.sessions_per_controller ||
         conflicting
       )
         fail(429, "RD_SESSION_LIMIT", "会话数量已达上限或设备正在使用");
@@ -1281,12 +2092,14 @@ export async function createSession(
         now = nowIso(),
         deadline = afterSeconds(60);
       await db.query(
-        "INSERT INTO rd_sessions(id,owner_user_id,host_endpoint_id,controller_endpoint_id,controller_parent_session_id,user_token_version,grant_id,grant_version,permissions_json,display_id,state,restore_epoch,approval_expires_at,created_at,updated_at,session_request_id) VALUES(?,?,?,?,?,?,?,?,?,?,'pending_approval',?,?,?,?,?)",
+        "INSERT INTO rd_sessions(id,owner_user_id,controller_owner_user_id,host_endpoint_id,controller_endpoint_id,assist_invite_id,controller_parent_session_id,user_token_version,grant_id,grant_version,permissions_json,display_id,state,restore_epoch,approval_expires_at,created_at,updated_at,session_request_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,'pending_approval',?,?,?,?,?)",
         [
           id,
           host.owner_user_id,
+          identity.endpoint.owner_user_id,
           host.id,
           identity.endpoint.id,
+          grant.assist_invite_id,
           identity.parentSessionId,
           identity.tokenVersion,
           grant.id,
@@ -1309,6 +2122,8 @@ export async function createSession(
         (await first<Session>(db, "SELECT * FROM rd_sessions WHERE id=?", [id]))!,
       );
       await audit(db, host.owner_user_id, "SessionRequested", id);
+      if (host.owner_user_id !== identity.endpoint.owner_user_id)
+        await audit(db, identity.endpoint.owner_user_id, "SessionRequested", id);
       return { id };
     });
   });
@@ -1619,8 +2434,9 @@ export async function closeSession(
   await transaction(async (db) => {
     const row = await first<Session>(
       db,
-      "SELECT * FROM rd_sessions WHERE id=?" + (admin ? "" : " AND owner_user_id=?"),
-      admin ? [id] : [id, owner],
+      "SELECT * FROM rd_sessions WHERE id=?" +
+        (admin ? "" : " AND (owner_user_id=? OR controller_owner_user_id=?)"),
+      admin ? [id] : [id, owner, owner],
     );
     if (
       !row ||
@@ -1636,6 +2452,13 @@ export async function closeSession(
       );
     await cleanupRd(db);
     await audit(db, row.owner_user_id, admin ? "SessionAdminRevoked" : "SessionCloseRequested", id);
+    if (row.owner_user_id !== row.controller_owner_user_id)
+      await audit(
+        db,
+        row.controller_owner_user_id,
+        admin ? "SessionAdminRevoked" : "SessionCloseRequested",
+        id,
+      );
   });
   rdEvents.emit("session", id);
 }

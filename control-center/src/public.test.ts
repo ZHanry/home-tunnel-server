@@ -53,6 +53,20 @@ test("public landing page stays available while Windows release metadata is abse
     import("./server.js"),
     import("./db.js"),
   ]);
+  const { officialServerRelease } = await import("./routes/public.js");
+  assert.deepEqual(officialServerRelease({ tag_name: "v8.1.0", draft: false, prerelease: false }), {
+    version: "8.1.0",
+    url: "https://github.com/ZHanry/home-tunnel-server/releases/tag/v8.1.0",
+  });
+  assert.equal(
+    officialServerRelease({ tag_name: "v8.1.0-rc.1", draft: false, prerelease: true }),
+    null,
+  );
+  assert.equal(officialServerRelease({ tag_name: "v8.1.0", draft: true, prerelease: false }), null);
+  assert.equal(
+    officialServerRelease({ tag_name: "v8.1.0-rc.1", draft: false, prerelease: false }),
+    null,
+  );
   const app = await createApplication(false);
   const server = app.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -69,8 +83,9 @@ test("public landing page stays available while Windows release metadata is abse
     assert.doesNotMatch(landing.body.toString("utf8"), /内部测试|Experimental|Beta/);
     assert.match(
       landing.body.toString("utf8"),
-      /id="hero-download"[^>]*https:\/\/github\.com\/ZHanry\/home-tunnel-client\/releases\/latest/,
+      /href="https:\/\/github\.com\/ZHanry\/home-tunnel-client\/releases\/latest"/,
     );
+    assert.match(landing.body.toString("utf8"), /id="features"/);
     assert.doesNotMatch(landing.body.toString("utf8"), /home-tunnel\/releases\/latest\/download/);
     assert.match(landing.body.toString("utf8"), /home-tunnel-client status/);
     assert.ok(landing.body.toString("utf8").includes(`app.js?v=${APP_VERSION}`));
@@ -82,7 +97,7 @@ test("public landing page stays available while Windows release metadata is abse
     assert.match(landing.body.toString("utf8"), /id="page-actions"/);
     assert.match(
       landing.body.toString("utf8"),
-      /href="https:\/\/github\.com\/ZHanry\/home-tunnel"[\s\S]*?GitHub 仓库/,
+      /href="https:\/\/github\.com\/ZHanry\/home-tunnel">GitHub<\/a>/,
     );
 
     const publicConfig = await request(origin + "/api/v1/public/config");

@@ -328,9 +328,15 @@ export async function migrate(): Promise<void> {
         }
         continue;
       }
-      database.exec("BEGIN IMMEDIATE");
+      const rebuildForeignKeys = migration.version === 18;
+      if (rebuildForeignKeys) database.exec("PRAGMA foreign_keys=OFF");
+      let transactionStarted = false;
       try {
+        database.exec("BEGIN IMMEDIATE");
+        transactionStarted = true;
         database.exec(sql);
+        if (rebuildForeignKeys && database.prepare("PRAGMA foreign_key_check").all().length)
+          throw new Error("Remote desktop migration left invalid foreign keys");
         const checksumColumn = database
           .prepare("PRAGMA table_info(schema_migrations)")
           .all()
@@ -345,9 +351,12 @@ export async function migrate(): Promise<void> {
             .run(migration.version);
         }
         database.exec("COMMIT");
+        transactionStarted = false;
       } catch (error) {
-        database.exec("ROLLBACK");
+        if (transactionStarted) database.exec("ROLLBACK");
         throw error;
+      } finally {
+        if (rebuildForeignKeys) database.exec("PRAGMA foreign_keys=ON");
       }
     }
   });

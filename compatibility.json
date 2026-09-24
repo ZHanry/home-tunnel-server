@@ -2,14 +2,14 @@
   "component": "server",
   "stage": "public-release",
   "api_major": 1,
-  "contract_ref": "api-v1.2.0",
-  "support_policy": "8.0 release: RD is disabled by default and exposes only available, authorized endpoint capabilities. Preserve 7.0 tunnel compatibility; RD requires matching 8.0 protocol implementations. Read component evidence and known limitations before enabling RD. FRP follows its separate upstream version.",
-  "version": "8.0.0",
+  "contract_ref": "api-v1.3.0",
+  "support_policy": "9.0.0 release. RD remains disabled by default. Three access modes require matching clients and signed grants; existing 7.0 tunnels remain supported. Back up and test restore before deployment. Windows secure desktop, audio and Android arm64 runtime are not verified by this release. FRP follows its separate upstream version.",
+  "version": "9.0.0",
   "minimum_server": "7.0.0",
   "tested_combination": {
-    "server": "8.0.0",
-    "client": "8.0.0",
-    "android": "8.0.0",
-    "agent": "8.0.0"
+    "server": "9.0.0",
+    "client": "9.0.0",
+    "android": "9.0.0",
+    "agent": "9.0.0"
   }
 }

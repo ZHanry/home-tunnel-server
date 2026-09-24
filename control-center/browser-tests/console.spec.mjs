@@ -24,6 +24,86 @@ test("public home and return link work without a session", async ({ page }) => {
   await expect(page.locator("#landing-screen")).toBeVisible();
 });
 
+test("public home keeps prototype artwork, features and language on narrow screens", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator(".marketing-brand img")).toHaveAttribute("src", "/HomeTunnel.svg");
+  await expect(page.locator(".hero-art .art-server")).toBeVisible();
+  await expect(page.locator(".landing-features article")).toHaveCount(3);
+  await page.locator(".landing-hero a[href='#features']").click();
+  await expect(page).toHaveURL(/#features$/);
+  await page.locator(".marketing-footer [data-locale-toggle]").click();
+  await expect(page.locator("#hero-title")).toContainText("Bring your home services");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("dashboard quick actions use real console destinations and fit a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await ready(page, "/admin#dashboard");
+  await expect(page.locator(".overview-metric")).toHaveCount(4);
+  await expect(page.locator(".dashboard-actions button")).toHaveCount(3);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.locator('.dashboard-actions [data-action="view-remote"]').click();
+  await expect(page).toHaveURL(/#remote$/);
+});
+
+test("login asks for MFA only after the server requires it", async ({ page }) => {
+  await page.route("**/api/v1/auth/refresh", (route) =>
+    route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }),
+  );
+  const attempts = [];
+  await page.route("**/api/v1/auth/login", (route) => {
+    attempts.push(route.request().postDataJSON());
+    return route.fulfill({
+      status: 401,
+      json: { error_code: attempts.length === 1 ? "MFA_REQUIRED" : "MFA_INVALID", message: "请输入动态码" },
+    });
+  });
+  await page.goto("/admin");
+  await expect(page.locator("#login-mfa-step")).toBeHidden();
+  await page.locator("#login-username").fill("mfa-user");
+  await page.locator("#login-password").fill("example-password");
+  await page.locator("#login-form button[type=submit]").click();
+  await expect(page.locator("#login-mfa-step")).toBeVisible();
+  expect(attempts[0].mfa_code).toBeUndefined();
+  await page.locator("#login-mfa").fill("123456");
+  await page.locator("#login-form button[type=submit]").click();
+  expect(attempts[1].mfa_code).toBe("123456");
+  await expect(page.locator("#login-mfa-step")).toBeVisible();
+});
+
+test("remote desktop opens a separate viewer window", async ({ page, context }) => {
+  await context.route("**/api/v1/public/capabilities", (route) => route.fulfill({ json: { remote_desktop: { enabled: true } } }));
+  await context.route("**/api/v1/rd/endpoints?**", (route) => route.fulfill({ json: { items: [{
+    id: "test-host", name: "书房工作站", role: "host", status: "active", online: true,
+    local_enabled: true, platform: "Windows", capabilities: { status: "ready", permissions: ["view"], displays: [{ id: "main" }] },
+  }] } }));
+  await context.route("**/api/v1/rd/reauth", (route) => route.fulfill({ status: 401, json: { error_code: "MFA_REQUIRED" } }));
+  await ready(page, "/admin#remote");
+  const popupPromise = page.waitForEvent("popup");
+  await page.locator('[data-remote-host="test-host"]').click();
+  const popup = await popupPromise;
+  await expect(popup.locator(".remote-dialog")).toBeVisible();
+  await expect(popup.locator(".remote-auth")).toBeVisible();
+  await expect(popup.locator(".remote-mfa-field")).toBeHidden();
+  await popup.locator('.remote-auth [name="password"]').fill("example-password");
+  await popup.locator('.remote-auth button[type="submit"]').click();
+  await expect(popup.locator(".remote-mfa-field")).toBeVisible();
+  await expect(page.locator(".remote-dialog")).toHaveCount(0);
+  await popup.close();
+});
+
+test("updates page displays only official server release metadata", async ({ page }) => {
+  await page.route("**/api/v1/public/capabilities", (route) => route.fulfill({ json: { server_version: "9.0.0" } }));
+  await page.route("**/api/v1/public/updates/server", (route) => route.fulfill({ json: {
+    current_version: "9.0.0", latest: { version: "8.0.0", url: "https://github.com/ZHanry/home-tunnel-server/releases/tag/v8.0.0" },
+  } }));
+  await ready(page, "/admin#updates");
+  await expect(page.locator(".update-grid")).toContainText("8.0.0");
+  await expect(page.locator(".update-grid")).toContainText("正式发布");
+  await expect(page.locator(".update-grid a.button-primary")).toHaveAttribute("href", "https://github.com/ZHanry/home-tunnel-server/releases/tag/v8.0.0");
+});
+
 test("account deletion describes affected resources, supports cancellation and sends its version", async ({ page }) => {
   await ready(page, "/admin#users");
   await page.locator('.person-row .more-actions summary').first().click();

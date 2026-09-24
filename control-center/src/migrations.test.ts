@@ -18,9 +18,16 @@ function apply(database: DatabaseSync, names: string[]): void {
   ) STRICT;`);
   for (const name of names) {
     const version = Number(name.slice(0, 3));
-    database.exec("BEGIN IMMEDIATE");
+    const foreignKeysEnabled =
+      Number(database.prepare("PRAGMA foreign_keys").get()?.foreign_keys) === 1;
+    if (version === 18) database.exec("PRAGMA foreign_keys=OFF");
+    let transactionStarted = false;
     try {
+      database.exec("BEGIN IMMEDIATE");
+      transactionStarted = true;
       database.exec(readFileSync(new URL(name, migrationsDirectory), "utf8"));
+      if (version === 18 && foreignKeysEnabled)
+        assert.deepEqual(database.prepare("PRAGMA foreign_key_check").all(), []);
       const hasChecksum = database
         .prepare("PRAGMA table_info(schema_migrations)")
         .all()
@@ -31,9 +38,12 @@ function apply(database: DatabaseSync, names: string[]): void {
         database.prepare("INSERT INTO schema_migrations(version) VALUES(?)").run(version);
       }
       database.exec("COMMIT");
+      transactionStarted = false;
     } catch (error) {
-      database.exec("ROLLBACK");
+      if (transactionStarted) database.exec("ROLLBACK");
       throw error;
+    } finally {
+      if (version === 18 && foreignKeysEnabled) database.exec("PRAGMA foreign_keys=ON");
     }
   }
 }
@@ -110,6 +120,154 @@ test("the earliest public database upgrades additively through every migration",
         .all()
         .some((row) => String(row.name) === "checksum_sha256"),
     );
+  } finally {
+    database.close();
+  }
+});
+
+test("assist invitation migration preserves endpoints and revokes codes with their host", () => {
+  const database = new DatabaseSync(":memory:", { enableForeignKeyConstraints: true });
+  try {
+    const index = migrations.findIndex((name) => name.startsWith("017_"));
+    assert.ok(index > 0);
+    apply(database, migrations.slice(0, index));
+    database.exec(`INSERT INTO users(id,username,display_name,password_hash,password_state,role)
+      VALUES('owner','owner','Owner','hash','normal','user');
+      INSERT INTO devices(id,user_id,name,install_id,fingerprint_hash,credential_hash)
+      VALUES('device','owner','Host','install','fingerprint','credential');
+      INSERT INTO rd_endpoints(id,owner_user_id,linked_device_id,kind,role,name,platform,public_jwk,jkt,created_at,updated_at)
+      VALUES('host','owner','device','desktop','host','Host','windows','{}','thumbprint','2026-01-01','2026-01-01');`);
+    apply(database, migrations.slice(index));
+    database.exec("UPDATE rd_endpoints SET local_enabled=1 WHERE id='host'");
+    database.exec(`INSERT INTO rd_assist_invites(id,device_code,host_owner_user_id,host_endpoint_id,password_salt,password_hash,expires_at,created_at)
+      VALUES('invite','123456789','owner','host','salt','hash','2027-01-01','2026-01-01');`);
+    assert.equal(
+      database.prepare("SELECT name FROM rd_endpoints WHERE id='host'").get()?.name,
+      "Host",
+    );
+    database.exec("UPDATE rd_endpoints SET local_enabled=0 WHERE id='host'");
+    assert.equal(
+      database.prepare("SELECT state FROM rd_assist_invites WHERE id='invite'").get()?.state,
+      "revoked",
+    );
+    database.exec(`INSERT INTO rd_assist_invites(id,device_code,host_owner_user_id,host_endpoint_id,password_salt,password_hash,expires_at,created_at)
+      VALUES('invite2','123456789','owner','host','salt','hash','2027-01-01','2026-01-01');`);
+    database.exec("UPDATE rd_endpoints SET status='revoked' WHERE id='host'");
+    assert.equal(
+      database.prepare("SELECT state FROM rd_assist_invites WHERE id='invite2'").get()?.state,
+      "revoked",
+    );
+    assert.deepEqual(database.prepare("PRAGMA foreign_key_check").all(), []);
+  } finally {
+    database.close();
+  }
+});
+
+test("cross-account migration preserves live legacy sessions and their foreign keys", () => {
+  const database = new DatabaseSync(":memory:", { enableForeignKeyConstraints: true });
+  try {
+    const index = migrations.findIndex((name) => name.startsWith("018_"));
+    assert.ok(index > 0);
+    apply(database, migrations.slice(0, index));
+    database.exec(`
+      INSERT INTO users(id,username,display_name,password_hash,password_state,role)
+      VALUES('owner','owner','Owner','hash','normal','user');
+      INSERT INTO devices(id,user_id,name,install_id,fingerprint_hash,credential_hash)
+      VALUES('device','owner','Host','install','fingerprint','credential');
+      INSERT INTO rd_endpoints(id,owner_user_id,linked_device_id,kind,role,name,platform,public_jwk,jkt,local_enabled,created_at,updated_at)
+      VALUES('host','owner','device','desktop','host','Host','windows','{}','host-jkt',1,'2026-01-01','2026-01-01');
+      INSERT INTO rd_endpoints(id,owner_user_id,kind,role,name,platform,public_jwk,jkt,created_at,updated_at)
+      VALUES('controller','owner','browser','controller','Browser','browser','{}','controller-jkt','2026-01-01','2026-01-01');
+      INSERT INTO rd_pairings(id,owner_user_id,host_endpoint_id,controller_endpoint_id,session_request_id,requested_scope_json,transcript_json,state,expires_at,created_at)
+      VALUES('pair','owner','host','controller','request','["view"]','{}','confirmed','2030-01-01','2026-01-01');
+      INSERT INTO rd_grants(id,owner_user_id,host_endpoint_id,controller_endpoint_id,host_jkt,controller_jkt,scope_json,mode,one_session_request_id,grant_version,host_signature,created_at,updated_at)
+      VALUES('pair','owner','host','controller','host-jkt','controller-jkt','["view"]','one_session','request',1,'signed','2026-01-01','2026-01-01');
+      INSERT INTO rd_sessions(id,owner_user_id,host_endpoint_id,controller_endpoint_id,user_token_version,grant_id,grant_version,permissions_json,display_id,state,restore_epoch,approval_expires_at,created_at,updated_at,session_request_id)
+      VALUES('session','owner','host','controller',1,'pair',1,'["view"]','main','authorized',1,'2030-01-01','2026-01-01','2026-01-01','request');
+      INSERT INTO rd_session_slots(endpoint_id,session_id,role,hold_until)
+      VALUES('host','session','host','2030-01-01'),('controller','session','controller','2030-01-01');
+    `);
+    apply(database, migrations.slice(index));
+    assert.equal(database.prepare("PRAGMA foreign_keys").get()?.foreign_keys, 1);
+    assert.deepEqual(database.prepare("PRAGMA foreign_key_check").all(), []);
+    assert.deepEqual(
+      {
+        ...database
+          .prepare(
+            "SELECT owner_user_id,controller_owner_user_id,assist_invite_id FROM rd_sessions WHERE id='session'",
+          )
+          .get(),
+      },
+      { owner_user_id: "owner", controller_owner_user_id: "owner", assist_invite_id: null },
+    );
+    assert.equal(
+      database
+        .prepare("SELECT count(*) AS count FROM rd_session_slots WHERE session_id='session'")
+        .get()?.count,
+      2,
+    );
+    database.exec("UPDATE rd_endpoints SET status='revoked' WHERE id='host'");
+    assert.equal(
+      database.prepare("SELECT state FROM rd_sessions WHERE id='session'").get()?.state,
+      "closing",
+    );
+  } finally {
+    database.close();
+  }
+});
+
+test("access mode migration preserves old invitations and revokes fixed access on account rotation", () => {
+  const database = new DatabaseSync(":memory:", { enableForeignKeyConstraints: true });
+  try {
+    const index = migrations.findIndex((name) => name.startsWith("019_"));
+    assert.ok(index > 0);
+    apply(database, migrations.slice(0, index));
+    database.exec(`
+      INSERT INTO users(id,username,display_name,password_hash,password_state,role)
+      VALUES('owner','owner','Owner','hash','normal','user'),('visitor','visitor','Visitor','hash','normal','user');
+      INSERT INTO devices(id,user_id,name,install_id,fingerprint_hash,credential_hash)
+      VALUES('device','owner','Host','install','fingerprint','credential');
+      INSERT INTO rd_endpoints(id,owner_user_id,linked_device_id,kind,role,name,platform,public_jwk,jkt,local_enabled,created_at,updated_at)
+      VALUES('host','owner','device','desktop','host','Host','windows','{}','host-jkt',1,'2026-01-01','2026-01-01');
+      INSERT INTO rd_endpoints(id,owner_user_id,kind,role,name,platform,public_jwk,jkt,created_at,updated_at)
+      VALUES('controller','visitor','browser','controller','Visitor','browser','{}','visitor-jkt','2026-01-01','2026-01-01');
+      INSERT INTO rd_assist_invites(id,device_code,host_owner_user_id,host_endpoint_id,password_salt,password_hash,expires_at,created_at)
+      VALUES('legacy-invite','123456789','owner','host','salt','hash','2030-01-01','2026-01-01');
+    `);
+    apply(database, migrations.slice(index));
+    assert.equal(
+      database.prepare("SELECT access_kind FROM rd_assist_invites WHERE id='legacy-invite'").get()
+        ?.access_kind,
+      "temporary_password",
+    );
+    database.exec(`
+      INSERT INTO rd_access_profiles(host_endpoint_id,host_owner_user_id,device_code,password_hash,created_at,updated_at)
+      VALUES('host','owner','987654321','argon2-hash','2026-01-01','2026-01-01');
+      INSERT INTO rd_access_requests(id,host_endpoint_id,host_owner_user_id,controller_endpoint_id,controller_owner_user_id,expires_at,created_at)
+      VALUES('request','host','owner','controller','visitor','2030-01-01','2026-01-01');
+      INSERT INTO rd_assist_invites(id,device_code,host_owner_user_id,host_endpoint_id,password_salt,password_hash,state,expires_at,created_at,redeemed_by_user_id,redeemed_by_endpoint_id,access_kind,profile_revision)
+      VALUES('fixed-invite','987654321','owner','host','','','redeemed','2030-01-01','2026-01-01','visitor','controller','fixed_password',1);
+      UPDATE users SET token_version=token_version+1 WHERE id='owner';
+    `);
+    assert.deepEqual(
+      {
+        ...database
+          .prepare(
+            "SELECT password_hash,revision FROM rd_access_profiles WHERE host_endpoint_id='host'",
+          )
+          .get(),
+      },
+      { password_hash: null, revision: 2 },
+    );
+    assert.equal(
+      database.prepare("SELECT state FROM rd_access_requests WHERE id='request'").get()?.state,
+      "rejected",
+    );
+    assert.equal(
+      database.prepare("SELECT state FROM rd_assist_invites WHERE id='fixed-invite'").get()?.state,
+      "revoked",
+    );
+    assert.deepEqual(database.prepare("PRAGMA foreign_key_check").all(), []);
   } finally {
     database.close();
   }

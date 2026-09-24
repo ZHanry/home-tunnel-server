@@ -103,9 +103,9 @@ test("port controls fit mobile widths and translate with the rest of the console
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
-  await page.locator(".sidebar [data-locale-toggle]").click();
+  await page.locator(".mobile-preferences [data-locale-toggle]").click();
   await expect(page.getByRole("heading", { name: "Ports and protocols" })).toBeVisible();
   await expect(page.getByLabel("Enable TCP connections")).toBeVisible();
-  await page.locator(".sidebar [data-theme-toggle]").click();
+  await page.locator(".mobile-preferences [data-theme-toggle]").click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });

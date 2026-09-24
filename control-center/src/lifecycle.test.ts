@@ -100,6 +100,18 @@ test("device sessions stay local and deleting an account revokes its complete re
       (await call("GET", "/client/devices", local)).data.items.map((d: { id: string }) => d.id),
       [firstDevice],
     );
+    assert.deepEqual(
+      new Set(
+        (await call("GET", "/client/remote-devices", local)).data.items.map(
+          (d: { id: string }) => d.id,
+        ),
+      ),
+      new Set([firstDevice, secondDevice]),
+    );
+    assert.equal(
+      (await call("GET", `/client/remote-devices?user_id=${adminId}`, local)).status,
+      403,
+    );
     assert.equal((await call("GET", "/admin/users", fixture.localAdmin.accessToken)).status, 403);
     for (const method of ["GET", "PATCH", "DELETE"]) {
       const denied = await call(

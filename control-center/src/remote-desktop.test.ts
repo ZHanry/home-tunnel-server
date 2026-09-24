@@ -67,22 +67,22 @@ const signature = (key: KeyObject, payload: unknown, typ = "ht-rd-proof+jwt", jw
     body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${header}.${body}.${sign("sha256", Buffer.from(`${header}.${body}`), { key, dsaEncoding: "ieee-p1363" }).toString("base64url")}`;
 };
-async function newPeer(kind: "host" | "controller", index: number): Promise<Peer> {
+async function newPeer(kind: "host" | "controller", index: number, owner = actor): Promise<Peer> {
   const keys = generateKeyPairSync("ec", { namedCurve: "P-256" }),
     publicKey = crypto.publicJwk(keys.publicKey.export({ format: "jwk" }));
   const device = kind === "host" ? randomUUID() : undefined;
   if (device)
     await db.query(
       "INSERT INTO devices(id,user_id,name,install_id,fingerprint_hash,credential_hash) VALUES(?,?,?,?,?,?)",
-      [device, actor.userId, `Host ${index}`, randomUUID(), randomUUID(), randomUUID()],
+      [device, owner.userId, `Host ${index}`, randomUUID(), randomUUID(), randomUUID()],
     );
-  const challenge = await rd.enrollmentChallenge(actor, {
+  const challenge = await rd.enrollmentChallenge(owner, {
     endpoint_kind: kind === "host" ? "desktop" : "browser",
     role: kind,
     public_jwk: publicKey,
     linked_device_id: device,
   });
-  const enrolled = await rd.enroll(actor, {
+  const enrolled = await rd.enroll(owner, {
     challenge_id: challenge.challenge_id,
     signed_proof: signature(keys.privateKey, challenge.proof_payload),
     name: `Peer ${index}`,
@@ -256,6 +256,422 @@ test("strict JSON and ES256 reject duplicate fields, unsafe numbers and key subs
   assert.equal(crypto.verifyJws(proof, controller.publicKey, "ht-rd-proof+jwt").purpose, "test");
   assert.throws(() => crypto.verifyJws(proof, hosts[0]!.publicKey, "ht-rd-proof+jwt"));
   assert.throws(() => crypto.verifyJws(proof, controller.publicKey, "ht-rd-ticket+jwt"));
+});
+test("a confirmed one-session pairing can be cancelled before use", async () => {
+  const grant = await pair(hosts[0]!);
+  await rd.rejectPairing(controller.identity, grant.grantId);
+  assert.equal(
+    (await db.one<{ state: string }>("SELECT state FROM rd_pairings WHERE id=?", [grant.grantId]))
+      ?.state,
+    "rejected",
+  );
+  assert.equal(
+    (await db.one<{ status: string }>("SELECT status FROM rd_grants WHERE id=?", [grant.grantId]))
+      ?.status,
+    "revoked",
+  );
+  await assert.rejects(
+    rd.createSession(controller.identity, grant.requestId, {
+      host_endpoint_id: hosts[0]!.identity.endpoint.id,
+      grant_id: grant.grantId,
+      permissions: ["view", "input.pointer"],
+      display_id: "display-1",
+      protocol: { major: 1, minor: 0 },
+    }),
+    /配对/,
+  );
+});
+test("assist invitations are single use, attempt-limited and do not expose another account's endpoints", async () => {
+  const otherUserId = randomUUID();
+  const otherSession = await db.transaction(async (client) => {
+    await client.query(
+      "INSERT INTO users(id,username,display_name,password_hash,password_state,role) VALUES(?,?,?,'fixture','normal','user')",
+      [otherUserId, "rd-assist-guest", "Assist guest"],
+    );
+    const issued = await issueSession(client, { id: otherUserId, token_version: 1 }, null);
+    await client.query("UPDATE sessions SET rd_verified_at=home_tunnel_now() WHERE id=?", [
+      issued.sessionId,
+    ]);
+    return issued;
+  });
+  const guestActor = {
+    ...actor,
+    userId: otherUserId,
+    sessionId: otherSession.sessionId,
+    username: "rd-assist-guest",
+    displayName: "Assist guest",
+  };
+  const guest = await newPeer("controller", 99, guestActor);
+  const otherGuestEndpoint = await newPeer("controller", 100, guestActor);
+  const host = hosts[4]!;
+  const first = await rd.createAssistInvite(host.identity);
+  assert.match(first.device_id, /^[0-9]{9}$/);
+  assert.match(first.temporary_password, /^[A-Za-z2-9]{12}$/);
+  const stored = await db.one<{ password_hash: string; failed_attempts: number }>(
+    "SELECT password_hash,failed_attempts FROM rd_assist_invites WHERE id=?",
+    [first.id],
+  );
+  assert.ok(stored && stored.password_hash !== first.temporary_password);
+  for (let attempt = 0; attempt < 5; attempt++)
+    await assert.rejects(
+      rd.redeemAssistInvite(guest.identity, first.device_id, "incorrect"),
+      /协助码或临时密码无效/,
+    );
+  const failed = await db.one<{ state: string; failed_attempts: number }>(
+    "SELECT state,failed_attempts FROM rd_assist_invites WHERE id=?",
+    [first.id],
+  );
+  assert.ok(failed);
+  assert.equal(failed.state, "revoked");
+  assert.equal(failed.failed_attempts, 5);
+  await assert.rejects(
+    rd.redeemAssistInvite(guest.identity, first.device_id, first.temporary_password),
+    /协助码或临时密码无效/,
+  );
+  const second = await rd.createAssistInvite(host.identity);
+  const target = await rd.redeemAssistInvite(
+    guest.identity,
+    second.device_id,
+    second.temporary_password,
+  );
+  assert.equal(target.host_endpoint_id, host.identity.endpoint.id);
+  assert.equal(target.host_owner_user_id, actor.userId);
+  const audits = await db.query<{ owner_user_id: string }>(
+    "SELECT owner_user_id FROM rd_audit WHERE resource_id=? AND action='AssistInviteRedeemed'",
+    [second.id],
+  );
+  assert.deepEqual(
+    new Set(audits.map((entry) => entry.owner_user_id)),
+    new Set([actor.userId, otherUserId]),
+  );
+  await assert.rejects(
+    rd.redeemAssistInvite(guest.identity, second.device_id, second.temporary_password),
+    /协助码或临时密码无效/,
+  );
+  const directory = await rd.listEndpoints(otherUserId, guest.identity, 100, 0);
+  assert.ok(directory.items.every((endpoint) => endpoint.id !== host.identity.endpoint.id));
+  const requestId = randomUUID();
+  const request = {
+    host_endpoint_id: host.identity.endpoint.id,
+    session_request_id: requestId,
+    permissions: ["view", "input.pointer"] as Permission[],
+    mode: "one_session" as const,
+    nonce_controller: randomBytes(32).toString("base64url"),
+  };
+  await assert.rejects(rd.createPairing(guest.identity, request), /端点不存在/);
+  await assert.rejects(
+    rd.createPairing(otherGuestEndpoint.identity, { ...request, assist_invite_id: second.id }),
+    /协助邀请已失效/,
+  );
+  await assert.rejects(
+    rd.createPairing(guest.identity, {
+      ...request,
+      mode: "persistent",
+      assist_invite_id: second.id,
+    }),
+    /跨账号协助需要一次性邀请/,
+  );
+  const pairing = await rd.createPairing(guest.identity, {
+    ...request,
+    assist_invite_id: second.id,
+  });
+  assert.equal(pairing.transcript.assist_invite_id, second.id);
+  assert.equal(pairing.transcript.controller_owner_user_id, otherUserId);
+  const transcript = { ...pairing.transcript, nonce_host: randomBytes(32).toString("base64url") };
+  const grant = {
+    id: pairing.id,
+    server_instance_id: transcript.server_instance_id,
+    owner_user_id: actor.userId,
+    host_endpoint_id: host.identity.endpoint.id,
+    controller_endpoint_id: guest.identity.endpoint.id,
+    host_jkt: host.identity.endpoint.jkt,
+    controller_jkt: guest.identity.endpoint.jkt,
+    scope: request.permissions,
+    mode: "one_session",
+    one_session_request_id: requestId,
+    grant_version: 1,
+    expires_at: null,
+  };
+  await rd.confirmPairing(host.identity, pairing.id, {
+    nonce_host: transcript.nonce_host,
+    signed_proof: signature(host.privateKey, transcript, "ht-rd-pairing+jwt"),
+    grant_jws: signature(host.privateKey, grant, "ht-rd-grant+jwt"),
+  });
+  await rd.confirmPairing(guest.identity, pairing.id, {
+    signed_proof: signature(guest.privateKey, transcript, "ht-rd-pairing+jwt"),
+  });
+  const session = await rd.createSession(guest.identity, requestId, {
+    host_endpoint_id: host.identity.endpoint.id,
+    grant_id: pairing.id,
+    permissions: request.permissions,
+    display_id: "display-1",
+    protocol: { major: 1, minor: 0 },
+  });
+  assert.equal(session.owner_user_id, actor.userId);
+  assert.equal(session.controller_owner_user_id, otherUserId);
+  assert.equal(
+    (await rd.getSession(otherUserId, session.session_id, guest.identity.endpoint.id)).session_id,
+    session.session_id,
+  );
+  assert.equal(
+    (
+      await db.one<{ assist_invite_id: string }>(
+        "SELECT assist_invite_id FROM rd_sessions WHERE id=?",
+        [session.session_id],
+      )
+    )?.assist_invite_id,
+    second.id,
+  );
+  const authorized = await approve(host, session.session_id, session.state_version);
+  assert.equal(authorized.state, "authorized");
+  assert.ok("ticket_jws" in authorized && typeof authorized.ticket_jws === "string");
+  await rd.revokeAssistInvite(host.identity, second.id);
+  assert.equal(
+    (await db.one<{ state: string }>("SELECT state FROM rd_assist_invites WHERE id=?", [second.id]))
+      ?.state,
+    "revoked",
+  );
+  assert.equal(
+    (
+      await db.one<{ state: string }>("SELECT state FROM rd_sessions WHERE id=?", [
+        session.session_id,
+      ])
+    )?.state,
+    "closing",
+  );
+  const closure = {
+    type: "session.close_ack",
+    session_id: session.session_id,
+    connection_epoch: session.connection_epoch,
+    lease_seq: authorized.lease_seq,
+    stopped: true,
+  };
+  await rd.closeAck(host.identity, session.session_id, {
+    connection_epoch: closure.connection_epoch,
+    lease_seq: closure.lease_seq,
+    signed_proof: signature(host.privateKey, closure, "ht-rd-session+jwt"),
+  });
+  const createPath = "/api/v1/rd/assist-invites";
+  const createHeaders = dpop(host, createPath, "POST");
+  const created = await fetch(origin + createPath, {
+    method: "POST",
+    headers: createHeaders,
+  });
+  assert.equal(created.status, 201);
+  assert.equal(created.headers.get("cache-control"), "no-store");
+  assert.equal(
+    (await fetch(origin + createPath, { method: "POST", headers: createHeaders })).status,
+    401,
+  );
+  const invite = (await created.json()) as {
+    id: string;
+    device_id: string;
+    temporary_password: string;
+  };
+  const redeemPath = "/api/v1/rd/assist-invites/redeem";
+  const redeemed = await fetch(origin + redeemPath, {
+    method: "POST",
+    headers: { ...dpop(guest, redeemPath, "POST"), "content-type": "application/json" },
+    body: JSON.stringify({
+      device_id: invite.device_id,
+      temporary_password: invite.temporary_password,
+    }),
+  });
+  assert.equal(redeemed.status, 200);
+  assert.equal(((await redeemed.json()) as { invite_id: string }).invite_id, invite.id);
+  const revokePath = `/api/v1/rd/assist-invites/${invite.id}`;
+  const revoked = await fetch(origin + revokePath, {
+    method: "DELETE",
+    headers: dpop(host, revokePath, "DELETE"),
+  });
+  assert.equal(revoked.status, 204);
+});
+test("fixed password and local request approval grant only one cross-account pairing", async () => {
+  const guestId = randomUUID();
+  const guestSession = await db.transaction(async (client) => {
+    await client.query(
+      "INSERT INTO users(id,username,display_name,password_hash,password_state,role) VALUES(?,?,?,'fixture','normal','user')",
+      [guestId, "rd-access-guest", "Access guest"],
+    );
+    const issued = await issueSession(client, { id: guestId, token_version: 1 }, null);
+    await client.query("UPDATE sessions SET rd_verified_at=home_tunnel_now() WHERE id=?", [
+      issued.sessionId,
+    ]);
+    return issued;
+  });
+  const guestActor = {
+    ...actor,
+    userId: guestId,
+    sessionId: guestSession.sessionId,
+    username: "rd-access-guest",
+  };
+  const guest = await newPeer("controller", 101, guestActor);
+  const stranger = await newPeer("controller", 102, guestActor);
+  const host = hosts[3]!;
+  const profile = await rd.accessProfile(host.identity, true);
+  assert.match(profile.device_id!, /^[0-9]{9}$/);
+  assert.equal(profile.fixed_password_enabled, false);
+  const password = "a-strong-fixed-password-2026";
+  const enabled = await rd.setFixedPassword(host.identity, password);
+  assert.equal(enabled.fixed_password_enabled, true);
+  assert.equal(enabled.device_id, profile.device_id);
+  const stored = await db.one<{ password_hash: string }>(
+    "SELECT password_hash FROM rd_access_profiles WHERE host_endpoint_id=?",
+    [host.identity.endpoint.id],
+  );
+  assert.ok(
+    stored?.password_hash.startsWith("$argon2id$") && !stored.password_hash.includes(password),
+  );
+  await assert.rejects(
+    rd.redeemFixedPassword(guest.identity, profile.device_id!, "wrong-password"),
+    /无效/,
+  );
+  const target = await rd.redeemFixedPassword(guest.identity, profile.device_id!, password);
+  assert.equal(target.host_endpoint_id, host.identity.endpoint.id);
+  const allowed = await rd.accessInviteAuthorization(host.identity, target.invite_id);
+  assert.equal(allowed.profile_revision, enabled.revision);
+  await assert.rejects(rd.accessInviteAuthorization(guest.identity, target.invite_id), /需要/);
+  const paired = await rd.createPairing(guest.identity, {
+    host_endpoint_id: host.identity.endpoint.id,
+    session_request_id: randomUUID(),
+    permissions: ["view", "input.keyboard", "input.pointer", "clipboard.read", "clipboard.write"],
+    mode: "one_session",
+    nonce_controller: randomBytes(32).toString("base64url"),
+    assist_invite_id: target.invite_id,
+  });
+  assert.equal(paired.transcript.assist_invite_id, target.invite_id);
+  await assert.rejects(
+    rd.createPairing(stranger.identity, {
+      host_endpoint_id: host.identity.endpoint.id,
+      session_request_id: randomUUID(),
+      permissions: ["view"],
+      mode: "one_session",
+      nonce_controller: randomBytes(32).toString("base64url"),
+      assist_invite_id: target.invite_id,
+    }),
+    /协助邀请已失效/,
+  );
+  const transcript = { ...paired.transcript, nonce_host: randomBytes(32).toString("base64url") };
+  const grant = {
+    id: paired.id,
+    server_instance_id: transcript.server_instance_id,
+    owner_user_id: host.identity.endpoint.owner_user_id,
+    host_endpoint_id: host.identity.endpoint.id,
+    controller_endpoint_id: guest.identity.endpoint.id,
+    host_jkt: host.identity.endpoint.jkt,
+    controller_jkt: guest.identity.endpoint.jkt,
+    scope: transcript.scope,
+    mode: "one_session",
+    one_session_request_id: transcript.session_request_id,
+    grant_version: 1,
+    expires_at: null,
+  };
+  await rd.confirmPairing(host.identity, paired.id, {
+    nonce_host: transcript.nonce_host,
+    signed_proof: signature(host.privateKey, transcript, "ht-rd-pairing+jwt"),
+    grant_jws: signature(host.privateKey, grant, "ht-rd-grant+jwt"),
+  });
+  await rd.confirmPairing(guest.identity, paired.id, {
+    signed_proof: signature(guest.privateKey, transcript, "ht-rd-pairing+jwt"),
+  });
+  const connected = await rd.createSession(guest.identity, String(transcript.session_request_id), {
+    host_endpoint_id: host.identity.endpoint.id,
+    grant_id: paired.id,
+    permissions: grant.scope as Permission[],
+    display_id: "display-1",
+    protocol: { major: 1, minor: 0 },
+  });
+  const notified: string[] = [];
+  const onSession = (id: string) => notified.push(id);
+  rd.rdEvents.on("session", onSession);
+  await rd.setFixedPassword(host.identity, "another-strong-fixed-password");
+  rd.rdEvents.off("session", onSession);
+  assert.ok(notified.includes(connected.session_id));
+  assert.deepEqual(
+    await db.one<{ state: string; close_reason: string }>(
+      "SELECT state,close_reason FROM rd_sessions WHERE id=?",
+      [connected.session_id],
+    ),
+    { state: "closing", close_reason: "RD_INVITE_REVOKED" },
+  );
+  assert.equal(
+    (await db.one<{ status: string }>("SELECT status FROM rd_grants WHERE id=?", [paired.id]))
+      ?.status,
+    "revoked",
+  );
+  await assert.rejects(rd.accessInviteAuthorization(host.identity, target.invite_id), /不存在/);
+  assert.equal(
+    (
+      await db.one<{ state: string }>("SELECT state FROM rd_assist_invites WHERE id=?", [
+        target.invite_id,
+      ])
+    )?.state,
+    "revoked",
+  );
+  const requested = await rd.createAccessRequest(guest.identity, profile.device_id!);
+  assert.equal(requested.state, "pending");
+  const pending = await rd.listAccessRequests(host.identity);
+  assert.ok(
+    pending.items.some(
+      (item) =>
+        item.id === requested.id && item.controller_endpoint_id === guest.identity.endpoint.id,
+    ),
+  );
+  await assert.rejects(rd.accessRequest(stranger.identity, requested.id), /不存在/);
+  const approved = await rd.decideAccessRequest(host.identity, requested.id, true);
+  assert.equal(approved.state, "preparing");
+  assert.equal((await rd.accessRequest(guest.identity, requested.id)).state, "pending");
+  await rd.activateAccessRequest(host.identity, requested.id);
+  const decision = await rd.accessRequest(guest.identity, requested.id);
+  assert.equal(decision.state, "approved");
+  assert.equal(decision.target?.invite_id, approved.invite_id);
+  const rejected = await rd.createAccessRequest(guest.identity, profile.device_id!);
+  await rd.decideAccessRequest(host.identity, rejected.id, false);
+  assert.equal((await rd.accessRequest(guest.identity, rejected.id)).state, "rejected");
+  await rd.setFixedPassword(host.identity, null);
+  await assert.rejects(
+    rd.redeemFixedPassword(guest.identity, profile.device_id!, password),
+    /无效/,
+  );
+});
+test("revoking a grant closes its session and pushes the notice after commit", async () => {
+  const created = await create(hosts[0]!);
+  const sessionId = created.session.session_id;
+  await approve(hosts[0]!, sessionId, created.session.state_version);
+  const events: string[] = [];
+  const onSession = (id: string) => events.push(id);
+  rd.rdEvents.on("session", onSession);
+  try {
+    await rd.revokeGrant(actor.userId, created.grant.grantId);
+    assert.equal(
+      (
+        await db.one<{ status: string }>("SELECT status FROM rd_grants WHERE id=?", [
+          created.grant.grantId,
+        ])
+      )?.status,
+      "revoked",
+    );
+    assert.equal(
+      (await db.one<{ state: string }>("SELECT state FROM rd_sessions WHERE id=?", [sessionId]))
+        ?.state,
+      "closing",
+    );
+    assert.ok(events.includes(sessionId));
+  } finally {
+    rd.rdEvents.off("session", onSession);
+    const proof = {
+      type: "session.close_ack",
+      session_id: sessionId,
+      connection_epoch: 1,
+      lease_seq: 1,
+      stopped: true,
+    };
+    await rd.closeAck(hosts[0]!.identity, sessionId, {
+      connection_epoch: 1,
+      lease_seq: 1,
+      signed_proof: signature(hosts[0]!.privateKey, proof, "ht-rd-session+jwt"),
+    });
+  }
 });
 test("RD parser runs before global parser; copied tokens and replayed DPoP do not authenticate", async () => {
   const path = "/api/v1/rd/endpoints",

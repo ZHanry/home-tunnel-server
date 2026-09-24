@@ -1,11 +1,9 @@
 # API contract ownership
 
-The server owns the API contracts. The 8.0 source generates **1.2.0**, including
-additive remote-desktop operations under `/api/v1/rd`. Freeze this reviewed
-contract on main at `api-v1.2.0` after its quality and security checks pass.
-Keep the previous `api-v1.1.0` and candidate `api-v1.2.0-rc.1` tags immutable.
-Consumers must verify that the stable tag exists, resolve its
-actual commit and hash the downloaded snapshot bytes before updating their locks.
+The server owns the API contracts. Version **1.3.0** adds remote-access
+authorization modes under `/api/v1/rd`. Publish an immutable `api-v1.3.0`
+tag from a clean, reviewed server commit before consumers update their locks.
+Keep `api-v1.2.0` and all earlier tags immutable.
 `openapi.v1.json` covers REST requests/responses; `api.schema.json` contains the
 shared JSON Schema types. `home-tunnel.v1.json` remains byte-identical to the
 historical `api-v1.0.0` sync/realtime fixture.

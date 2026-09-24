@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { config } from "../config.js";
 import { asyncHandler, HttpError } from "../http.js";
 import { apiCapabilities } from "../api-capabilities.js";
+import { APP_VERSION } from "../version.js";
 
 type ReleaseMetadata = {
   version: string;
@@ -18,6 +19,66 @@ type ReleaseMetadata = {
 const versionPattern = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 const fileNamePattern = /^HomeTunnel-Windows-\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?-x64\.zip$/;
 const githubRepositoryUrl = "https://github.com/ZHanry/home-tunnel-client";
+const serverRepositoryUrl = "https://github.com/ZHanry/home-tunnel-server";
+const officialVersionPattern = /^v?(\d+)\.(\d+)\.(\d+)$/;
+
+export function officialServerRelease(value: unknown): { version: string; url: string } | null {
+  if (!value || typeof value !== "object") return null;
+  const release = value as Record<string, unknown>;
+  if (
+    release.draft !== false ||
+    release.prerelease !== false ||
+    typeof release.tag_name !== "string"
+  )
+    return null;
+  if (!officialVersionPattern.test(release.tag_name)) return null;
+  return {
+    version: release.tag_name.replace(/^v/, ""),
+    url: `${serverRepositoryUrl}/releases/tag/${encodeURIComponent(release.tag_name)}`,
+  };
+}
+
+let cachedServerUpdate: { value: { version: string; url: string }; expiresAt: number } | null =
+  null;
+let serverUpdateFailedAt = 0;
+let serverUpdateInFlight: Promise<{ version: string; url: string }> | null = null;
+
+function latestServerUpdate(): Promise<{ version: string; url: string }> {
+  if (cachedServerUpdate && cachedServerUpdate.expiresAt > Date.now())
+    return Promise.resolve(cachedServerUpdate.value);
+  if (serverUpdateFailedAt + 30_000 > Date.now())
+    return Promise.reject(new HttpError(503, "UPDATE_CHECK_UNAVAILABLE", "暂时无法检查正式版本"));
+  if (serverUpdateInFlight) return serverUpdateInFlight;
+  const operation = (async () => {
+    try {
+      const response = await fetch(
+        "https://api.github.com/repos/ZHanry/home-tunnel-server/releases/latest",
+        {
+          headers: { accept: "application/vnd.github+json", "user-agent": "home-tunnel-server" },
+          signal: AbortSignal.timeout(6_000),
+        },
+      );
+      if (!response.ok || Number(response.headers.get("content-length") ?? 0) > 1_000_000)
+        throw new Error("release lookup failed");
+      const raw = await response.text();
+      if (raw.length > 1_000_000) throw new Error("release metadata too large");
+      const release = officialServerRelease(JSON.parse(raw));
+      if (!release) throw new Error("not an official stable release");
+      cachedServerUpdate = { value: release, expiresAt: Date.now() + 600_000 };
+      return release;
+    } catch {
+      serverUpdateFailedAt = Date.now();
+      throw new HttpError(503, "UPDATE_CHECK_UNAVAILABLE", "暂时无法检查正式版本");
+    }
+  })();
+  serverUpdateInFlight = operation;
+  void operation
+    .finally(() => {
+      if (serverUpdateInFlight === operation) serverUpdateInFlight = null;
+    })
+    .catch(() => {});
+  return operation;
+}
 
 function unavailable(): HttpError {
   return new HttpError(404, "RELEASE_UNAVAILABLE", "Windows 图形客户端暂不可用");
@@ -70,6 +131,14 @@ publicRouter.get("/capabilities", (_request, response) => {
   response.setHeader("cache-control", "public, max-age=300, must-revalidate");
   response.json(apiCapabilities);
 });
+
+publicRouter.get(
+  "/updates/server",
+  asyncHandler(async (_request, response) => {
+    response.setHeader("cache-control", "no-store");
+    response.json({ current_version: APP_VERSION, latest: await latestServerUpdate() });
+  }),
+);
 
 publicRouter.get("/config", (_request, response) => {
   response.setHeader("cache-control", "public, max-age=300, must-revalidate");

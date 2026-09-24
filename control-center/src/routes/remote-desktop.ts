@@ -32,6 +32,8 @@ const scopes = z
   .refine((values) => new Set(values).size === values.length && values.includes("view"));
 const requestLimiter = new FixedWindowLimiter(120, 60000),
   challengeLimiter = new FixedWindowLimiter(10, 60000),
+  inviteLimiter = new FixedWindowLimiter(20, 60000),
+  accessLimiter = new FixedWindowLimiter(5, 60000),
   sessionMinute = new FixedWindowLimiter(5, 60000),
   sessionHour = new FixedWindowLimiter(30, 3600000),
   reauthLimiter = new FixedWindowLimiter(8, 600000);
@@ -388,6 +390,145 @@ router.post(
   }),
 );
 router.post(
+  "/assist-invites",
+  asyncHandler(async (request, response) => {
+    limitChallenge(request);
+    response.setHeader("cache-control", "no-store");
+    response.status(201).json(await rd.createAssistInvite(identity(request)));
+  }),
+);
+router.get(
+  "/assist-invites",
+  asyncHandler(async (request, response) => {
+    response.setHeader("cache-control", "no-store");
+    response.json(await rd.listAssistInvites(identity(request)));
+  }),
+);
+router.post(
+  "/assist-invites/redeem",
+  asyncHandler(async (request, response) => {
+    const who = identity(request);
+    if (!inviteLimiter.take(`${request.ip}:${who.endpoint.id}`).allowed)
+      rd.fail(429, "RD_RATE_LIMITED", "协助码尝试过多");
+    const body = parseBody(
+      z.strictObject({
+        device_id: z.string().regex(/^[0-9]{9}$/),
+        temporary_password: z.string().min(1).max(128),
+      }),
+      request.body,
+    );
+    response.json(await rd.redeemAssistInvite(who, body.device_id, body.temporary_password));
+  }),
+);
+router.delete(
+  "/assist-invites/:id",
+  asyncHandler(async (request, response) => {
+    await rd.revokeAssistInvite(identity(request), pathParam(request, "id"));
+    response.status(204).end();
+  }),
+);
+router.get(
+  "/access-profile",
+  asyncHandler(async (request, response) => {
+    response.setHeader("cache-control", "no-store");
+    response.json(await rd.accessProfile(identity(request), false));
+  }),
+);
+router.post(
+  "/access-profile",
+  asyncHandler(async (request, response) => {
+    response.setHeader("cache-control", "no-store");
+    response.status(201).json(await rd.accessProfile(identity(request), true));
+  }),
+);
+router.put(
+  "/access-profile/password",
+  asyncHandler(async (request, response) => {
+    const body = parseBody(z.strictObject({ password: z.string().min(12).max(128) }), request.body);
+    response.setHeader("cache-control", "no-store");
+    response.json(await rd.setFixedPassword(identity(request), body.password));
+  }),
+);
+router.delete(
+  "/access-profile/password",
+  asyncHandler(async (request, response) => {
+    response.json(await rd.setFixedPassword(identity(request), null));
+  }),
+);
+router.post(
+  "/access/fixed/redeem",
+  asyncHandler(async (request, response) => {
+    const who = identity(request);
+    const body = parseBody(
+      z.strictObject({
+        device_id: z.string().regex(/^[0-9]{9}$/),
+        password: z.string().min(1).max(128),
+      }),
+      request.body,
+    );
+    if (!accessLimiter.take(`${request.ip}:${who.endpoint.id}:${body.device_id}`).allowed)
+      rd.fail(429, "RD_RATE_LIMITED", "固定密码尝试过多");
+    response.setHeader("cache-control", "no-store");
+    response.json(await rd.redeemFixedPassword(who, body.device_id, body.password));
+  }),
+);
+router.post(
+  "/access/requests",
+  asyncHandler(async (request, response) => {
+    const who = identity(request);
+    const body = parseBody(
+      z.strictObject({ device_id: z.string().regex(/^[0-9]{9}$/) }),
+      request.body,
+    );
+    if (!accessLimiter.take(`${request.ip}:${who.endpoint.id}:${body.device_id}`).allowed)
+      rd.fail(429, "RD_RATE_LIMITED", "连接请求过多");
+    response.status(201).json(await rd.createAccessRequest(who, body.device_id));
+  }),
+);
+router.get(
+  "/access/requests",
+  asyncHandler(async (request, response) => {
+    response.setHeader("cache-control", "no-store");
+    response.json(await rd.listAccessRequests(identity(request)));
+  }),
+);
+router.get(
+  "/access/requests/:id",
+  asyncHandler(async (request, response) => {
+    response.setHeader("cache-control", "no-store");
+    response.json(await rd.accessRequest(identity(request), pathParam(request, "id")));
+  }),
+);
+router.post(
+  "/access/requests/:id/decision",
+  asyncHandler(async (request, response) => {
+    const body = parseBody(
+      z.strictObject({ decision: z.enum(["approve", "reject"]) }),
+      request.body,
+    );
+    response.json(
+      await rd.decideAccessRequest(
+        identity(request),
+        pathParam(request, "id"),
+        body.decision === "approve",
+      ),
+    );
+  }),
+);
+router.post(
+  "/access/requests/:id/activate",
+  asyncHandler(async (request, response) => {
+    response.json(await rd.activateAccessRequest(identity(request), pathParam(request, "id")));
+  }),
+);
+router.get(
+  "/access/invites/:id/authorization",
+  asyncHandler(async (request, response) => {
+    response.setHeader("cache-control", "no-store");
+    response.json(await rd.accessInviteAuthorization(identity(request), pathParam(request, "id")));
+  }),
+);
+router.post(
   "/pairings",
   asyncHandler(async (request, response) => {
     const who = identity(request);
@@ -399,6 +540,7 @@ router.post(
         permissions: scopes,
         mode: z.enum(["one_session", "persistent"]).default("one_session"),
         nonce_controller: nonce,
+        assist_invite_id: uuid.optional(),
       }),
       request.body,
     );
@@ -446,12 +588,12 @@ router.get(
       pagination = page(request),
       host = user.identity?.purpose === "host_online";
     const rows = await query(
-      "SELECT * FROM rd_grants WHERE owner_user_id=?" +
+      "SELECT * FROM rd_grants WHERE (owner_user_id=? OR controller_owner_user_id=?)" +
         (host ? " AND host_endpoint_id=?" : "") +
         " ORDER BY created_at,id LIMIT ? OFFSET ?",
       host
-        ? [user.owner, user.identity!.endpoint.id, pagination.limit, pagination.offset]
-        : [user.owner, pagination.limit, pagination.offset],
+        ? [user.owner, user.owner, user.identity!.endpoint.id, pagination.limit, pagination.offset]
+        : [user.owner, user.owner, pagination.limit, pagination.offset],
     );
     response.json({
       items: rows.map((row) => ({
@@ -517,12 +659,12 @@ router.get(
       pagination = page(request),
       host = user.identity?.purpose === "host_online";
     const rows = await query<rd.Session>(
-      "SELECT * FROM rd_sessions WHERE owner_user_id=?" +
+      "SELECT * FROM rd_sessions WHERE (owner_user_id=? OR controller_owner_user_id=?)" +
         (host ? " AND host_endpoint_id=?" : "") +
         " ORDER BY created_at DESC,id LIMIT ? OFFSET ?",
       host
-        ? [user.owner, user.identity!.endpoint.id, pagination.limit, pagination.offset]
-        : [user.owner, pagination.limit, pagination.offset],
+        ? [user.owner, user.owner, user.identity!.endpoint.id, pagination.limit, pagination.offset]
+        : [user.owner, user.owner, pagination.limit, pagination.offset],
     );
     response.json({
       items: await Promise.all(rows.map((row) => rd.sessionView(row))),

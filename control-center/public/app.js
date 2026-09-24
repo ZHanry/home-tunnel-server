@@ -1,5 +1,5 @@
-import { createConnectionsView } from "./modules/connections.js?v=8.0.0";
-import { createAccountSecurityView } from "./modules/account-security.js?v=8.0.0";
+import { createConnectionsView } from "./modules/connections.js?v=9.0.0";
+import { createAccountSecurityView } from "./modules/account-security.js?v=9.0.0";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -7,10 +7,10 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=8.0.0";
-import { createDevicesView } from "./modules/devices.js?v=8.0.0";
-import { createRemoteView } from "./modules/remote/view.js?v=8.0.0";
-import { api, refreshSession, allPages } from "./modules/api.js?v=8.0.0";
+} from "./modules/forms.js?v=9.0.0";
+import { createDevicesView } from "./modules/devices.js?v=9.0.0";
+import { createRemoteView } from "./modules/remote/view.js?v=9.0.0";
+import { api, refreshSession, allPages } from "./modules/api.js?v=9.0.0";
 import {
   componentLabel,
   configState,
@@ -19,10 +19,10 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=8.0.0";
-import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=8.0.0";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=8.0.0";
-import { state } from "./modules/state.js?v=8.0.0";
+} from "./modules/format.js?v=9.0.0";
+import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=9.0.0";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=9.0.0";
+import { state } from "./modules/state.js?v=9.0.0";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -67,13 +67,14 @@ const { renderConnections } = createConnectionsView({
 });
 
 const viewMeta = {
-  dashboard: ["系统总览", "运行状态"],
+  dashboard: ["系统总览", "CONTROL CENTER / DASHBOARD"],
   users: ["用户管理", "身份与权限"],
   devices: ["设备管理", "设备信任"],
-  remote: ["远程桌面（P2P）", "本机授权 · UDP 直连"],
-  connections: ["连接管理", "受管隧道"],
+  remote: ["远程桌面", "CONTROL CENTER / REMOTE"],
+  connections: ["内网穿透", "受管隧道"],
   audit: ["审计事件", "操作轨迹"],
   settings: ["系统设置", "部署策略"],
+  updates: ["软件更新", "正式版本"],
   account: ["我的账号", "密码与使用额度"],
 };
 
@@ -92,7 +93,7 @@ function applyRoleChrome() {
     item.hidden = !isAdmin();
   });
   const brand = document.querySelector(".sidebar-brand .brand-copy small");
-  if (brand) brand.textContent = isAdmin() ? "控制中心 v7.0.0" : "我的工作区";
+  if (brand) brand.textContent = isAdmin() ? "SERVER / WEB" : "MY WORKSPACE";
   const sessionCopy = document.querySelector(".sidebar-session small");
   if (sessionCopy) sessionCopy.textContent = isAdmin() ? "权限已验证" : "仅显示你的资源";
 }
@@ -275,6 +276,7 @@ function renderPageActions(view) {
     connections: `<button class="button button-primary" data-action="create-connection">创建连接</button>`,
     audit: `<button class="button button-secondary" data-action="refresh-view">刷新事件</button>`,
     settings: `<button class="button button-secondary" data-action="refresh-view">刷新设置</button>`,
+    updates: `<button class="button button-secondary" data-action="refresh-view">检查更新</button>`,
   };
   pageActions.innerHTML = actions[view] ?? "";
 }
@@ -320,6 +322,7 @@ async function renderView(view, { background = false } = {}) {
     if (view === "connections") await renderConnections(renderId);
     if (view === "audit") await renderAudit(renderId);
     if (view === "settings") await renderSettings(renderId);
+    if (view === "updates") await renderUpdates(renderId);
     if (view === "account") await renderAccount(renderId);
     if (renderId !== state.renderId) return;
     viewContent.setAttribute("aria-busy", "false");
@@ -387,15 +390,16 @@ async function renderDashboard(renderId) {
     })
     .join("");
   const metrics = [
-    ["在线连接", `${Number(summary.online_connections)} / ${Number(summary.connections)}`],
-    ["在线设备", Number(summary.online_devices)],
-    ["启用账号", Number(summary.users)],
-    ["24 小时流量", formatBytes(totalTraffic)],
+    { label: "在线设备", value: Number(summary.online_devices), note: "当前在线", icon: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>' },
+    { label: "运行中连接", value: Number(summary.online_connections), note: `共 ${Number(summary.connections)} 条连接`, icon: '<path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.3 1.3M14 11a5 5 0 0 0-7.1 0l-2 2a5 5 0 0 0 7.1 7.1l1.3-1.3"/>' },
+    { label: "24 小时流量", value: formatBytes(totalTraffic), note: "实际使用量", icon: '<path d="M3 12h4l3-8 4 16 3-8h4"/>' },
+    { label: "启用账号", value: Number(summary.users), note: "独立访问", icon: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>' },
   ];
   viewContent.innerHTML = `
-    <section class="overview-banner"><div><p class="eyebrow">YOUR HOME, CONNECTED</p><h2>${health.status === "healthy" ? "一切就绪，连接你的日常。" : "有些服务需要你的关注。"}</h2><p>从这里管理设备、访问权限和每一条家庭连接。</p></div><div class="overview-domain"><small>当前部署</small><strong class="mono" data-no-translate>${escapeHtml(state.tunnelDomain)}</strong></div></section>
-    <section class="overview-metrics" aria-label="运行概况">${metrics.map(([label, value]) => `<article class="overview-metric"><span>${label}</span><strong>${value}</strong></article>`).join("")}</section>
-    <div class="overview-columns"><section class="panel table-panel"><div class="panel-header"><div><h3>流量最高的连接</h3><span class="panel-subtle">过去 24 小时 · 按实际使用量排序</span></div><button class="button button-quiet" data-action="view-connections">全部连接</button></div>${
+    <section class="overview-metrics" aria-label="运行概况">${metrics.map((metric) => `<article class="overview-metric"><div><span>${metric.label}</span><svg viewBox="0 0 24 24" aria-hidden="true">${metric.icon}</svg></div><strong>${metric.value}</strong><small>${metric.note}</small></article>`).join("")}</section>
+    <div class="dashboard-primary"><section class="panel dashboard-quick"><div class="panel-header"><h3>快速开始</h3><span class="panel-subtle">最常用的操作</span></div><div class="dashboard-actions"><button type="button" data-action="view-remote"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="15" rx="2"/><path d="M8 22h8m-4-4v4M7 10l3-3m0 0H7m3 0v3"/></svg><strong>连接远程电脑</strong><span aria-hidden="true">→</span></button><button type="button" data-action="create-connection"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.3 1.3M14 11a5 5 0 0 0-7.1 0l-2 2a5 5 0 0 0 7.1 7.1l1.3-1.3"/></svg><strong>创建内网连接</strong><span aria-hidden="true">→</span></button><button type="button" data-action="view-devices"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg><strong>查看设备</strong><span aria-hidden="true">→</span></button></div></section><section class="panel dashboard-health"><div class="panel-header"><h3>系统组件</h3>${statusBadge(health.status)}</div><div class="health-rail-list">${healthRows}</div></section></div>
+    <section class="overview-banner"><div><p class="eyebrow">YOUR HOME, CONNECTED</p><h2>${health.status === "healthy" ? "你的家庭服务，触手可及。" : "有些服务需要你的关注。"}</h2><p>设备、远控和内网连接独立管理。<span class="mono" data-no-translate>${escapeHtml(state.tunnelDomain)}</span></p></div><button class="button button-secondary" data-action="view-connections">管理连接 →</button></section>
+    <section class="panel table-panel dashboard-traffic"><div class="panel-header"><div><h3>流量最高的连接</h3><span class="panel-subtle">过去 24 小时 · 按实际使用量排序</span></div><button class="button button-quiet" data-action="view-connections">全部连接</button></div>${
       traffic.items.length
         ? `<table class="data-table"><thead><tr><th>服务</th><th>上传</th><th>下载</th><th>请求</th></tr></thead><tbody>${traffic.items
             .slice(0, 6)
@@ -405,7 +409,7 @@ async function renderDashboard(renderId) {
             )
             .join("")}</tbody></table>`
         : emptyState("还没有流量记录", "发布服务并访问后，这里会显示使用情况。")
-    }</section><div><section class="panel"><div class="panel-header"><h3>系统组件</h3>${statusBadge(health.status)}</div><div class="health-rail-list">${healthRows}</div></section><section class="panel quick-start"><h3>让下一台设备加入</h3><p>创建用户，将账号交给设备使用者。客户端登录后会自动登记这台机器。</p><button class="button button-secondary" data-action="create-user">创建普通用户</button></section></div></div>`;
+    }</section>`;
 }
 
 function emptyState(title, detail, action, actionLabel) {
@@ -428,7 +432,7 @@ function copyableAddress(connection) {
   const href = connection.public_url
     ? `<a class="cell-secondary mono" href="${escapeHtml(connection.public_url)}" target="_blank" rel="noopener">${escapeHtml(connection.public_url)}</a>`
     : `<span class="cell-secondary mono" data-no-translate>${escapeHtml(address)}</span>`;
-  return `<div class="connection-card-url">${href}<button class="icon-button copy-button" type="button" data-copy="${escapeHtml(address)}" aria-label="复制公网地址">复制</button></div>`;
+  return `<div class="connection-card-url">${href}<button class="icon-button copy-button" type="button" data-copy="${escapeHtml(address)}" aria-label="复制公网地址"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button></div>`;
 }
 
 function annotateOwnedConnections(connections, devices) {
@@ -534,6 +538,20 @@ function accessBadges(connection) {
   if (connection.access_basic_auth_enabled)
     badges.push('<span class="status-badge ok">Basic Auth</span>');
   return badges.length ? badges.join(" ") : '<span class="cell-secondary">开放</span>';
+}
+
+async function renderUpdates(renderId = state.renderId) {
+  const capabilities = await api("/api/v1/public/capabilities");
+  if (renderId !== state.renderId) return;
+  let release = null;
+  let message = "当前无法获取 GitHub 正式 Release，请稍后再试。";
+  try {
+    const result = await api("/api/v1/public/updates/server");
+    release = result.latest;
+    message = "检查完成。只显示正式发布，私有候选包不会作为公开更新。";
+  } catch {}
+  if (renderId !== state.renderId) return;
+  viewContent.innerHTML = `<div class="update-grid"><section class="panel"><div class="version-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 18v3h16v-3" /></svg></div><h2>更新由你决定。</h2><p>${message}</p><dl><dt>当前服务端</dt><dd>${escapeHtml(capabilities.server_version ?? "未知")}</dd><dt>最新正式版本</dt><dd>${release ? escapeHtml(release.version) : "暂不可用"}</dd></dl>${release ? `<a class="button button-primary" href="${escapeHtml(release.url)}" target="_blank" rel="noopener noreferrer">查看正式 Release ↗</a>` : ""}</section><section class="panel"><h2>升级说明</h2><p>网站只负责检查版本，不会自动替换服务端镜像或修改数据库。升级前请先验证备份，再按部署文档操作。</p><a href="https://github.com/ZHanry/home-tunnel-server/releases" target="_blank" rel="noopener noreferrer">查看服务端发布记录 →</a></section></div>`;
 }
 
 async function renderSettings(renderId = state.renderId) {
@@ -1609,6 +1627,8 @@ appShell.addEventListener("click", async (event) => {
       }
     }
     if (action === "view-connections") await navigateTo("connections");
+    if (action === "view-remote") await navigateTo("remote");
+    if (action === "view-devices") await navigateTo("devices");
     if (action === "delete-user") {
       const user = state.users.find((item) => item.id === button.dataset.id);
       if (!user || user.role === "admin") return;
@@ -1849,6 +1869,8 @@ loginForm.addEventListener("submit", async (event) => {
     state.csrf = result.csrf_token;
     document.querySelector("#login-password").value = "";
     document.querySelector("#login-mfa").value = "";
+    document.querySelector("#login-mfa-step").classList.add("hidden");
+    document.querySelector("#login-mfa").required = false;
     if (result.password_change_required) {
       loginForm.classList.add("hidden");
       passwordForm.classList.remove("hidden");
@@ -1859,8 +1881,14 @@ loginForm.addEventListener("submit", async (event) => {
     }
   } catch (error) {
     errorNode.textContent = error.message;
-    document.querySelector("#login-username").setAttribute("aria-invalid", "true");
-    document.querySelector("#login-password").setAttribute("aria-invalid", "true");
+    if (error.code === "MFA_REQUIRED" || error.code === "MFA_INVALID") {
+      document.querySelector("#login-mfa-step").classList.remove("hidden");
+      document.querySelector("#login-mfa").required = true;
+      document.querySelector("#login-mfa").focus();
+    } else {
+      document.querySelector("#login-username").setAttribute("aria-invalid", "true");
+      document.querySelector("#login-password").setAttribute("aria-invalid", "true");
+    }
   } finally {
     button.disabled = false;
     button.removeAttribute("aria-busy");
@@ -1869,10 +1897,15 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
-loginForm.addEventListener("input", () => {
+loginForm.addEventListener("input", (event) => {
   document.querySelector("#login-username").removeAttribute("aria-invalid");
   document.querySelector("#login-password").removeAttribute("aria-invalid");
   document.querySelector("#login-error").textContent = "";
+  if (event.target.id === "login-username" || event.target.id === "login-password") {
+    document.querySelector("#login-mfa").value = "";
+    document.querySelector("#login-mfa").required = false;
+    document.querySelector("#login-mfa-step").classList.add("hidden");
+  }
 });
 
 passwordForm.addEventListener("submit", async (event) => {

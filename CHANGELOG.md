@@ -1,5 +1,12 @@
 # Changelog
 
+## 9.0.0
+
+- Add stable device IDs, fixed-password redemption, host-approved requests and one-time temporary assistance without broadening same-account endpoint queries.
+- Rotate fixed-password authorization on account changes, retain single-use signed cross-account pairings and add migration/revocation audit coverage.
+- Keep tunnel traffic and shared Caddy separate. Deployment requires a verified restorable backup and matching client versions.
+- Remote desktop is opt-in; this release does not establish Windows lock-screen/UAC control, system audio, or Android arm64 runtime acceptance.
+
 ## 8.0.0
 
 - Add an opt-in remote desktop control plane with independent P-256 identities, DPoP, signed pairing, durable authorization leases and four controller windows per account.

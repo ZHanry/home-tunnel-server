@@ -1,5 +1,5 @@
-import { localizedApiError } from "./locale.js?v=8.0.0";
-import { state } from "./state.js?v=8.0.0";
+import { localizedApiError } from "./locale.js?v=9.0.0";
+import { state } from "./state.js?v=9.0.0";
 
 let refreshInFlight = null;
 const sessionChannel = typeof window.BroadcastChannel === "function"
@@ -103,8 +103,10 @@ export async function api(path, options = {}, canRefresh = true) {
     return api(path, options, false);
   }
   if (!response.ok) {
+    const reauthFailure = path === "/api/v1/rd/reauth" &&
+      ["AUTH_INVALID", "MFA_REQUIRED", "MFA_INVALID"].includes(data?.error_code);
     const code =
-      response.status === 401 && !path.startsWith("/api/v1/auth/")
+      response.status === 401 && !path.startsWith("/api/v1/auth/") && !reauthFailure
         ? "SESSION_REVOKED"
         : data?.error_code;
     if (code === "SESSION_REVOKED" && window.dispatchEvent)

@@ -1,4 +1,24 @@
-# Home Tunnel 8.0.0
+# Home Tunnel Server 9.0.0
+
+This release adds three authenticated remote-access modes: a host-approved
+request, a reusable fixed password, and a single-use temporary password.
+Cross-account sessions use short-lived invitations, signed grants and leases;
+existing same-account device queries remain isolated. The website separates
+tunnels and remote desktop and opens the viewer in its own window. API contract
+`api-v1.3.0` adds the corresponding endpoints and schemas.
+
+Remote desktop remains disabled by default. It requires matching 9.0.0 clients
+and a direct UDP path; no media relay or TURN fallback is provided. Windows
+lock-screen, login-screen and UAC secure-desktop control are not established.
+Audio and full clipboard interoperability are not established, and Android
+arm64 runtime was not exercised by the x86_64 emulator acceptance. Consult the
+component evidence before enabling any capability.
+
+Before deploying, verify an encrypted backup can be restored. Preserve the
+existing database, keys, domain and Compose overrides; use the published image
+digests and validate old tunnels and new remote sessions before promoting.
+
+## Previous release: 8.0.0
 
 This release adds the remote-desktop control plane under `/api/v1/rd` while
 preserving the API v1 tunnel interface. The contract is 1.2.0; RD and the native

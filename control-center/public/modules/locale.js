@@ -1,9 +1,75 @@
-import { state } from "./state.js?v=8.0.0";
+import { state } from "./state.js?v=9.0.0";
 
 const appShell = document.querySelector("#app-shell");
 
 const localeStorageKey = "ht_locale";
 const zhToEn = {
+  产品能力: "Features",
+  "让家里的服务，": "Bring your home services",
+  "将设备、远程桌面与内网服务连接到你的自托管控制中心。在哪里，都能回到自己的工作空间。":
+    "Connect devices, remote desktops and private services to your self-hosted control center. Your workspace stays within reach.",
+  进入控制台: "Open console",
+  查看功能: "Explore features",
+  自托管: "Self-hosted",
+  多设备: "Multiple devices",
+  独立连接管理: "Independent connections",
+  家里的电脑: "Your home computer",
+  远程协助: "Remote assistance",
+  私有服务: "Private services",
+  自有服务器: "Your own server",
+  一眼了解所有连接: "All connections at a glance",
+  "设备列表、快速连接与会话入口集中在独立工作区。":
+    "Devices, quick connections and sessions live in one workspace.",
+  "管理 HTTP、TCP、UDP 和常用服务预设，一处查看状态。":
+    "Manage HTTP, TCP, UDP and common service presets in one place.",
+  管理与安全: "Management and security",
+  "成员、设备、审计、会话和部署策略各自清晰可见。":
+    "Members, devices, audits, sessions and deployment policies stay visible.",
+  运行中连接: "Active connections",
+  当前在线: "Online now",
+  实际使用量: "Actual usage",
+  独立访问: "Independent access",
+  快速开始: "Quick start",
+  最常用的操作: "Common actions",
+  连接远程电脑: "Connect to a computer",
+  创建内网连接: "Create a private tunnel",
+  查看设备: "View devices",
+  "查看设备 →": "View devices →",
+  "像坐在电脑前一样。": "Like you're right there.",
+  "选择已在线的设备，在独立窗口中查看远程画面。": "Choose an online device and view its desktop in a separate window.",
+  可连接设备: "Available devices",
+  可连接: "Available",
+  不可连接: "Unavailable",
+  "UDP 直连就绪": "Direct UDP ready",
+  离线或被控端未就绪: "Offline or host not ready",
+  立即连接: "Connect now",
+  设备信息: "Device details",
+  设备标识: "Device identifier",
+  当前状态: "Current status",
+  远控已开启: "Remote desktop enabled",
+  远控尚未就绪: "Remote desktop not ready",
+  还没有被控电脑: "No host computers yet",
+  "在桌面客户端本机开启远程桌面后，设备会出现在这里。": "Enable remote desktop locally in the desktop client to see a host here.",
+  后续实现: "Planned",
+  "可信设备绑定和即时撤销尚未完成；当前仍遵守被控端授权。": "Trusted-device binding and instant revocation are not ready; host approval still applies.",
+  "你的家庭服务，触手可及。": "Your home services, within reach.",
+  "设备、远控和内网连接独立管理。": "Devices, remote desktop and tunnels stay independently managed.",
+  "管理连接 →": "Manage connections →",
+  远程桌面: "Remote desktop",
+  内网穿透: "Private tunnels",
+  软件更新: "Software updates",
+  正式版本: "Official releases",
+  检查更新: "Check for updates",
+  "更新由你决定。": "Updates are your choice.",
+  "检查完成。只显示正式发布，私有候选包不会作为公开更新。": "Check complete. Only official releases are shown; private candidates are never presented as public updates.",
+  "当前无法获取 GitHub 正式 Release，请稍后再试。": "Could not check official GitHub Releases. Please try again later.",
+  当前服务端: "Current server",
+  最新正式版本: "Latest official version",
+  暂不可用: "Unavailable",
+  "查看正式 Release ↗": "View official Release ↗",
+  升级说明: "Upgrade notes",
+  "网站只负责检查版本，不会自动替换服务端镜像或修改数据库。升级前请先验证备份，再按部署文档操作。": "The website only checks versions. It never replaces server images or changes the database. Verify a backup before upgrading.",
+  "查看服务端发布记录 →": "View server releases →",
   "端口与协议": "Ports and protocols",
   "在服务器预留范围内配置，保存后立即应用，无需重启服务。": "Configure within the server port pool. Changes apply immediately without restarting services.",
   "端口池未准备": "Port pool not prepared",
@@ -588,6 +654,12 @@ export function localizedText(value, targetLocale = state.locale) {
     translated = translated
       .replace(/^已同步 · (.+)$/, "Synced · $1")
       .replace(/^(\d+) 条连接$/, "$1 connections")
+      .replace(/^(\d+) 台在线可连接$/, "$1 available online")
+      .replace(/^(.+) · UDP 直连就绪$/, "$1 · Direct UDP ready")
+      .replace(/^(.+) · 离线或被控端未就绪$/, "$1 · Offline or host not ready")
+      .replace(/^在线 · 远控已开启$/, "Online · Remote desktop enabled")
+      .replace(/^离线 · 远控尚未就绪$/, "Offline · Remote desktop not ready")
+      .replace(/^共 (\d+) 条连接$/, "$1 connections total")
       .replace(/^待确认 · 尚无备份记录$/, "Unknown · No backup record")
       .replace(/^需要处理 · 待处理 (\d+)$/, "Needs attention · $1 pending")
       .replace(/^连接详情 · (.+)$/, "Connection details · $1")

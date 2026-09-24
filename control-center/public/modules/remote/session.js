@@ -38,8 +38,9 @@ export function selectedUdpPair(stats) {
 }
 
 export class RemoteSession {
-  constructor({ api, signal, session, hostThumbprint, video, onState, onControl, onReconnectNeeded, onFeatureRevoked }) {
+  constructor({ api, signal, session, hostThumbprint, hostOwnerUserId, video, onState, onControl, onReconnectNeeded, onFeatureRevoked }) {
     this.api = api; this.signal = signal; this.snapshot = session; this.hostThumbprint = hostThumbprint;
+    this.hostOwnerUserId = hostOwnerUserId ?? api.userId;
     this.video = video; this.onState = onState; this.onControl = onControl;
     this.onReconnectNeeded = onReconnectNeeded;
     this.onFeatureRevoked = onFeatureRevoked;
@@ -57,7 +58,7 @@ export class RemoteSession {
     if (!key || key.alg !== "ES256") throw new RemoteError("RD_PROOF_INVALID");
     const claims = await verifyJws(jws, key.public_jwk, type, { kid: key.kid });
     const now = Date.now() / 1000;
-    if (claims.iss !== location.origin || claims.aud !== audience || claims.server_instance_id !== this.api.keys.server_instance_id || claims.restore_epoch !== this.api.keys.restore_epoch || claims.session_id !== this.id || claims.connection_epoch !== this.epoch || claims.owner_user_id !== this.api.userId || claims.controller_endpoint_id !== this.api.identity.endpointId || claims.host_endpoint_id !== this.snapshot.host_endpoint_id || claims.controller_jkt !== this.api.identity.jkt || claims.host_jkt !== this.hostThumbprint || !Number.isSafeInteger(claims.exp) || !Number.isSafeInteger(claims.nbf) || claims.nbf > now + 30 || claims.exp <= now || !Array.isArray(claims.permissions) || claims.permissions.some((permission) => !this.permissions.has(permission)) || !claims.permissions.includes("view")) throw new RemoteError("RD_PROOF_INVALID");
+    if (claims.iss !== location.origin || claims.aud !== audience || claims.server_instance_id !== this.api.keys.server_instance_id || claims.restore_epoch !== this.api.keys.restore_epoch || claims.session_id !== this.id || claims.connection_epoch !== this.epoch || claims.owner_user_id !== this.hostOwnerUserId || (this.hostOwnerUserId !== this.api.userId && this.snapshot.owner_user_id !== this.hostOwnerUserId) || claims.controller_endpoint_id !== this.api.identity.endpointId || claims.host_endpoint_id !== this.snapshot.host_endpoint_id || claims.controller_jkt !== this.api.identity.jkt || claims.host_jkt !== this.hostThumbprint || !Number.isSafeInteger(claims.exp) || !Number.isSafeInteger(claims.nbf) || claims.nbf > now + 30 || claims.exp <= now || !Array.isArray(claims.permissions) || claims.permissions.some((permission) => !this.permissions.has(permission)) || !claims.permissions.includes("view")) throw new RemoteError("RD_PROOF_INVALID");
     if (claims.session_request_id !== this.snapshot.session_request_id || new Set(claims.permissions).size !== this.permissions.size || [...this.permissions].some((permission) => !claims.permissions.includes(permission)) || (this.ticket && (claims.grant_id !== this.ticket.grant_id || claims.grant_version !== this.ticket.grant_version || claims.user_token_version !== this.ticket.user_token_version))) throw new RemoteError("RD_GRANT_CHANGED");
     return claims;
   }
@@ -66,7 +67,7 @@ export class RemoteSession {
     this.hostKey = await crypto.subtle.importKey("jwk", publicJwk(this.snapshot.host_public_jwk), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
     this.ticket = await this.serverClaims(this.snapshot.ticket_jws, "ht-rd-ticket+jwt", "ht-rd-start");
     const grant = await verifyJws(this.snapshot.grant_jws, this.snapshot.host_public_jwk, "ht-rd-grant+jwt");
-    if (grant.id !== this.ticket.grant_id || grant.grant_version !== this.ticket.grant_version || grant.server_instance_id !== this.ticket.server_instance_id || grant.owner_user_id !== this.api.userId || grant.host_endpoint_id !== this.ticket.host_endpoint_id || grant.controller_endpoint_id !== this.ticket.controller_endpoint_id || grant.host_jkt !== this.hostThumbprint || grant.controller_jkt !== this.api.identity.jkt || !Array.isArray(grant.scope) || [...this.permissions].some((permission) => !grant.scope.includes(permission)) || (grant.expires_at && Date.parse(grant.expires_at) <= Date.now())) throw new RemoteError("RD_GRANT_CHANGED");
+    if (grant.id !== this.ticket.grant_id || grant.grant_version !== this.ticket.grant_version || grant.server_instance_id !== this.ticket.server_instance_id || grant.owner_user_id !== this.hostOwnerUserId || grant.host_endpoint_id !== this.ticket.host_endpoint_id || grant.controller_endpoint_id !== this.ticket.controller_endpoint_id || grant.host_jkt !== this.hostThumbprint || grant.controller_jkt !== this.api.identity.jkt || !Array.isArray(grant.scope) || [...this.permissions].some((permission) => !grant.scope.includes(permission)) || (grant.expires_at && Date.parse(grant.expires_at) <= Date.now())) throw new RemoteError("RD_GRANT_CHANGED");
     if (!["one_session", "persistent"].includes(grant.mode) || (grant.mode === "one_session" && grant.one_session_request_id !== this.ticket.session_request_id) || (grant.expires_at !== null && !Number.isFinite(Date.parse(grant.expires_at)))) throw new RemoteError("RD_GRANT_CHANGED");
     this.permissions = new Set(this.ticket.permissions);
     this.lease.update(await this.serverClaims(this.snapshot.lease_jws, "ht-rd-lease+jwt", "ht-rd-use"));

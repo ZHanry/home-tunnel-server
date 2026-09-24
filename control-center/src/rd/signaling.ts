@@ -125,12 +125,13 @@ async function forwardPeer(connection: Connection, message: unknown) {
     identity = connection.identity!;
   await rd.requireEnabled();
   const row = await one<rd.Session>(
-    "SELECT * FROM rd_sessions WHERE id=? AND owner_user_id=? AND (host_endpoint_id=? OR controller_endpoint_id=?)",
+    "SELECT * FROM rd_sessions WHERE id=? AND ((host_endpoint_id=? AND owner_user_id=?) OR (controller_endpoint_id=? AND controller_owner_user_id=?))",
     [
       envelope.session_id,
+      identity.endpoint.id,
       identity.endpoint.owner_user_id,
       identity.endpoint.id,
-      identity.endpoint.id,
+      identity.endpoint.owner_user_id,
     ],
   );
   if (
