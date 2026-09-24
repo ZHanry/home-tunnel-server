@@ -1,4 +1,4 @@
-import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
+import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
 import { config } from "../config.js";
@@ -1284,20 +1284,12 @@ export async function createAssistInvite(identity: RdIdentity) {
       () => assistCharacters[randomInt(assistCharacters.length)],
     ).join("");
     const salt = randomBytes(16).toString("hex");
+    const encodedPassword = await hashPassword(`${salt}:${password}`);
     const id = randomUUID();
     const expiresAt = afterSeconds(300);
     await db.query(
       "INSERT INTO rd_assist_invites(id,device_code,host_owner_user_id,host_endpoint_id,password_salt,password_hash,expires_at,created_at) VALUES(?,?,?,?,?,?,?,?)",
-      [
-        id,
-        deviceCode,
-        host.owner_user_id,
-        host.id,
-        salt,
-        tokenHash(`${salt}:${password}`),
-        expiresAt,
-        nowIso(),
-      ],
+      [id, deviceCode, host.owner_user_id, host.id, salt, encodedPassword, expiresAt, nowIso()],
     );
     await audit(db, host.owner_user_id, "AssistInviteCreated", id);
     return { id, device_id: deviceCode, temporary_password: password, expires_at: expiresAt };
@@ -1339,9 +1331,7 @@ export async function redeemAssistInvite(
       [deviceCode],
     );
     if (!invite) return null;
-    const actual = Buffer.from(tokenHash(`${invite.password_salt}:${password}`), "hex");
-    const expected = Buffer.from(invite.password_hash, "hex");
-    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
+    if (!(await verifyPassword(invite.password_hash, `${invite.password_salt}:${password}`))) {
       await db.query(
         "UPDATE rd_assist_invites SET failed_attempts=failed_attempts+1,state=CASE WHEN failed_attempts>=4 THEN 'revoked' ELSE state END,revoked_at=CASE WHEN failed_attempts>=4 THEN home_tunnel_now() ELSE revoked_at END WHERE id=? AND state='active'",
         [invite.id],

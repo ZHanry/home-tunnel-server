@@ -312,6 +312,7 @@ test("assist invitations are single use, attempt-limited and do not expose anoth
     [first.id],
   );
   assert.ok(stored && stored.password_hash !== first.temporary_password);
+  assert.match(stored.password_hash, /^\$argon2id\$/);
   for (let attempt = 0; attempt < 5; attempt++)
     await assert.rejects(
       rd.redeemAssistInvite(guest.identity, first.device_id, "incorrect"),

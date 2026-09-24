@@ -24,14 +24,18 @@ test("public home and return link work without a session", async ({ page }) => {
   await expect(page.locator("#landing-screen")).toBeVisible();
 });
 
-test("public home keeps prototype artwork, features and language on narrow screens", async ({ page }) => {
+test("public home keeps prototype artwork, features and language on narrow screens", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator(".marketing-brand img")).toHaveAttribute("src", "/HomeTunnel.svg");
   await expect(page.locator(".hero-art .art-server")).toBeVisible();
   await expect(page.locator(".landing-features article")).toHaveCount(3);
-  await page.locator(".landing-hero a[href='#features']").click();
-  await expect(page).toHaveURL(/#features$/);
+  await expect(page.locator("#hero-download")).toHaveAttribute(
+    "href",
+    "https://github.com/ZHanry/home-tunnel-client/releases/latest",
+  );
   await page.locator(".marketing-footer [data-locale-toggle]").click();
   await expect(page.locator("#hero-title")).toContainText("Bring your home services");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -56,7 +60,10 @@ test("login asks for MFA only after the server requires it", async ({ page }) =>
     attempts.push(route.request().postDataJSON());
     return route.fulfill({
       status: 401,
-      json: { error_code: attempts.length === 1 ? "MFA_REQUIRED" : "MFA_INVALID", message: "请输入动态码" },
+      json: {
+        error_code: attempts.length === 1 ? "MFA_REQUIRED" : "MFA_INVALID",
+        message: "请输入动态码",
+      },
     });
   });
   await page.goto("/admin");
@@ -73,12 +80,30 @@ test("login asks for MFA only after the server requires it", async ({ page }) =>
 });
 
 test("remote desktop opens a separate viewer window", async ({ page, context }) => {
-  await context.route("**/api/v1/public/capabilities", (route) => route.fulfill({ json: { remote_desktop: { enabled: true } } }));
-  await context.route("**/api/v1/rd/endpoints?**", (route) => route.fulfill({ json: { items: [{
-    id: "test-host", name: "书房工作站", role: "host", status: "active", online: true,
-    local_enabled: true, platform: "Windows", capabilities: { status: "ready", permissions: ["view"], displays: [{ id: "main" }] },
-  }] } }));
-  await context.route("**/api/v1/rd/reauth", (route) => route.fulfill({ status: 401, json: { error_code: "MFA_REQUIRED" } }));
+  await context.route("**/api/v1/public/capabilities", (route) =>
+    route.fulfill({ json: { remote_desktop: { enabled: true } } }),
+  );
+  await context.route("**/api/v1/rd/endpoints?**", (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            id: "test-host",
+            name: "书房工作站",
+            role: "host",
+            status: "active",
+            online: true,
+            local_enabled: true,
+            platform: "Windows",
+            capabilities: { status: "ready", permissions: ["view"], displays: [{ id: "main" }] },
+          },
+        ],
+      },
+    }),
+  );
+  await context.route("**/api/v1/rd/reauth", (route) =>
+    route.fulfill({ status: 401, json: { error_code: "MFA_REQUIRED" } }),
+  );
   await ready(page, "/admin#remote");
   const popupPromise = page.waitForEvent("popup");
   await page.locator('[data-remote-host="test-host"]').click();
@@ -94,29 +119,46 @@ test("remote desktop opens a separate viewer window", async ({ page, context }) 
 });
 
 test("updates page displays only official server release metadata", async ({ page }) => {
-  await page.route("**/api/v1/public/capabilities", (route) => route.fulfill({ json: { server_version: "9.0.0" } }));
-  await page.route("**/api/v1/public/updates/server", (route) => route.fulfill({ json: {
-    current_version: "9.0.0", latest: { version: "8.0.0", url: "https://github.com/ZHanry/home-tunnel-server/releases/tag/v8.0.0" },
-  } }));
+  await page.route("**/api/v1/public/capabilities", (route) =>
+    route.fulfill({ json: { server_version: "9.0.0" } }),
+  );
+  await page.route("**/api/v1/public/updates/server", (route) =>
+    route.fulfill({
+      json: {
+        current_version: "9.0.0",
+        latest: {
+          version: "8.0.0",
+          url: "https://github.com/ZHanry/home-tunnel-server/releases/tag/v8.0.0",
+        },
+      },
+    }),
+  );
   await ready(page, "/admin#updates");
   await expect(page.locator(".update-grid")).toContainText("8.0.0");
   await expect(page.locator(".update-grid")).toContainText("正式发布");
-  await expect(page.locator(".update-grid a.button-primary")).toHaveAttribute("href", "https://github.com/ZHanry/home-tunnel-server/releases/tag/v8.0.0");
+  await expect(page.locator(".update-grid a.button-primary")).toHaveAttribute(
+    "href",
+    "https://github.com/ZHanry/home-tunnel-server/releases/tag/v8.0.0",
+  );
 });
 
-test("account deletion describes affected resources, supports cancellation and sends its version", async ({ page }) => {
+test("account deletion describes affected resources, supports cancellation and sends its version", async ({
+  page,
+}) => {
   await ready(page, "/admin#users");
-  await page.locator('.person-row .more-actions summary').first().click();
+  await page.locator(".person-row .more-actions summary").first().click();
   await page.locator('[data-action="delete-user"]').first().click();
-  await expect(page.locator('#modal')).toContainText('所有设备凭据和会话将撤销');
-  await page.locator('#modal-close').click();
-  await expect(page.locator('.person-row')).toHaveCount(2);
+  await expect(page.locator("#modal")).toContainText("所有设备凭据和会话将撤销");
+  await page.locator("#modal-close").click();
+  await expect(page.locator(".person-row")).toHaveCount(2);
   await page.locator('[data-action="delete-user"]').first().click();
-  const request = page.waitForRequest(r => r.method() === 'DELETE' && r.url().includes('/admin/users/'));
+  const request = page.waitForRequest(
+    (r) => r.method() === "DELETE" && r.url().includes("/admin/users/"),
+  );
   await page.locator('#modal button[type="submit"]').click();
   expect((await request).postDataJSON().expected_version).toBe(1);
-  await expect(page.locator('.person-row')).toHaveCount(1);
-  await expect(page.locator('#toast-region')).toContainText('用户已删除');
+  await expect(page.locator(".person-row")).toHaveCount(1);
+  await expect(page.locator("#toast-region")).toContainText("用户已删除");
 });
 
 test("one click switches theme and locale without translating resource names", async ({ page }) => {
@@ -153,10 +195,12 @@ test("integer bandwidth is accepted and saves with a version condition", async (
 
 test("administrator can explicitly authorize client TCP and UDP creation", async ({ page }) => {
   await ready(page, "/admin#settings");
-  const checkbox=page.locator("#client-raw-tunnels");
+  const checkbox = page.locator("#client-raw-tunnels");
   await expect(checkbox).not.toBeChecked();
   await checkbox.check();
-  const request=page.waitForRequest(r=>r.method()==="PATCH"&&r.url().endsWith("/admin/settings"));
+  const request = page.waitForRequest(
+    (r) => r.method() === "PATCH" && r.url().endsWith("/admin/settings"),
+  );
   await page.locator("#settings-form button[type=submit]").click();
   expect((await request).postDataJSON().client_raw_tunnels_enabled).toBe(true);
   await expect(page.locator("#toast-region")).toContainText("部署设置已保存");
@@ -295,10 +339,20 @@ for (const width of [375, 768, 1024, 1280, 1440])
     await expect(page.locator('[data-action="edit-connection"]').first()).toBeVisible();
   });
 
-test("mobile top navigation exposes every destination and supports keyboard activation", async ({ page }) => {
+test("mobile top navigation exposes every destination and supports keyboard activation", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await ready(page);
-  for (const view of ["dashboard", "users", "devices", "connections", "audit", "settings", "account"])
+  for (const view of [
+    "dashboard",
+    "users",
+    "devices",
+    "connections",
+    "audit",
+    "settings",
+    "account",
+  ])
     await expect(page.locator(`[data-view="${view}"]`)).toBeVisible();
   await page.locator('[data-view="devices"]').focus();
   await page.keyboard.press("Enter");
