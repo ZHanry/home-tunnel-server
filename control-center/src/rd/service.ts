@@ -784,7 +784,13 @@ type AccessRequest = DatabaseRow & {
   expires_at: string;
 };
 
-const assistPasswordAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+const assistCharacters = [
+  "ABCDEFGHJKLMNP",
+  "QRSTUVWXYZ",
+  "abcdefghijk",
+  "mnopqrstuvwxyz",
+  "23456789",
+].join("");
 
 async function expireAssistInvites(db: DatabaseClient) {
   await db.query(
@@ -1275,7 +1281,7 @@ export async function createAssistInvite(identity: RdIdentity) {
     if (!deviceCode) fail(503, "RD_INVITE_UNAVAILABLE", "暂时无法生成协助码");
     const password = Array.from(
       { length: 12 },
-      () => assistPasswordAlphabet[randomInt(assistPasswordAlphabet.length)],
+      () => assistCharacters[randomInt(assistCharacters.length)],
     ).join("");
     const salt = randomBytes(16).toString("hex");
     const id = randomUUID();

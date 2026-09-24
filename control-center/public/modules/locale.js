@@ -9,6 +9,7 @@ const zhToEn = {
   "将设备、远程桌面与内网服务连接到你的自托管控制中心。在哪里，都能回到自己的工作空间。":
     "Connect devices, remote desktops and private services to your self-hosted control center. Your workspace stays within reach.",
   进入控制台: "Open console",
+  下载客户端: "Download client",
   查看功能: "Explore features",
   自托管: "Self-hosted",
   多设备: "Multiple devices",
