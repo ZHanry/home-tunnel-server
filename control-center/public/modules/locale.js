@@ -618,6 +618,7 @@ const zhToEn = {
   更多: "More",
   自定义域名: "Custom domains",
   "正在同步…": "Syncing\u2026",
+  "同步失败，点击重试": "Sync failed. Select to retry",
   刷新额度: "Refresh usage",
   修改密码: "Change password",
   当前密码: "Current password",
@@ -790,6 +791,9 @@ export function localizedApiError(data, status) {
     {
       AUTH_INVALID: "Authentication failed",
       AUTH_REQUIRED: "Authentication is required",
+      MFA_REQUIRED: "Enter your authenticator or recovery code",
+      MFA_INVALID: "The authenticator or recovery code is invalid; try again",
+      FORBIDDEN: "You do not have permission to perform this action",
       CSRF_INVALID: "The security token is invalid; refresh and try again",
       VALIDATION_ERROR: "Some fields are invalid",
       VERSION_CONFLICT: "This item was changed elsewhere; refresh and try again",
@@ -808,7 +812,7 @@ export function localizedApiError(data, status) {
       UDP_TUNNELS_DISABLED: "UDP tunnels are disabled by the administrator",
       UDP_PORT_CONFLICT: "This public UDP port is already assigned",
       UDP_PORT_NOT_ALLOWED: "This public UDP port is outside the allowed range",
-    }[data?.error_code] ?? `Request failed (${status})`
+    }[data?.error_code] ?? (status === 503 ? "Service temporarily unavailable; try again shortly" : `Request failed (${status})`)
   );
 }
 

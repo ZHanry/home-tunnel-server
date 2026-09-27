@@ -550,6 +550,10 @@ test("realtime startup preserves foreground loading failures and an explicit ret
     expect(requests).toBe(1);
     release();
     await expect(page.locator("#view-content")).toContainText("无法加载数据");
+    await expect(page.locator("#sync-status")).toHaveText("同步失败，点击重试");
+    await page.locator(".sidebar [data-locale-toggle]").click();
+    await expect(page.locator("#sync-status")).toHaveText("Sync failed. Select to retry");
+    await page.locator(".sidebar [data-locale-toggle]").click();
     await expect(page.locator("#view-content .skeleton")).toHaveCount(0);
     await page.locator("#view-content").getByRole("button", { name: "重试", exact: true }).click();
     await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");

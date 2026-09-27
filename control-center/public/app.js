@@ -374,6 +374,7 @@ async function renderView(view, { background = false } = {}) {
       updateSyncStatus("连接中断，显示上次同步的数据；点击刷新重试");
       return;
     }
+    updateSyncStatus("同步失败，点击重试");
     viewContent.innerHTML = `<div class="panel"><div class="empty-state"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg><strong>无法加载数据</strong><span>${escapeHtml(error.message)}</span><button class="button button-secondary" data-action="refresh-view">重试</button></div></div>`;
   }
 }
