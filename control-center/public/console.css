@@ -1595,3 +1595,20 @@ input[type="checkbox"] {
     padding: 24px;
   }
 }
+
+/* Four-step service publishing, including narrow layouts and keyboard focus. */
+.tunnel-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; list-style: none; margin: 0 0 24px; padding: 0; }
+.tunnel-steps li { display: flex; align-items: flex-start; gap: 6px; padding: 10px 8px; border-radius: 10px; font-size: .85rem; overflow-wrap: anywhere; }
+.tunnel-steps li[aria-current="step"] { color: var(--primary, #595ad7); background: var(--surface-muted, rgba(89, 90, 215, .1)); font-weight: 700; }
+.tunnel-steps span { flex-shrink: 0; }
+.tunnel-step[hidden], .tunnel-step [hidden] { display: none !important; }
+.tunnel-step h3 { margin-top: 0; }
+.tunnel-step h3:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+.tunnel-step .public-address { overflow-wrap: anywhere; }
+.tunnel-step .public-address > span { min-width: 0; flex: 1; }
+.tunnel-result-status { font-weight: 600; }
+@media (max-width: 600px) {
+  .tunnel-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tunnel-step.form-grid { grid-template-columns: minmax(0, 1fr); }
+  .tunnel-step .connection-detail { grid-template-columns: minmax(0, 1fr); }
+}

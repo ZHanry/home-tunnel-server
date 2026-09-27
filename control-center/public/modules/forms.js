@@ -53,6 +53,7 @@ export function showFieldErrors(form, error) {
     input.closest("details")?.setAttribute("open", "");
     first ??= input;
   }
+  first?.dispatchEvent(new Event("home-tunnel:invalid-field", { bubbles: true }));
   first?.focus();
   return Boolean(first);
 }

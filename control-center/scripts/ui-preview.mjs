@@ -379,6 +379,11 @@ for (const role of ["admin", "client"]) {
         tcp: { enabled: true, port_start: 10000, port_end: 10099 },
         udp: { enabled: true, port_start: 10000, port_end: 10099 },
       },
+      capabilities: {
+        supported: true,
+        tcp: { enabled: true, can_create: true },
+        udp: { enabled: true, can_create: true },
+      },
     });
   });
   app.get(root + "/:id", (request, response) => {
@@ -398,6 +403,12 @@ for (const role of ["admin", "client"]) {
       state: "Pending",
       version: 1,
       applied_version: 0,
+      ...(body.proxy_type === "tcp" || body.proxy_type === "udp"
+        ? {
+            remote_port: 10000 + connections.length,
+            public_endpoint: `frps.example.com:${10000 + connections.length}`,
+          }
+        : {}),
       public_url:
         body.proxy_type === "tcp" || body.proxy_type === "udp"
           ? null

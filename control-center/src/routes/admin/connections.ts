@@ -1,4 +1,5 @@
 import { transportCatalog } from "../../transport-settings.js";
+import { allocateClientPort } from "../../client-transports.js";
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
@@ -99,6 +100,12 @@ router.post(
       request.body,
     );
     const connection = await transaction(async (client) => {
+      if (
+        (body.proxy_type === "tcp" || body.proxy_type === "udp") &&
+        body.remote_port == null &&
+        body.tcp_remote_port == null
+      )
+        body.remote_port = await allocateClientPort(client, "admin", body.proxy_type);
       const created = await createConnection(client, body.user_id, body.device_id, body);
       await audit(client, request, "ConnectionCreated", "Connection", created.id, null, {
         ...publicConnection(created),

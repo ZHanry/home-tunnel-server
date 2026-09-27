@@ -1,4 +1,6 @@
 import { createConnectionsView } from "./modules/connections.js?v=9.0.0";
+import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=9.0.0";
+import { tunnelVerification } from "./modules/tunnel-model.js?v=9.0.0";
 import { createAccountSecurityView } from "./modules/account-security.js?v=9.0.0";
 import {
   formSnapshot,
@@ -711,6 +713,7 @@ function openModal({
   onSubmit,
 }) {
   modalDraftKey = `${state.me?.id ?? ""}:${draftId}`;
+  disposeTunnelWizard(modal);
   modalSaving = false;
   delete modal.dataset.connectionId;
   delete modal.dataset.ownerId;
@@ -856,6 +859,7 @@ function openModal({
     } finally {
       modalSaving = false;
       if (button.isConnected) setBusy(button, false);
+      modalForm.dispatchEvent(new Event("home-tunnel:form-settled"));
     }
   };
   if (!modal.open) modal.showModal();
@@ -866,13 +870,8 @@ function openModal({
 }
 
 function connectionDiagnostic(connection) {
-  if (!connection.enabled) return "已暂停。公网访问停止，启用后会重新应用配置。";
   const device = state.devices.find((item) => item.id === connection.device_id);
-  if (device && !device.online) return "等待家庭设备上线。请检查电脑电源、客户端登录与网络。";
-  if (connection.last_error_code)
-    return "连接运行异常。请检查家庭设备上的目标服务和端口，再同步配置。";
-  if (connection.state === "Online") return "隧道已上线。请打开地址检查目标应用是否响应。";
-  return "配置已保存，等待家庭设备应用。若持续等待，请查看客户端状态。";
+  return tunnelVerification(connection, device).message;
 }
 
 async function renderAccount(renderId) {
@@ -1097,168 +1096,27 @@ function proxyTypeOptions(selected = "http") {
 }
 
 async function openCreateConnection() {
-  if (!isAdmin()) {
-    const payload = await allPages("/api/v1/client/devices");
-    const catalog=await api("/api/v1/client/connections?page_size=1");
-    const allowed=type=>type==="http"||catalog.capabilities?.[type]?.can_create===true;
-    state.devices = payload.items.filter((item) => item.status === "active");
-    if (!state.devices.length) {
-      toast("请先在家里的电脑上安装客户端并登录同一账号", "error");
-      await navigateTo("devices");
-      return;
-    }
-    const deviceOptions = state.devices
-      .map(
-        (device) =>
-          `<option data-no-translate value="${device.id}">${escapeHtml(device.name)}</option>`,
-      )
-      .join("");
-    openModal({
-      title: "创建隧道",
-      eyebrow: "我的连接",
-      body: `<div class="form-grid"><div class="field"><label for="modal-device_id">设备</label><select id="modal-device_id" name="device_id">${deviceOptions}</select></div>${field("name", "连接名称")}${field(
-        "subdomain",
-        "公网子域",
-        `${(state.me?.username ?? "user")
-          .toLowerCase()
-          .replace(/[^a-z0-9-]+/g, "-")
-          .replace(/^-+|-+$/g, "")
-          .slice(0, 40)}-app`,
-        { helper: `公网地址为 子域.${state.tunnelDomain}。被占用时会给出可用建议。` },
-      )}<div class="field"><label for="modal-client-preset">协议与用途</label><select name="preset" id="modal-client-preset">${["http","tcp","udp","ssh","rdp","rtsp"].map(preset=>`<option value="${preset}" ${allowed(["ssh","rdp","rtsp"].includes(preset)?"tcp":preset)?"":"disabled"}>${preset.toUpperCase()}</option>`).join("")}</select><p class="helper">不可选表示服务端未开放或账号无权限；TCP/UDP 端口自动分配。</p></div><div class="field" id="modal-local-scheme-field"><label for="modal-local_scheme">本地协议</label><select id="modal-local_scheme" name="local_scheme"><option value="http">http</option><option value="https">https</option></select></div>${field("local_host", "本地地址", "127.0.0.1")}${field("local_port", "本地端口", "8080", { type: "number", min: 1, max: 65535 })}<div id="modal-http-options" class="field full"><div class="form-grid">${accessFormFields()}</div></div><div class="field full"><label><input name="enabled" type="checkbox" checked> 创建后立即启用</label><p class="helper">原始 TCP/UDP 不经过 HTTP 门禁，目标应用必须提供认证与加密。</p></div></div>`,
-      submitLabel: "创建连接",
-      onSubmit: async (form) => {
-        const preset=String(form.get("preset"));
-        const proxyType=["ssh","rdp","rtsp"].includes(preset)?"tcp":preset;
-        const access = proxyType==="http"?collectAccessPatch(form):undefined;
-        await api("/api/v1/client/connections", {
-          method: "POST",
-          body: JSON.stringify({
-            device_id: form.get("device_id"),
-            name: form.get("name"),
-            ...(proxyType==="http"?{subdomain:form.get("subdomain")} : {}),
-            proxy_type: proxyType,
-            ...(["ssh","rdp","rtsp"].includes(preset)?{application_protocol:preset}:{}),
-            local_scheme: proxyType==="http"?form.get("local_scheme"):"http",
-            local_host: form.get("local_host"),
-            local_port: Number(form.get("local_port")),
-            enabled: form.get("enabled") === "on",
-            ...(access ? { access } : {}),
-          }),
-        });
-        modal.close("saved");
-        toast("连接已保存。设备在线后会自动应用；可在连接详情查看进度。");
-        await navigateTo("connections");
-      },
-    });
-    bindAccessModeToggle();
-    bindSubdomainAvailability();
-    const presetNode=modalBody.querySelector("#modal-client-preset");
-    const applyPreset=()=>{
-      const raw=presetNode.value!=="http";
-      for(const selector of ["#modal-subdomain","#modal-local_scheme"]) {
-        const input=modalBody.querySelector(selector);input.disabled=raw;input.required=!raw;input.closest(".field").hidden=raw;
-      }
-      modalBody.querySelector("#modal-http-options").hidden=raw;
-      if(!raw)bindAccessModeToggle();
-      else modalBody.querySelectorAll("#modal-http-options input, #modal-http-options select, #modal-http-options textarea").forEach(input=>{input.disabled=true;input.required=false;});
-      const defaults={ssh:22,rdp:3389,rtsp:554};
-      if(defaults[presetNode.value])modalBody.querySelector("#modal-local_port").value=defaults[presetNode.value];
-    };
-    presetNode.addEventListener("change",()=>{
-      modalBody.querySelectorAll("#modal-http-options input, #modal-http-options select, #modal-http-options textarea").forEach(input=>input.disabled=false);
-      applyPreset();
-    });applyPreset();
-    return;
-  }
-  if (!state.users.length) state.users = (await api("/api/v1/admin/users")).items;
-  state.devices = (await allPages("/api/v1/admin/devices")).items.filter(
-    (item) => item.status === "active",
-  );
+  const admin = isAdmin(), root = admin ? "/api/v1/admin" : "/api/v1/client";
+  const [devices, catalog, users] = await Promise.all([
+    allPages(`${root}/devices`), api(`${root}/connections?page_size=1`),
+    admin ? api("/api/v1/admin/users") : Promise.resolve(null),
+  ]);
+  state.devices = devices.items.filter((item) => item.status === "active");
+  if (users) state.users = users.items;
   if (!state.devices.length) {
-    toast("请先让用户通过 Windows、Linux 或 macOS 客户端注册设备", "error");
-    return;
+    toast("请先在家里的电脑上安装客户端并登录同一账号", "error");
+    await navigateTo("devices"); return;
   }
-  const userOptions = state.users
-    .filter((item) => item.status === "active")
-    .map(
-      (user) =>
-        `<option data-no-translate value="${user.id}">${escapeHtml(user.display_name)} · ${escapeHtml(user.username)}</option>`,
-    )
-    .join("");
-  const deviceOptions = state.devices
-    .map(
-      (device) =>
-        `<option data-no-translate value="${device.id}" data-user="${device.user_id}">${escapeHtml(device.name)} · ${escapeHtml(device.username)}</option>`,
-    )
-    .join("");
-  const hasRawTunnels = ["tcp", "udp"].some((proxyType) => transportSettings(proxyType).enabled);
-  const proxyTypeField = hasRawTunnels
-    ? `<div class="field"><label for="modal-proxy_type">隧道类型</label><select id="modal-proxy_type" name="proxy_type" aria-describedby="modal-proxy-type-helper">${proxyTypeOptions()}</select><p class="helper" id="modal-proxy-type-helper">端口隧道仅管理员可分配，且不经过 HTTP 网关。</p></div>`
-    : '<input id="modal-proxy_type" name="proxy_type" type="hidden" value="http">';
-  openModal({
-    title: "创建受管连接",
-    eyebrow: "受管连接",
-    body: `<div class="form-grid"><div class="field"><label for="modal-user_id">用户</label><select id="modal-user_id" name="user_id">${userOptions}</select></div><div class="field"><label for="modal-device_id">设备</label><select id="modal-device_id" name="device_id">${deviceOptions}</select></div>${field("name", "连接名称")}${field("subdomain", "连接标识", "", { helper: `HTTP 公网子域为 .${state.tunnelDomain}；端口隧道中仅作为连接标识` })}${proxyTypeField}<div class="field hidden" id="modal-remote-port-field"><label for="modal-remote_port" id="modal-remote-port-label">公网端口</label><input id="modal-remote_port" name="remote_port" type="number" min="1" max="65535" aria-describedby="modal-remote-port-helper"><p class="helper" id="modal-remote-port-helper" aria-live="polite"></p></div><div class="field" id="modal-local-scheme-field"><label for="modal-local_scheme">本地协议</label><select id="modal-local_scheme" name="local_scheme"><option value="http">http</option><option value="https">https</option></select></div>${field("local_host", "本地地址", "127.0.0.1")}${field("local_port", "本地端口", "8080", { type: "number", min: 1, max: 65535 })}<div id="modal-http-options" class="field full"><div class="form-grid">${field("bandwidth_mbps", "连接上限 (Mbps)", "", { type: "number", required: false, min: 0.1 })}${accessFormFields()}</div></div><div class="field full"><label><input name="enabled" type="checkbox" checked> 创建后立即启用</label></div></div>`,
-    submitLabel: "创建连接",
-    onSubmit: async (form) => {
-      const mbps = String(form.get("bandwidth_mbps") ?? "").trim();
-      const proxyType = String(form.get("proxy_type") ?? "http");
-      const raw = isRawProxy(proxyType);
-      const access = proxyType === "http" ? collectAccessPatch(form) : undefined;
-      await api("/api/v1/admin/connections", {
-        method: "POST",
-        body: JSON.stringify({
-          user_id: form.get("user_id"),
-          device_id: form.get("device_id"),
-          name: form.get("name"),
-          subdomain: form.get("subdomain"),
-          proxy_type: proxyType,
-          remote_port: raw ? Number(form.get("remote_port")) : null,
-          local_scheme: raw ? "http" : form.get("local_scheme"),
-          local_host: form.get("local_host"),
-          local_port: Number(form.get("local_port")),
-          enabled: form.get("enabled") === "on",
-          bandwidth_limit_bps:
-            proxyType === "http" && mbps ? Math.round(Number(mbps) * 1_000_000) : null,
-          ...(access ? { access } : {}),
-        }),
-      });
-      modal.close("saved");
-      toast("连接已保存。设备在线后会自动应用；可在连接详情查看进度。");
-      await navigateTo("connections");
+  openTunnelWizard({ admin, state, catalog, api, allPages, openModal, modal, form: modalForm, body: modalBody,
+    footer: modalFooter, error: modalError, field, escapeHtml, accessFormFields, collectAccessPatch,
+    bindAccessModeToggle, bindSubdomainAvailability, publicAddress,
+    finish: async () => { modal.close("saved"); await navigateTo("connections"); },
+    edit: async (connection) => {
+      modal.close("saved"); await navigateTo("connections");
+      if (!state.connections.some((item) => item.id === connection.id)) state.connections.push(connection);
+      openEditConnection(connection.id);
     },
   });
-  bindAccessModeToggle();
-  bindProxyTypeToggle();
-  bindSubdomainAvailability();
-  const userSelect = modalBody.querySelector("#modal-user_id");
-  const deviceSelect = modalBody.querySelector("#modal-device_id");
-  const filterDevices = () => {
-    const userId = userSelect.value;
-    [...deviceSelect.options].forEach((option) => {
-      option.hidden = option.dataset.user !== userId;
-      option.disabled = option.hidden;
-    });
-    const first = [...deviceSelect.options].find((option) => !option.hidden);
-    const selected = [...deviceSelect.options].find(
-      (option) => option.value === deviceSelect.value && !option.hidden,
-    );
-    deviceSelect.value = selected?.value ?? first?.value ?? "";
-    deviceSelect.disabled = !first;
-    modalFooter.querySelector("button[type=submit]").disabled = !first;
-    modalError.textContent = first ? "" : "这个用户还没有设备。请先安装客户端并用该账号登录。";
-    modalBody.querySelector("#modal-subdomain")?.dispatchEvent(new Event("input"));
-  };
-  userSelect.addEventListener("change", filterDevices);
-  const firstDeviceUser = state.devices[0]?.user_id;
-  if (
-    firstDeviceUser &&
-    modal.dataset.restored !== "true" &&
-    [...userSelect.options].some((option) => option.value === firstDeviceUser)
-  )
-    userSelect.value = firstDeviceUser;
-  filterDevices();
 }
 
 function bindSubdomainAvailability() {

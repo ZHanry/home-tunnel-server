@@ -173,6 +173,31 @@ test("client transports require permission, allocate ports atomically and preser
       (await call("POST", "/client/connections", token, input(first, "udp"))).status,
       403,
     );
+    // Admin creation defaults to a transactional server allocation even when
+    // self-service ports are disabled. A failed ownership check cannot consume a port.
+    const managed = { ...input(second, "udp"), user_id: user, subdomain: "family-managed" };
+    assert.equal(
+      (await call("POST", "/admin/connections", manager, { ...managed, user_id: owner })).status,
+      404,
+    );
+    const assigned = await call("POST", "/admin/connections", manager, managed);
+    assert.equal(assigned.status, 201);
+    assert.equal(assigned.data.remote_port, 32101);
+    const nextAssigned = await call("POST", "/admin/connections", manager, {
+      ...managed,
+      subdomain: "family-managed-two",
+    });
+    assert.equal(nextAssigned.status, 201);
+    assert.equal(nextAssigned.data.remote_port, 32102);
+    assert.equal(
+      (
+        await call("POST", "/admin/connections", manager, {
+          ...managed,
+          subdomain: "family-exhausted",
+        })
+      ).data.error_code,
+      "PORT_POOL_EXHAUSTED",
+    );
     assert.equal(
       (
         await call("PATCH", `/client/connections/${udp.data.id}`, token, {

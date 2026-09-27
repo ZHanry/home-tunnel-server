@@ -307,6 +307,87 @@ test("creation draft survives dismissal and owner without devices cannot submit"
   await expect(page.locator("#modal button[type=submit]")).toBeDisabled();
 });
 
+test("service wizard saves once and requires a device report before target verification", async ({ page }) => {
+  await ready(page, "/admin?role=user#connections");
+  let writes = 0, input, snapshot;
+  const id = "b0000000-0000-4000-8000-000000000001";
+  await page.route("**/api/v1/client/connections", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    writes++; input = route.request().postDataJSON();
+    snapshot = { ...input, id, version: 1, applied_version: 1, state: "Online", public_url: "https://test.tunnel.example.com" };
+    await route.fulfill({ status: 201, json: snapshot });
+  });
+  await page.route(`**/api/v1/client/connections/${id}`, (route) => route.fulfill({ json: snapshot }));
+  await page.locator('[data-action="create-connection"]').click();
+  await page.locator("#modal-name").fill("Secure NAS");
+  await page.locator("#modal-client-preset").selectOption("https");
+  await page.locator("#modal button[type=submit]").click();
+  await expect(page.locator('[data-step="1"] h3')).toBeFocused();
+  await expect(page.locator("#modal-local_port")).toHaveValue("443");
+  await expect(page.locator("#modal-local_scheme")).toHaveValue("https");
+  await page.locator("#modal-local_host").fill("192.168.10.8");
+  await page.locator("#modal button[type=submit]").click();
+  await page.locator("#modal button[type=submit]").click();
+  expect(writes).toBe(0);
+  await expect(page.locator("[data-tunnel-summary]")).toContainText("192.168.10.8:443");
+  await page.locator("#modal button[type=submit]").click();
+  await expect(page.locator("[data-tunnel-result]")).toHaveAttribute("data-verification", "pending");
+  expect(input.proxy_type).toBe("http"); expect(input.local_scheme).toBe("https");
+  expect(input.remote_port).toBeUndefined();
+  snapshot.diagnostic = { source: "agent", target: "device_local", transport: "https", failure: "tls" };
+  await page.locator("[data-verify]").click();
+  await expect(page.locator("[data-tunnel-result]")).toHaveAttribute("data-verification", "error");
+  await expect(page.locator("[data-tunnel-result]")).toContainText("目标 TLS");
+  snapshot.diagnostic.failure = "none";
+  await page.locator("[data-verify]").click();
+  await expect(page.locator("[data-tunnel-result]")).toHaveAttribute("data-verification", "verified");
+  expect(writes).toBe(1);
+});
+
+test("raw templates omit client-selected public ports and never submit web credentials", async ({ page }) => {
+  await ready(page, "/admin?role=user#connections");
+  let input;
+  await page.route("**/api/v1/client/connections", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    input = route.request().postDataJSON();
+    await route.fulfill({ status: 403, json: { error_code: "CLIENT_RAW_TUNNELS_DISABLED", message: "权限已变更，请重新选择服务。" } });
+  });
+  await page.locator('[data-action="create-connection"]').click();
+  await page.locator("#modal-name").fill("SSH");
+  await page.locator("#modal-client-preset").selectOption("ssh");
+  await page.locator("#modal button[type=submit]").click();
+  await expect(page.locator("#modal-local_port")).toHaveValue("22");
+  await page.locator("#modal button[type=submit]").click();
+  await expect(page.locator("#modal-http-options")).toBeHidden();
+  await expect(page.locator("[data-port-allocation]")).toBeVisible();
+  await page.locator("#modal button[type=submit]").click();
+  await page.locator("#modal button[type=submit]").click();
+  await expect(page.locator("#modal-error")).toContainText("权限");
+  expect(input.application_protocol).toBe("ssh"); expect(input.proxy_type).toBe("tcp");
+  expect(input.remote_port).toBeUndefined(); expect(input.access).toBeUndefined(); expect(input.subdomain).toBeUndefined();
+});
+
+test("English wizard fits a narrow dark layout and retains editable template values", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => { localStorage.setItem("ht_locale", "en"); localStorage.setItem("ht_theme", "dark"); });
+  await ready(page);
+  await page.locator('[data-action="create-connection"]').click();
+  await expect(page.locator("#modal-title")).toHaveText("Publish a service");
+  await page.locator("#modal-name").fill("Home Assistant");
+  await page.locator("#modal-client-preset").selectOption("home-assistant");
+  await page.locator("#modal button[type=submit]").click();
+  await expect(page.locator("#modal-local_port")).toHaveValue("8123");
+  await page.locator("#modal-local_port").fill("8124");
+  await page.locator("#modal-footer").getByRole("button", { name: "Back", exact: true }).click();
+  await page.locator("#modal button[type=submit]").click();
+  await expect(page.locator("#modal-local_port")).toHaveValue("8124");
+  expect(await page.locator("#modal").evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+  await page.keyboard.press("Escape");
+  await page.locator('[data-action="create-connection"]').click();
+  await page.locator("#modal button[type=submit]").click();
+  await expect(page.locator("#modal-local_port")).toHaveValue("8124");
+});
+
 test("connection edit conflict keeps draft and permits an explicit retry", async ({ page }) => {
   await ready(page);
   await page.locator('[data-action="edit-connection"]').first().click();
@@ -421,7 +502,8 @@ test("server field errors are shown at the input and preserve the form", async (
       },
     });
   });
-  await page.locator("#modal button[type=submit]").click();
+  for (let step = 0; step < 4; step++) await page.locator("#modal button[type=submit]").click();
+  await expect(page.locator('[data-step="1"]')).toBeVisible();
   await expect(page.locator("#modal-local_port")).toHaveAttribute("aria-invalid", "true");
   await expect(page.locator("#modal-local_port-error")).toContainText("端口无效");
   await expect(page.locator("#modal-name")).toHaveValue("家庭服务");
@@ -453,6 +535,8 @@ test("nested IP errors reopen advanced settings and focus the relevant field", a
   await ready(page, "/admin?role=user#connections");
   await page.locator('[data-action="create-connection"]').click();
   await page.locator("#modal-name").fill("家庭服务");
+  await page.locator("#modal button[type=submit]").click();
+  await page.locator("#modal button[type=submit]").click();
   await page.locator(".advanced-options summary").click();
   await page.locator("#modal-access_allowlist").fill("invalid-ip");
   await page.locator(".advanced-options summary").click();
@@ -467,6 +551,7 @@ test("nested IP errors reopen advanced settings and focus the relevant field", a
       },
     });
   });
+  await page.locator("#modal button[type=submit]").click();
   await page.locator("#modal button[type=submit]").click();
   await expect(page.locator("#modal-access_allowlist")).toBeFocused();
   await expect(page.locator("#modal-access_allowlist-error")).toHaveText("请输入有效的 IP 或 CIDR");

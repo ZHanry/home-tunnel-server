@@ -117,12 +117,12 @@ export async function api(path, options = {}, canRefresh = true) {
 }
 
 // Used for bounded selectors and dashboard aggregates; list views render pages.
-export async function allPages(path) {
+export async function allPages(path, options = {}) {
   const url=new URL(path,window.location.origin);
   const items=[]; let first;
   for(let page=1;page<=100;page++) {
     url.searchParams.set("page",String(page));url.searchParams.set("page_size","100");
-    const response=await api(url.pathname+url.search);
+    const response=await api(url.pathname+url.search, options);
     first??=response;items.push(...response.items);
     if(page>=Number(response.total_pages??1))return {...first,items:[...new Map(items.map(item=>[item.id,item])).values()]};
   }
