@@ -23,6 +23,46 @@ async function untranslated(page, selector = "#view-content") {
 
 test.beforeEach(async ({ request }) => { await request.post("/__preview/reset"); });
 
+test("public landing copy and footer translate in both directions", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
+  await page.goto("/");
+  await expect(page.locator("#landing-screen")).toBeVisible();
+  await expect.poll(() => untranslated(page, "#landing-screen")).toEqual([]);
+  await expect(page.getByRole("heading", { name: "Mobile remote management" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Get started", exact: true })).toBeVisible();
+  await page.locator(".marketing-footer [data-locale-toggle]").click();
+  await expect(page.getByRole("heading", { name: "手机远程管理" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "开始使用", exact: true })).toBeVisible();
+});
+
+test("audit events keep labels and action identifiers readable on phones and tablets", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
+  for (const width of [390, 834, 1440]) {
+    await page.setViewportSize({ width, height: 960 });
+    await page.goto("/admin#audit");
+    await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
+    await expect(page.locator(".audit-table-panel .data-table")).toBeVisible();
+    const layout = await page.locator(".audit-table-panel").evaluate((panel) => {
+      const actions = [...panel.querySelectorAll("td:nth-child(2) .cell-primary")];
+      return {
+        pageFits: document.documentElement.scrollWidth <= innerWidth,
+        actionLines: actions.map((action) => {
+          const range = document.createRange();
+          range.selectNodeContents(action);
+          return range.getClientRects().length;
+        }),
+        fieldsFit: [...panel.querySelectorAll("td")].every((cell) => cell.scrollWidth <= cell.clientWidth + 1),
+      };
+    });
+    expect(layout.pageFits, `page width ${width}`).toBe(true);
+    expect(layout.fieldsFit, `audit values at ${width}`).toBe(true);
+    expect(layout.actionLines.length).toBeGreaterThan(0);
+    expect(layout.actionLines.every((lines) => lines === 1), `audit actions at ${width}`).toBe(true);
+    await expect.poll(() => untranslated(page)).toEqual([]);
+  }
+});
+
 test("English navigation pages localize product text while preserving user content", async ({ page }) => {
   test.setTimeout(60_000);
   await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
