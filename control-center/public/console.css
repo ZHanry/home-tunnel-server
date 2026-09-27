@@ -1048,6 +1048,10 @@ input[type="checkbox"] {
 }
 @media (max-width: 480px) {
   .audit-filter-form { grid-template-columns: minmax(0, 1fr); padding: 20px; }
+  .audit-table-panel .data-table td { grid-template-columns: minmax(0, 1fr); row-gap: 2px; }
+  .audit-table-panel .data-table td:before { grid-row: auto; }
+  .audit-table-panel .cell-primary,
+  .audit-table-panel .cell-secondary { grid-column: 1; }
 }
 .audit-filters .field {
   flex: 1;
