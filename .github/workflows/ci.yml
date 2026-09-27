@@ -340,7 +340,10 @@ jobs:
     name: Build server candidate
     needs: quality-gate
     # Opt-in on the dispatch entry that already exists on main. Pull requests do not receive this token.
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_candidate == 'true' && needs.quality-gate.result == 'success' }}
+    # The dependency-review ancestor is intentionally skipped outside PRs. An
+    # explicit status function prevents its skip from suppressing this job after
+    # Quality Gate has successfully evaluated all required checks.
+    if: ${{ always() && !cancelled() && github.event_name == 'workflow_dispatch' && github.event.inputs.build_candidate == 'true' && needs.quality-gate.result == 'success' }}
     permissions:
       contents: read
       actions: read

@@ -18,3 +18,6 @@ e91146c853290f1f8bc8981eda8b574d43ce4117:control-center/src/recovery-capacity.te
 96694d805e648ea665d8bc22e58254207488df2a:control-center/test-fixtures/rd-keyset-vectors.json:jwt:56
 96694d805e648ea665d8bc22e58254207488df2a:control-center/test-fixtures/rd-keyset-vectors.json:jwt:91
 96694d805e648ea665d8bc22e58254207488df2a:control-center/test-fixtures/rd-keyset-vectors.json:jwt:92
+# Historical password-generator alphabet, not a generated password or API key.
+# Exact reviewed finding only; future credentials in this source remain scanned.
+5dbb269027fb35d864aa47efd8d577ce0d73ce17:control-center/src/rd/service.ts:generic-api-key:787
