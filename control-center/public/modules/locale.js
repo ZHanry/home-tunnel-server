@@ -4,6 +4,7 @@ const appShell = document.querySelector("#app-shell");
 
 const localeStorageKey = "ht_locale";
 const zhToEn = {
+  "先在家里的电脑上安装客户端并登录，然后选择设备和服务模板来发布服务。": "Install and sign in to the client on your home computer, then choose a device and service template to publish a service.",
   "服务": "Service",
   "运行概况": "Operational overview",
   "更多用户操作": "More user actions",

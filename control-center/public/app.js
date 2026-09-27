@@ -419,7 +419,7 @@ async function renderDashboard(renderId) {
   viewContent.innerHTML = `
     <section class="overview-metrics" aria-label="运行概况">${metrics.map((metric) => `<article class="overview-metric"><div><span>${metric.label}</span><svg viewBox="0 0 24 24" aria-hidden="true">${metric.icon}</svg></div><strong>${metric.value}</strong><small>${metric.note}</small></article>`).join("")}</section>
     <div class="dashboard-primary"><section class="panel dashboard-quick"><div class="panel-header"><h3>快速开始</h3><span class="panel-subtle">最常用的操作</span></div><div class="dashboard-actions"><button type="button" data-action="view-remote"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="15" rx="2"/><path d="M8 22h8m-4-4v4M7 10l3-3m0 0H7m3 0v3"/></svg><strong>连接远程电脑</strong><span aria-hidden="true">→</span></button><button type="button" data-action="create-connection"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.3 1.3M14 11a5 5 0 0 0-7.1 0l-2 2a5 5 0 0 0 7.1 7.1l1.3-1.3"/></svg><strong>创建内网连接</strong><span aria-hidden="true">→</span></button><button type="button" data-action="view-devices"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg><strong>查看设备</strong><span aria-hidden="true">→</span></button></div></section><section class="panel dashboard-health"><div class="panel-header"><h3>系统组件</h3>${statusBadge(health.status)}</div><div class="health-rail-list">${healthRows}</div></section></div>
-    <section class="overview-banner"><div><p class="eyebrow">YOUR HOME, CONNECTED</p><h2>${health.status === "healthy" ? "你的家庭服务，触手可及。" : "有些服务需要你的关注。"}</h2><p>设备、远控和内网连接独立管理。<span class="mono" data-no-translate>${escapeHtml(state.tunnelDomain)}</span></p></div><button class="button button-secondary" data-action="view-connections">管理连接 →</button></section>
+    <section class="overview-banner"><div><p class="eyebrow">YOUR HOME, CONNECTED</p><h2>${health.status === "healthy" ? "你的家庭服务，触手可及。" : "有些服务需要你的关注。"}</h2><p>设备、远控和内网连接独立管理。 <span class="mono" data-no-translate>${escapeHtml(state.tunnelDomain)}</span></p></div><button class="button button-secondary" data-action="view-connections">管理连接 →</button></section>
     <section class="panel table-panel dashboard-traffic"><div class="panel-header"><div><h3>流量最高的连接</h3><span class="panel-subtle">过去 24 小时 · 按实际使用量排序</span></div><button class="button button-quiet" data-action="view-connections">全部连接</button></div>${
       traffic.items.length
         ? `<table class="data-table"><thead><tr><th>服务</th><th>上传</th><th>下载</th><th>请求</th></tr></thead><tbody>${traffic.items
@@ -520,7 +520,7 @@ async function renderUserDashboard(renderId) {
               .join("")}</tbody></table>`
           : emptyState(
               "还没有隧道",
-              "先在家里的电脑上安装客户端并登录，然后在这里创建 HTTP 连接。",
+              "先在家里的电脑上安装客户端并登录，然后选择设备和服务模板来发布服务。",
               "create-connection",
               "创建连接",
             )
@@ -655,7 +655,8 @@ async function renderAudit(renderId = state.renderId) {
   state.audit.page = Number(data.page ?? state.audit.page);
   state.audit.pageSize = Number(data.page_size ?? state.audit.pageSize);
   const total = Number(data.total ?? data.items.length);
-  const totalPages = Math.max(1, Number(data.total_pages ?? 1));
+  const totalPages = total === 0 ? 1 : Math.max(1, Number(data.total_pages ?? 1));
+  state.audit.page = Math.max(1, Math.min(state.audit.page, totalPages));
   const first = total === 0 ? 0 : (state.audit.page - 1) * state.audit.pageSize + 1;
   const last = total === 0 ? 0 : Math.min(total, first + data.items.length - 1);
   const targetTypes = ["", "User", "Device", "Connection", "Session", "TrafficPolicy"];

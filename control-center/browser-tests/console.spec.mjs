@@ -12,6 +12,17 @@ const ready = async (page, path = "/admin#connections") => {
   await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
 };
 
+test("an empty audit result clears stale page counts and disables pagination", async ({ page }) => {
+  await page.route(/\/api\/v1\/admin\/audit-events(?:\?|$)/, route => route.fulfill({ json: {
+    items: [], total: 0, page: 3, page_size: 25, total_pages: 3,
+  } }));
+  await ready(page, "/admin#audit");
+  await expect(page.locator(".pagination-current")).toHaveText("第 1 / 1 页");
+  await expect(page.locator('[data-action="audit-page"]').first()).toBeDisabled();
+  await expect(page.locator('[data-action="audit-page"]').last()).toBeDisabled();
+  await expect(page.locator(".audit-table-panel")).toContainText("显示 0–0，共 0 条");
+});
+
 test("public home and return link work without a session", async ({ page }) => {
   await page.route("**/api/v1/auth/refresh", (route) =>
     route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }),

@@ -104,6 +104,22 @@ test("account enrollment and authenticator dialogs use the selected language", a
   await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
 });
 
+test("empty collection pages localize their onboarding and recovery instructions", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
+  await page.route(/\/api\/v1\/(admin|client)\/(connections|devices|users|audit-events)(?:\?|$)/, async route => {
+    const response = await route.fetch();
+    const body = await response.json();
+    expect(Array.isArray(body.items)).toBe(true);
+    await route.fulfill({ json: { ...body, items: [], total: 0, page: 1, total_pages: 1 } });
+  });
+  for (const role of ["admin", "user"]) for (const view of ["dashboard", "users", "devices", "connections", "audit"]) {
+    if (role === "user" && ["users", "audit"].includes(view)) continue;
+    await page.goto(`/admin?role=${role}#${view}`);
+    await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
+    await expect.poll(() => untranslated(page), { message: `${role}/${view} empty instructions` }).toEqual([]);
+  }
+});
+
 test("network failures follow English and Chinese without losing the retry action", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
   await page.route(/\/api\/v1\/admin\/users(?:\?|$)/, (route) => route.abort("internetdisconnected"));
