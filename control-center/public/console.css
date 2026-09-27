@@ -1602,13 +1602,17 @@ input[type="checkbox"] {
 .tunnel-steps li[aria-current="step"] { color: var(--primary, #595ad7); background: var(--surface-muted, rgba(89, 90, 215, .1)); font-weight: 700; }
 .tunnel-steps span { flex-shrink: 0; }
 .tunnel-step[hidden], .tunnel-step [hidden] { display: none !important; }
-.tunnel-step h3 { margin-top: 0; }
+.tunnel-step h3 { margin: 0; }
+.tunnel-step.form-grid > .full, .tunnel-step .form-grid > .full { grid-column: 1 / -1; }
+.tunnel-step .field, .tunnel-step .helper { margin-bottom: 0; }
+.tunnel-step.form-grid { gap: 14px; }
 .tunnel-step h3:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 .tunnel-step .public-address { overflow-wrap: anywhere; }
 .tunnel-step .public-address > span { min-width: 0; flex: 1; }
 .tunnel-result-status { font-weight: 600; }
 @media (max-width: 600px) {
-  .tunnel-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tunnel-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-bottom: 16px; }
+  .tunnel-steps li { padding: 6px 8px; }
   .tunnel-step.form-grid { grid-template-columns: minmax(0, 1fr); }
   .tunnel-step .connection-detail { grid-template-columns: minmax(0, 1fr); }
 }

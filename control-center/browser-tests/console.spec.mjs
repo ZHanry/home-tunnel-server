@@ -373,6 +373,9 @@ test("English wizard fits a narrow dark layout and retains editable template val
   await ready(page);
   await page.locator('[data-action="create-connection"]').click();
   await expect(page.locator("#modal-title")).toHaveText("Publish a service");
+  const nameBox = await page.locator("#modal-name").boundingBox();
+  const footerBox = await page.locator("#modal-footer").boundingBox();
+  expect(nameBox.y + nameBox.height).toBeLessThan(footerBox.y);
   await page.locator("#modal-name").fill("Home Assistant");
   await page.locator("#modal-client-preset").selectOption("home-assistant");
   await page.locator("#modal button[type=submit]").click();
