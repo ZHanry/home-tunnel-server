@@ -198,6 +198,7 @@ Current profile and binary implementation limits:
 
 - `PATH_VERIFIED`: The current interoperable body has no proof-summary or verification-version fields; the host independently checks actual selected UDP stats before emitting it.
 - `CAPABILITIES`: Current view profile: permissions/codecs only; full platform/display/input capability negotiation is not implemented.
+- `DISPLAY_LAYOUT`: Optional dpi_x, dpi_y, scale_percent, origin_x and origin_y reuse this display object. Omitted fields remain valid for existing layouts.
 - `CONTROL_RELEASED`: A denied initial request has reason only; new_input_epoch is optional for a release that invalidates an issued epoch.
 - `SESSION_CLOSE`: A close body may be empty for compatibility with existing peers; a provided reason is bounded and non-sensitive.
 - `SESSION_READY` host-to-controller uses `{epoch}`; the controller reply also requires `permissions` and `lease_seq`. Role selection is a separate state-machine check.

@@ -120,6 +120,12 @@ test("the earliest public database upgrades additively through every migration",
         .all()
         .some((row) => String(row.name) === "checksum_sha256"),
     );
+    assert.ok(
+      database
+        .prepare("PRAGMA table_info(runtime_states)")
+        .all()
+        .some((row) => String(row.name) === "diagnostic_json"),
+    );
   } finally {
     database.close();
   }
@@ -613,6 +619,43 @@ test("a failed migration rolls back its schema and migration journal atomically"
     assert.equal(
       database.prepare("SELECT version FROM schema_migrations WHERE version=999").get(),
       undefined,
+    );
+  } finally {
+    database.close();
+  }
+});
+
+test("tunnel diagnostic migration keeps existing runtime rows and leaves the new column empty", () => {
+  const database = new DatabaseSync(":memory:", { enableForeignKeyConstraints: true });
+  try {
+    const index = migrations.findIndex((name) => name.startsWith("020_"));
+    assert.ok(index > 0);
+    apply(database, migrations.slice(0, index));
+    database.exec(`
+      INSERT INTO users(id,username,display_name,password_hash,password_state,role)
+      VALUES('user-diag','diag','Diag','hash','normal','user');
+      INSERT INTO devices(id,user_id,name,install_id,fingerprint_hash,credential_hash)
+      VALUES('device-diag','user-diag','Diag device','install-diag','fingerprint-diag','credential-diag');
+      INSERT INTO connections(id,user_id,device_id,name,subdomain,local_scheme,local_host,local_port)
+      VALUES('connection-diag','user-diag','device-diag','Home','home','http','127.0.0.1',8080);
+      INSERT INTO runtime_states(connection_id,desired_version,state,last_error_code)
+      VALUES('connection-diag',3,'Error','TUNNEL_TARGET_UNREACHABLE');
+    `);
+    apply(database, migrations.slice(index));
+    assert.deepEqual(
+      {
+        ...database
+          .prepare(
+            "SELECT state,last_error_code,diagnostic_json FROM runtime_states WHERE connection_id='connection-diag'",
+          )
+          .get(),
+      },
+      { state: "Error", last_error_code: "TUNNEL_TARGET_UNREACHABLE", diagnostic_json: null },
+    );
+    assert.equal(
+      database.prepare("SELECT local_host FROM connections WHERE id='connection-diag'").get()
+        ?.local_host,
+      "127.0.0.1",
     );
   } finally {
     database.close();

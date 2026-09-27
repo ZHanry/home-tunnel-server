@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Propose API 1.4.0 without freezing `api-v1.4.0`. Endpoint capabilities can report agent-discovered displays, DPI, audio, and files; session and tunnel failures carry typed retry actions.
+- Keep 9.0 rows readable. Migration 020 adds a nullable tunnel diagnostic column, and migration 021 stores the selected display metrics.
+
 ## 9.0.0
 
 - Add stable device IDs, fixed-password redemption, host-approved requests and one-time temporary assistance without broadening same-account endpoint queries.

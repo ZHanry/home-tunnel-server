@@ -424,6 +424,7 @@ export const RD = Object.freeze({
           ]
         }
       ],
+      "profile_note": "Optional dpi_x, dpi_y, scale_percent, origin_x and origin_y reuse this display object. Omitted fields remain valid for existing layouts.",
       "permission_rule": {
         "session_permission": "view",
         "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."
@@ -1926,6 +1927,31 @@ export const RD = Object.freeze({
         "name": {
           "type": "string",
           "maxLength": 128
+        },
+        "dpi_x": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 960
+        },
+        "dpi_y": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 960
+        },
+        "scale_percent": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 500
+        },
+        "origin_x": {
+          "type": "integer",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "origin_y": {
+          "type": "integer",
+          "minimum": -100000,
+          "maximum": 100000
         }
       },
       "required": [

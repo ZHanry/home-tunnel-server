@@ -16,6 +16,8 @@ import { FixedWindowLimiter, verifyPassword } from "../security.js";
 import type { AuthenticatedRequest } from "../types.js";
 import { parseBody, uuid } from "../validation.js";
 import { authenticateRd } from "../rd/auth.js";
+import { capabilitySchema } from "../rd/capabilities.js";
+import { accessModeFor } from "../rd/connection-state.js";
 import { publicJwk, strictJson } from "../rd/crypto.js";
 import * as rd from "../rd/service.js";
 
@@ -302,7 +304,7 @@ router.get(
       [id, user.owner],
     );
     if (!endpoint) rd.fail(404, "RD_NOT_FOUND", "端点不存在");
-    response.json(rd.endpointView(endpoint));
+    response.json(await rd.presentEndpoint(endpoint));
   }),
 );
 router.patch(
@@ -336,28 +338,7 @@ router.put(
       z.strictObject({
         local_enabled: z.boolean(),
         capability_version: z.number().int().positive(),
-        capabilities: z.strictObject({
-          permissions: scopes,
-          unattended_enabled: z.boolean().default(false),
-          displays: z
-            .array(
-              z.strictObject({
-                id: string,
-                name: z.string().max(128),
-                width: z.number().int().min(1).max(32768),
-                height: z.number().int().min(1).max(32768),
-              }),
-            )
-            .max(16)
-            .default([]),
-          codecs: z
-            .array(z.enum(["H264", "VP8", "AV1", "HEVC"]))
-            .max(4)
-            .default([]),
-          status: z
-            .enum(["ready", "locked", "permission_required", "unavailable"])
-            .default("ready"),
-        }),
+        capabilities: capabilitySchema,
         signed_proof: signature,
       }),
       request.body,
@@ -588,9 +569,9 @@ router.get(
       pagination = page(request),
       host = user.identity?.purpose === "host_online";
     const rows = await query(
-      "SELECT * FROM rd_grants WHERE (owner_user_id=? OR controller_owner_user_id=?)" +
-        (host ? " AND host_endpoint_id=?" : "") +
-        " ORDER BY created_at,id LIMIT ? OFFSET ?",
+      "SELECT g.*,i.access_kind FROM rd_grants g LEFT JOIN rd_assist_invites i ON i.id=g.assist_invite_id WHERE (g.owner_user_id=? OR g.controller_owner_user_id=?)" +
+        (host ? " AND g.host_endpoint_id=?" : "") +
+        " ORDER BY g.created_at,g.id LIMIT ? OFFSET ?",
       host
         ? [user.owner, user.owner, user.identity!.endpoint.id, pagination.limit, pagination.offset]
         : [user.owner, user.owner, pagination.limit, pagination.offset],
@@ -602,6 +583,10 @@ router.get(
         controller_endpoint_id: row.controller_endpoint_id,
         status: row.status,
         mode: row.mode,
+        access_mode: accessModeFor(
+          String(row.mode),
+          row.access_kind == null ? null : String(row.access_kind),
+        ),
         grant_version: row.grant_version,
         permissions: JSON.parse(row.scope_json as string) as unknown,
         grant_jws: row.host_signature,
@@ -712,6 +697,8 @@ router.post(
             "RD_PERMISSION_DENIED",
             "RD_PEER_AUTH_FAILED",
             "RD_CANCELLED",
+            "RD_HOST_UNAVAILABLE",
+            "RD_CAPABILITY_UNSUPPORTED",
           ])
           .optional(),
         path_verified: z.boolean().optional(),

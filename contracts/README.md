@@ -1,9 +1,11 @@
 # API contract ownership
 
-The server owns the API contracts. Version **1.3.0** adds remote-access
-authorization modes under `/api/v1/rd`. Publish an immutable `api-v1.3.0`
-tag from a clean, reviewed server commit before consumers update their locks.
-Keep `api-v1.2.0` and all earlier tags immutable.
+The server owns the API contracts. Version **1.4.0** is a proposed contract.
+It adds discovered native capabilities, display DPI, four access modes,
+actionable session failures, and agent-reported tunnel diagnostics under
+`/api/v1`. Do not publish or move an `api-v1.4.0` tag until client, native,
+and Android consumers validate the same documents. The immutable `api-v1.3.0`
+tag and every earlier tag stay unchanged.
 `openapi.v1.json` covers REST requests/responses; `api.schema.json` contains the
 shared JSON Schema types. `home-tunnel.v1.json` remains byte-identical to the
 historical `api-v1.0.0` sync/realtime fixture.

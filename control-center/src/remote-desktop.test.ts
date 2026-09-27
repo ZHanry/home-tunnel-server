@@ -100,9 +100,39 @@ async function newPeer(kind: "host" | "controller", index: number, owner = actor
     const capabilities = {
       permissions: [...rd.permissions],
       unattended_enabled: false,
-      displays: [{ id: "display-1", name: "Main", width: 1920, height: 1080 }],
+      displays: [
+        {
+          id: "display-1",
+          name: "Main",
+          width: 1920,
+          height: 1080,
+          width_px: 1920,
+          height_px: 1080,
+          dpi_x: 96,
+          dpi_y: 96,
+          scale_percent: 100,
+          slot: 0,
+          origin_x: 0,
+          origin_y: 0,
+        },
+      ],
       codecs: ["H264", "VP8"],
       status: "ready",
+      native: {
+        schema: 1,
+        reporter: "agent",
+        backends: {
+          capture: "available",
+          input_keyboard: "available",
+          input_pointer: "available",
+          input_text: "available",
+          system_audio: "available",
+          microphone: "available",
+          clipboard: "available",
+          files: "available",
+          secure_desktop: "unavailable",
+        },
+      },
     };
     const payload = {
       endpoint_id: identity.endpoint.id,
@@ -1457,6 +1487,56 @@ test("HTTP accounts actual JSON bytes and exhausted business budget still permit
       [actor.userId],
     );
   }
+});
+
+test("host capability writes reject undiscovered audio and non-agent desktop reports", async () => {
+  const host = hosts[2]!;
+  const current = await rd.tokenIdentity(host.token);
+  const stored = JSON.parse(current.endpoint.capability_json) as {
+    permissions: string[];
+    displays: { dpi_x?: number; scale_percent?: number }[];
+    native: { reporter: string; backends: Record<string, string> };
+  };
+  assert.equal(stored.native.reporter, "agent");
+  assert.equal(stored.displays[0]?.dpi_x, 96);
+  const presented = await rd.presentEndpoint(current.endpoint);
+  assert.deepEqual(presented.offered_access_modes, ["local_approval", "one_time_password"]);
+  const denied = {
+    ...stored,
+    permissions: ["view", "audio.system"],
+    native: {
+      ...stored.native,
+      backends: { ...stored.native.backends, system_audio: "unavailable" },
+    },
+  };
+  const deniedPayload = {
+    endpoint_id: current.endpoint.id,
+    local_enabled: true,
+    capability_version: current.endpoint.capability_version + 1,
+    capabilities: denied,
+  };
+  await assert.rejects(
+    rd.updateCapabilities(current, {
+      ...deniedPayload,
+      signed_proof: signature(host.privateKey, deniedPayload, "ht-rd-capabilities+jwt"),
+    }),
+    { errorCode: "RD_CAPABILITY_UNSUPPORTED" },
+  );
+  const browserPayload = {
+    ...deniedPayload,
+    capabilities: { ...stored, native: { ...stored.native, reporter: "browser" } },
+  };
+  await assert.rejects(
+    rd.updateCapabilities(current, {
+      ...browserPayload,
+      signed_proof: signature(host.privateKey, browserPayload, "ht-rd-capabilities+jwt"),
+    }),
+    { errorCode: "RD_CAPABILITY_UNSUPPORTED" },
+  );
+  assert.equal(
+    (await rd.tokenIdentity(host.token)).endpoint.capability_version,
+    current.endpoint.capability_version,
+  );
 });
 
 test("account revocation atomically invalidates tokens and stops renewal without releasing active slots", async () => {

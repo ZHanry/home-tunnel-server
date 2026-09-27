@@ -182,6 +182,103 @@ test("client transports require permission, allocate ports atomically and preser
       ).status,
       200,
     );
+    const diagnosticTarget = created[0]!.data;
+    const observedAt = new Date().toISOString();
+    const reported = await call("POST", "/client/runtime-report", token, {
+      device_id: first,
+      reports: [
+        {
+          connection_id: diagnosticTarget.id,
+          applied_version: diagnosticTarget.version,
+          state: "Error",
+          error_code: "TUNNEL_DNS_FAILED",
+          diagnostic: {
+            source: "agent",
+            target: "device_local",
+            transport: "tcp",
+            failure: "dns",
+            retryable: true,
+          },
+          observed_at: observedAt,
+        },
+      ],
+    });
+    assert.equal(reported.status, 202);
+    const visible = (await call("GET", `/client/connections/${diagnosticTarget.id}`, token)).data;
+    assert.equal(visible.local_host, "127.0.0.1");
+    assert.equal(visible.diagnostic.source, "agent");
+    assert.equal(visible.diagnostic.failure, "dns");
+    assert.equal(visible.diagnostic.action, "check_target_dns");
+    const isolated = await call("POST", "/client/runtime-report", sessions.second.accessToken, {
+      device_id: second,
+      reports: [
+        {
+          connection_id: diagnosticTarget.id,
+          applied_version: diagnosticTarget.version,
+          state: "Online",
+          diagnostic: {
+            source: "agent",
+            target: "device_local",
+            transport: "tcp",
+            failure: "none",
+            retryable: false,
+          },
+          observed_at: new Date(Date.parse(observedAt) + 1000).toISOString(),
+        },
+      ],
+    });
+    assert.equal(isolated.status, 202);
+    assert.equal(
+      (await call("GET", `/client/connections/${diagnosticTarget.id}`, token)).data.diagnostic
+        .failure,
+      "dns",
+    );
+    assert.equal(
+      (
+        await call("POST", "/client/runtime-report", token, {
+          device_id: first,
+          reports: [
+            {
+              connection_id: diagnosticTarget.id,
+              applied_version: diagnosticTarget.version,
+              state: "Error",
+              diagnostic: {
+                source: "server",
+                target: "device_local",
+                transport: "tcp",
+                failure: "dns",
+                retryable: true,
+              },
+              observed_at: new Date(Date.parse(observedAt) + 2000).toISOString(),
+            },
+          ],
+        })
+      ).data.error_code,
+      "TUNNEL_DIAGNOSTIC_REJECTED",
+    );
+    assert.equal(
+      (
+        await call("POST", "/client/runtime-report", token, {
+          device_id: first,
+          reports: [
+            {
+              connection_id: udp.data.id,
+              applied_version: udp.data.version,
+              state: "Error",
+              diagnostic: {
+                source: "agent",
+                target: "device_local",
+                transport: "tcp",
+                failure: "dns",
+                retryable: true,
+              },
+              observed_at: new Date().toISOString(),
+            },
+          ],
+        })
+      ).data.error_code,
+      "TUNNEL_TRANSPORT_UNSUPPORTED",
+    );
   } finally {
     server.close();
     await once(server, "close");

@@ -1,4 +1,4 @@
-# Home Tunnel API 1.3 / 9.0.0
+# Home Tunnel API 1.4 proposed / server 9.0.0
 
 [OpenAPI 3.1](../contracts/openapi.v1.json) · [JSON Schema 2020-12](../contracts/api.schema.json) · [Capabilities](../control-center/src/api-capabilities.ts)
 
@@ -31,6 +31,21 @@ so a desktop session can launch remote control. It cannot list another account
 or modify a peer device; `/client/devices` remains device-scoped. Internal
 hooks require private networking and, where specified, `x-home-tunnel-key`.
 Never publish the control-center, gateway, metrics or FRPS plugin ports directly.
+
+## Proposed 1.4 discovery
+
+`contract_version` is `1.4.0` with status `proposed`. `api-v1.3.0` remains the
+last immutable contract tag. A server `remote_desktop.enabled` flag only opens
+the control plane. Audio, files, displays, DPI, and secure desktop are available
+only when the signed endpoint capability says the device agent discovered them.
+The server does not connect to a device's `local_host` or `localhost`; tunnel
+diagnostics are stored from that device's agent report.
+
+Access modes are `local_approval`, `one_time_password`, `fixed_password`, and
+`unattended`. Unattended is offered only when the host's signed capability has
+`unattended_enabled` and the account has MFA. Session responses include
+`access_mode`, `display_metrics`, and a typed `failure` with `retryable` and
+`action`. Connection responses include `diagnostic` only after an agent report.
 
 ## Remote access modes
 
@@ -97,7 +112,8 @@ negotiated capabilities and matching 9.0.0 components. Remote desktop remains
 disabled by default and has platform limitations described in the release notes.
 There is no promised lifetime for obsolete versions.
 
-The immutable contract tag is `api-v1.3.0`; historical tags remain unchanged.
+The proposed contract identifier is `api-v1.4.0`. It is not frozen. The immutable
+`api-v1.3.0` tag and all earlier contract tags remain unchanged.
 Consumers vendor all three files with SHA-256 locks tied to its reviewed commit.
 
 ```sh

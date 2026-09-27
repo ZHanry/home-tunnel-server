@@ -97,6 +97,7 @@ export type ConnectionRow = {
   state?: string;
   applied_version?: string | number;
   last_error_code?: string | null;
+  diagnostic_json?: string | null;
   bandwidth_limit_bps?: string | number | null;
   policy_version?: string | number;
   username?: string;
@@ -175,6 +176,7 @@ export function publicConnection(
     state: row.state ?? (row.enabled ? "Pending" : "Disabled"),
     applied_version: Number(row.applied_version ?? 0),
     last_error_code: row.last_error_code ?? null,
+    ...(row.diagnostic_json ? { diagnostic: JSON.parse(row.diagnostic_json) as unknown } : {}),
     bandwidth_limit_bps: row.bandwidth_limit_bps == null ? null : Number(row.bandwidth_limit_bps),
     policy_version: Number(row.policy_version ?? 1),
     // 门禁配置仅暴露白名单与"是否启用 Basic Auth"，绝不返回哈希或口令。

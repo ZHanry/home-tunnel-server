@@ -3,7 +3,7 @@ import { rdConfig } from "./rd/config.js";
 
 export const apiCapabilities = {
   api_major: 1,
-  contract_version: "1.3.0",
+  contract_version: "1.4.0",
   server_version: APP_VERSION,
   minimum_clients: { desktop: "7.0.0", android: "7.0.0", agent: "7.0.0" },
   openapi_url: "/openapi.json",
@@ -15,6 +15,9 @@ export const apiCapabilities = {
     udp_only: true,
     allow_turn: false,
     allow_ice_tcp: false,
+    discovered_only: true,
+    native_media: "signed_endpoint_report",
+    server_probes_device_localhost: false,
     stun_urls: rdConfig.stunUrls,
     limits: {
       endpoints_per_user: rdConfig.endpointsPerUser,
@@ -34,6 +37,8 @@ export const apiCapabilities = {
     "batch_connections",
     "durable_backup_health",
     "http_latency_metrics",
+    "rd_discovered_capabilities",
+    "tunnel_agent_diagnostics",
   ],
   limits: {
     page_size: 100,

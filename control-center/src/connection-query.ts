@@ -6,7 +6,7 @@ function selectConnectionFields(includeManagementFields: boolean): string {
     ? "JOIN users u ON u.id=c.user_id JOIN devices d ON d.id=c.device_id"
     : "";
   return `
-    SELECT c.*${managementFields},rs.state,rs.applied_version,rs.last_error_code,
+    SELECT c.*${managementFields},rs.state,rs.applied_version,rs.last_error_code,rs.diagnostic_json,
            tp.bandwidth_limit_bps,tp.version AS policy_version
       FROM connections c
       ${managementJoins}

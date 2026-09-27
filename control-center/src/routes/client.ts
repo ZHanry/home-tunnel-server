@@ -22,7 +22,7 @@ import {
   type ConnectionRow,
   updateConnection,
 } from "../domain.js";
-import { one, query, transaction } from "../db.js";
+import { one, query, transaction, type DatabaseClient } from "../db.js";
 import {
   asyncHandler,
   audit,
@@ -34,6 +34,7 @@ import {
   requirePasswordNormal,
 } from "../http.js";
 import { opaqueToken, signLease, tokenHash } from "../security.js";
+import { normalizeAgentDiagnostic } from "../tunnel-diagnostics.js";
 import { parseBody } from "../validation.js";
 import { clientConnectionSelect, customDomainsByConnection } from "../connection-query.js";
 import { checkSubdomainAvailability, usernamePrefix } from "../subdomain-policy.js";
@@ -43,6 +44,96 @@ import { transportSettings } from "../transport-settings.js";
 import { pagination, pageInfo } from "../pagination.js";
 
 const router = Router();
+const diagnosticInput = z.strictObject({
+  source: z.string().min(1).max(32),
+  target: z.string().min(1).max(32),
+  transport: z.string().min(1).max(16),
+  failure: z.string().min(1).max(64),
+  retryable: z.boolean(),
+});
+const runtimeState = z.object({
+  connection_id: z.string().uuid(),
+  applied_version: z.number().int().min(0),
+  state: z.enum(["Disabled", "Pending", "Applying", "Online", "Degraded", "Offline", "Error"]),
+  error_code: z.string().max(64).nullable().optional(),
+  error_summary: z.string().max(512).nullable().optional(),
+  diagnostic: diagnosticInput.optional(),
+});
+
+async function storeRuntimeState(
+  client: DatabaseClient,
+  report: z.infer<typeof runtimeState> & { observed_at?: string },
+  deviceId: string,
+  userId: string,
+) {
+  const owned = await client.query(
+    `SELECT transport_type,proxy_type,local_scheme FROM connections
+      WHERE id=? AND device_id=? AND user_id=? AND deleted_at IS NULL`,
+    [report.connection_id, deviceId, userId],
+  );
+  const connection = owned.rows[0] as
+    | { transport_type?: string | null; proxy_type?: string | null; local_scheme: string }
+    | undefined;
+  if (!connection) return;
+  const diagnostic = report.diagnostic
+    ? JSON.stringify(
+        normalizeAgentDiagnostic(report.diagnostic, {
+          proxy_type: connection.transport_type ?? connection.proxy_type ?? "http",
+          local_scheme: connection.local_scheme,
+        }),
+      )
+    : null;
+  const observedAt = report.observed_at
+    ? new Date(Date.parse(report.observed_at)).toISOString()
+    : null;
+  if (observedAt) {
+    await client.query(
+      `UPDATE runtime_states SET applied_version=max(applied_version,?),state=?,
+         last_error_code=?,last_error_summary=?,
+         diagnostic_json=CASE WHEN ? IS NULL THEN diagnostic_json ELSE ? END,
+         observed_at=?,updated_at=home_tunnel_now()
+       WHERE connection_id=? AND ? <= desired_version AND ? >= observed_at
+         AND EXISTS(SELECT 1 FROM connections c
+           WHERE c.id=runtime_states.connection_id AND c.device_id=? AND c.user_id=?)`,
+      [
+        report.applied_version,
+        report.state,
+        report.error_code ?? null,
+        report.error_summary ?? null,
+        diagnostic,
+        diagnostic,
+        observedAt,
+        report.connection_id,
+        report.applied_version,
+        observedAt,
+        deviceId,
+        userId,
+      ],
+    );
+    return;
+  }
+  await client.query(
+    `UPDATE runtime_states SET
+       applied_version=max(applied_version,?),state=?,last_error_code=?,last_error_summary=?,
+       diagnostic_json=CASE WHEN ? IS NULL THEN diagnostic_json ELSE ? END,
+       observed_at=home_tunnel_now(),updated_at=home_tunnel_now()
+     WHERE connection_id=? AND ? <= desired_version
+       AND EXISTS(SELECT 1 FROM connections c
+         WHERE c.id=runtime_states.connection_id AND c.device_id=? AND c.user_id=?)`,
+    [
+      report.applied_version,
+      report.state,
+      report.error_code ?? null,
+      report.error_summary ?? null,
+      diagnostic,
+      diagnostic,
+      report.connection_id,
+      report.applied_version,
+      deviceId,
+      userId,
+    ],
+  );
+}
 const domainVerificationLimiter = rateLimit({
   windowMs: 60_000,
   limit: 30,
@@ -615,26 +706,7 @@ router.post(
         client_version: z.string().max(64).optional(),
         agent_version: z.string().max(64).optional(),
         clock_utc: z.string().datetime().optional(),
-        connections: z
-          .array(
-            z.object({
-              connection_id: z.string().uuid(),
-              applied_version: z.number().int().min(0),
-              state: z.enum([
-                "Disabled",
-                "Pending",
-                "Applying",
-                "Online",
-                "Degraded",
-                "Offline",
-                "Error",
-              ]),
-              error_code: z.string().max(64).nullable().optional(),
-              error_summary: z.string().max(512).nullable().optional(),
-            }),
-          )
-          .max(250)
-          .default([]),
+        connections: z.array(runtimeState).max(250).default([]),
       }),
       request.body,
     );
@@ -655,26 +727,8 @@ router.post(
         ],
       );
       if (!updated.rows[0]) throw new HttpError(423, "DEVICE_REVOKED", "设备已撤销");
-      for (const state of body.connections) {
-        await client.query(
-          `UPDATE runtime_states SET
-             applied_version=max(applied_version,?),state=?,last_error_code=?,last_error_summary=?,
-             observed_at=home_tunnel_now(),updated_at=home_tunnel_now()
-           WHERE connection_id=? AND ? <= desired_version
-             AND EXISTS(SELECT 1 FROM connections c
-               WHERE c.id=runtime_states.connection_id AND c.device_id=? AND c.user_id=?)`,
-          [
-            state.applied_version,
-            state.state,
-            state.error_code ?? null,
-            state.error_summary ?? null,
-            state.connection_id,
-            state.applied_version,
-            body.device_id,
-            actor.userId,
-          ],
-        );
-      }
+      for (const state of body.connections)
+        await storeRuntimeState(client, state, body.device_id, actor.userId);
     });
     const serverTime = Date.now();
     const clientTime = body.clock_utc ? Date.parse(body.clock_utc) : serverTime;
@@ -785,24 +839,7 @@ router.post(
       z.object({
         device_id: z.string().uuid(),
         reports: z
-          .array(
-            z.object({
-              connection_id: z.string().uuid(),
-              applied_version: z.number().int().min(0),
-              state: z.enum([
-                "Disabled",
-                "Pending",
-                "Applying",
-                "Online",
-                "Degraded",
-                "Offline",
-                "Error",
-              ]),
-              error_code: z.string().max(64).nullable().optional(),
-              error_summary: z.string().max(512).nullable().optional(),
-              observed_at: z.string().datetime(),
-            }),
-          )
+          .array(runtimeState.extend({ observed_at: z.string().datetime() }))
           .min(1)
           .max(250),
       }),
@@ -811,31 +848,8 @@ router.post(
     if (!actor.deviceId || actor.deviceId !== body.device_id)
       throw new HttpError(404, "OWNERSHIP_MISMATCH", "设备不存在");
     await transaction(async (client) => {
-      for (const report of body.reports) {
-        // The stored observed_at is produced by home_tunnel_now() with millisecond
-        // precision; normalize the client value to the same ISO format so the
-        // lexicographic `? >= observed_at` comparison stays correct.
-        const observedAt = new Date(Date.parse(report.observed_at)).toISOString();
-        await client.query(
-          `UPDATE runtime_states SET applied_version=max(applied_version,?),state=?,
-             last_error_code=?,last_error_summary=?,observed_at=?,updated_at=home_tunnel_now()
-           WHERE connection_id=? AND ? <= desired_version AND ? >= observed_at
-             AND EXISTS(SELECT 1 FROM connections c
-               WHERE c.id=runtime_states.connection_id AND c.device_id=? AND c.user_id=?)`,
-          [
-            report.applied_version,
-            report.state,
-            report.error_code ?? null,
-            report.error_summary ?? null,
-            observedAt,
-            report.connection_id,
-            report.applied_version,
-            observedAt,
-            body.device_id,
-            actor.userId,
-          ],
-        );
-      }
+      for (const report of body.reports)
+        await storeRuntimeState(client, report, body.device_id, actor.userId);
       await audit(client, request, "RuntimeReported", "Device", body.device_id, null, {
         report_count: body.reports.length,
       });

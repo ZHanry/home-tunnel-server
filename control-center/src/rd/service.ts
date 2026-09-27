@@ -6,6 +6,15 @@ import { one, query, transaction, type DatabaseClient, type DatabaseRow } from "
 import { HttpError } from "../http.js";
 import { hashPassword, tokenHash, verifyPassword } from "../security.js";
 import type { AuthenticatedActor } from "../types.js";
+import {
+  assertCapabilityReport,
+  assertSessionFeatures,
+  permissions,
+  publicDisplay,
+  type CapabilityReport,
+  type Permission,
+} from "./capabilities.js";
+import { accessModeFor, connectionStateFor, failureView } from "./connection-state.js";
 import { rdConfig } from "./config.js";
 import { genesisKeyset, parseManifest, verifyKeysetUpdate } from "./keyset.js";
 import {
@@ -20,19 +29,8 @@ import {
   type PublicJwk,
 } from "./crypto.js";
 
-export const permissions = [
-  "view",
-  "input.keyboard",
-  "input.pointer",
-  "input.text",
-  "audio.system",
-  "audio.microphone",
-  "clipboard.read",
-  "clipboard.write",
-  "files.send",
-  "files.receive",
-] as const;
-export type Permission = (typeof permissions)[number];
+export { permissions };
+export type { Permission };
 export type Endpoint = DatabaseRow & {
   id: string;
   owner_user_id: string;
@@ -209,6 +207,33 @@ export function endpointView(endpoint: Endpoint) {
     capability_version: endpoint.capability_version,
     metadata_version: endpoint.metadata_version,
   };
+}
+export async function presentEndpoint(endpoint: Endpoint, db?: DatabaseClient) {
+  const modes: string[] = [];
+  if (endpoint.local_enabled && endpoint.status === "active" && endpoint.role !== "controller") {
+    modes.push("local_approval", "one_time_password");
+    const profile = db
+      ? await first<{ password_hash: string | null }>(
+          db,
+          "SELECT password_hash FROM rd_access_profiles WHERE host_endpoint_id=? AND host_owner_user_id=?",
+          [endpoint.id, endpoint.owner_user_id],
+        )
+      : await one<{ password_hash: string | null }>(
+          "SELECT password_hash FROM rd_access_profiles WHERE host_endpoint_id=? AND host_owner_user_id=?",
+          [endpoint.id, endpoint.owner_user_id],
+        );
+    if (profile?.password_hash) modes.push("fixed_password");
+    const reported = JSON.parse(endpoint.capability_json) as { unattended_enabled?: unknown };
+    const user = db
+      ? await first<{ mfa_secret: string | null }>(db, "SELECT mfa_secret FROM users WHERE id=?", [
+          endpoint.owner_user_id,
+        ])
+      : await one<{ mfa_secret: string | null }>("SELECT mfa_secret FROM users WHERE id=?", [
+          endpoint.owner_user_id,
+        ]);
+    if (reported.unattended_enabled === true && user?.mfa_secret) modes.push("unattended");
+  }
+  return { ...endpointView(endpoint), offered_access_modes: modes };
 }
 export async function audit(db: DatabaseClient, owner: string, action: string, id: string) {
   await db.query(
@@ -432,7 +457,7 @@ export async function enroll(
     const endpoint = await endpointById(db, id);
     await audit(db, actor.userId, "EndpointEnrolled", id);
     return {
-      endpoint: endpointView(endpoint),
+      endpoint: await presentEndpoint(endpoint, db),
       ...(await issueToken(
         db,
         endpoint,
@@ -697,7 +722,11 @@ export async function listEndpoints(
       " ORDER BY created_at,id LIMIT ? OFFSET ?",
     restricted ? [owner, identity.endpoint.id, limit, offset] : [owner, limit, offset],
   );
-  return { items: rows.map(endpointView), limit, offset };
+  return {
+    items: await Promise.all(rows.map((row) => presentEndpoint(row))),
+    limit,
+    offset,
+  };
 }
 export async function updateCapabilities(
   identity: RdIdentity,
@@ -727,6 +756,7 @@ export async function updateCapabilities(
       ) !== canonical(payload)
     )
       fail(401, "RD_PROOF_INVALID", "能力签名不匹配");
+    assertCapabilityReport(identity.endpoint, body.capabilities as CapabilityReport);
     const result = await db.query(
       "UPDATE rd_endpoints SET local_enabled=?,capability_version=?,capability_json=?,updated_at=home_tunnel_now() WHERE id=? AND capability_version<?",
       [
@@ -743,7 +773,7 @@ export async function updateCapabilities(
         "UPDATE rd_sessions SET state='closing',close_reason='RD_HOST_DISABLED',state_version=state_version+1 WHERE host_endpoint_id=? AND state NOT IN ('closed','failed','expired','closing')",
         [identity.endpoint.id],
       );
-    return endpointView(await endpointById(db, identity.endpoint.id));
+    return presentEndpoint(await endpointById(db, identity.endpoint.id), db);
   });
 }
 
@@ -846,6 +876,7 @@ async function accessTarget(db: DatabaseClient, invite: AssistInvite) {
     host_jkt: host.jkt,
     host_public_jwk: JSON.parse(host.public_jwk) as PublicJwk,
     capabilities: JSON.parse(host.capability_json) as unknown,
+    access_mode: accessModeFor(null, invite.access_kind),
     expires_at: invite.expires_at,
   };
 }
@@ -1308,11 +1339,17 @@ export async function listAssistInvites(identity: RdIdentity) {
       expires_at: string;
       created_at: string;
       redeemed_at: string | null;
+      access_kind: string;
     }>(
-      "SELECT id,device_code AS device_id,state,expires_at,created_at,redeemed_at FROM rd_assist_invites WHERE host_owner_user_id=? AND host_endpoint_id=? AND state IN ('active','redeemed') ORDER BY created_at DESC LIMIT 30",
+      "SELECT id,device_code AS device_id,state,expires_at,created_at,redeemed_at,access_kind FROM rd_assist_invites WHERE host_owner_user_id=? AND host_endpoint_id=? AND state IN ('active','redeemed') ORDER BY created_at DESC LIMIT 30",
       [identity.endpoint.owner_user_id, identity.endpoint.id],
     );
-    return { items: rows.rows };
+    return {
+      items: rows.rows.map(({ access_kind, ...row }) => ({
+        ...row,
+        access_mode: accessModeFor(null, access_kind),
+      })),
+    };
   });
 }
 
@@ -1363,6 +1400,7 @@ export async function redeemAssistInvite(
       host_jkt: host.jkt,
       host_public_jwk: JSON.parse(host.public_jwk) as PublicJwk,
       capabilities: JSON.parse(host.capability_json) as unknown,
+      access_mode: accessModeFor(null, invite.access_kind),
       expires_at: invite.expires_at,
     };
   });
@@ -1817,6 +1855,25 @@ export async function revokeGrant(owner: string, id: string, hostId?: string) {
 }
 
 export async function sessionView(row: Session, participant?: string) {
+  const grant = await one<Grant>("SELECT * FROM rd_grants WHERE id=?", [row.grant_id]);
+  const invite = row.assist_invite_id
+    ? await one<{ access_kind: string }>("SELECT access_kind FROM rd_assist_invites WHERE id=?", [
+        row.assist_invite_id,
+      ])
+    : null;
+  const hostCapability = await one<{ capability_json: string }>(
+    "SELECT capability_json FROM rd_endpoints WHERE id=?",
+    [row.host_endpoint_id],
+  );
+  const displays = hostCapability
+    ? ((JSON.parse(hostCapability.capability_json) as { displays?: Record<string, unknown>[] })
+        .displays ?? [])
+    : [];
+  const storedDisplay =
+    typeof row.display_metrics_json === "string"
+      ? (JSON.parse(row.display_metrics_json) as Record<string, unknown>)
+      : null;
+  const failure = failureView(typeof row.close_reason === "string" ? row.close_reason : null);
   const base = {
     id: row.id,
     session_id: row.id,
@@ -1834,6 +1891,11 @@ export async function sessionView(row: Session, participant?: string) {
     lease_seq: row.lease_seq,
     close_reason: row.close_reason,
     display_id: row.display_id,
+    access_mode: accessModeFor(grant?.mode ?? null, invite?.access_kind ?? null),
+    failure,
+    connection: connectionStateFor(row.state, failure),
+    display_metrics:
+      storedDisplay ?? publicDisplay(displays.find((display) => display.id === row.display_id)),
   };
   if (participant !== row.host_endpoint_id && participant !== row.controller_endpoint_id)
     return base;
@@ -1841,7 +1903,6 @@ export async function sessionView(row: Session, participant?: string) {
     row.host_endpoint_id,
     row.controller_endpoint_id,
   ]);
-  const grant = await one<Grant>("SELECT * FROM rd_grants WHERE id=?", [row.grant_id]);
   return {
     ...base,
     ticket_jws: row.ticket_jws,
@@ -2053,11 +2114,17 @@ export async function createSession(
         !capability.displays?.some((display) => display.id === body.display_id)
       )
         fail(422, "RD_HOST_UNAVAILABLE", "被控端未就绪或所选显示器不存在");
+      const displayMetrics = publicDisplay(
+        (capability.displays as Record<string, unknown>[] | undefined)?.find(
+          (display) => display.id === body.display_id,
+        ),
+      );
       if (
         !body.permissions.includes("view") ||
         body.permissions.some((p) => !allowed.includes(p) || !capability.permissions?.includes(p))
       )
         fail(403, "RD_SCOPE_DENIED", "请求超出本机授权或平台能力");
+      assertSessionFeatures(capability as CapabilityReport, body.permissions);
       const count = await first<{ count: number }>(
         db,
         "SELECT count(*) AS count FROM rd_sessions WHERE owner_user_id=? AND state NOT IN ('closed','failed','expired')",
@@ -2088,7 +2155,7 @@ export async function createSession(
         now = nowIso(),
         deadline = afterSeconds(60);
       await db.query(
-        "INSERT INTO rd_sessions(id,owner_user_id,controller_owner_user_id,host_endpoint_id,controller_endpoint_id,assist_invite_id,controller_parent_session_id,user_token_version,grant_id,grant_version,permissions_json,display_id,state,restore_epoch,approval_expires_at,created_at,updated_at,session_request_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,'pending_approval',?,?,?,?,?)",
+        "INSERT INTO rd_sessions(id,owner_user_id,controller_owner_user_id,host_endpoint_id,controller_endpoint_id,assist_invite_id,controller_parent_session_id,user_token_version,grant_id,grant_version,permissions_json,display_id,display_metrics_json,state,restore_epoch,approval_expires_at,created_at,updated_at,session_request_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'pending_approval',?,?,?,?,?)",
         [
           id,
           host.owner_user_id,
@@ -2102,6 +2169,7 @@ export async function createSession(
           grant.grant_version,
           JSON.stringify(body.permissions),
           body.display_id,
+          JSON.stringify(displayMetrics),
           state.restore_epoch,
           deadline,
           now,
@@ -2364,9 +2432,14 @@ export async function reconnectSession(
         !capability.displays?.some((display) => display.id === displayId)
       )
         fail(422, "RD_HOST_UNAVAILABLE", "被控端未就绪或所选显示器不存在");
+      const displayMetrics = publicDisplay(
+        (capability.displays as Record<string, unknown>[] | undefined)?.find(
+          (display) => display.id === displayId,
+        ),
+      );
       await db.query(
-        "UPDATE rd_sessions SET state='reconnecting',display_id=?,connection_epoch=connection_epoch+1,network_reconnect_count=network_reconnect_count+?,state_version=state_version+1,ticket_jws=NULL,ticket_jti=NULL,host_ready=0,controller_ready=0,updated_at=home_tunnel_now() WHERE id=?",
-        [displayId, displayChanged ? 0 : 1, id],
+        "UPDATE rd_sessions SET state='reconnecting',display_id=?,display_metrics_json=?,connection_epoch=connection_epoch+1,network_reconnect_count=network_reconnect_count+?,state_version=state_version+1,ticket_jws=NULL,ticket_jti=NULL,host_ready=0,controller_ready=0,updated_at=home_tunnel_now() WHERE id=?",
+        [displayId, JSON.stringify(displayMetrics), displayChanged ? 0 : 1, id],
       );
       return { id };
     });
