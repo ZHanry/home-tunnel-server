@@ -76,6 +76,13 @@ const zhToEn = {
   "像坐在电脑前一样。": "Like you're right there.",
   "选择已在线的设备，在独立窗口中查看远程画面。": "Choose an online device and view its desktop in a separate window.",
   可连接设备: "Available devices",
+  连接其他账号: "Connect to another account",
+  "支持被控端批准、固定密码和一次性临时密码。": "Connect with host approval, a permanent password, or a one-time password.",
+  "输入设备 ID": "Enter device ID",
+  无人值守: "Unattended access",
+  绑定可信设备: "Trust this device",
+  "可在设备卡片发起可信设备绑定。管理员批准后，在授权有效期内快捷连接。": "Request trust from a device card. After approval, connect during the authorization period.",
+  "当前没有支持高权限服务的在线设备，可信设备绑定暂不可用。": "No online device currently supports the privileged host service. Trusted-device pairing is unavailable.",
   可连接: "Available",
   不可连接: "Unavailable",
   "UDP 直连就绪": "Direct UDP ready",
@@ -304,6 +311,10 @@ const zhToEn = {
   主导航: "Main navigation",
   工作区: "Workspace",
   系统总览: "Overview",
+  远控: "Remote",
+  穿透: "Tunnels",
+  "动态码或恢复码": "Authenticator or recovery code",
+  "请输入动态码": "Enter your authenticator code",
   用户管理: "Users",
   设备管理: "Devices",
   连接管理: "Connections",
@@ -442,6 +453,7 @@ const zhToEn = {
   异常: "Unhealthy",
   降级: "Degraded",
   待确认: "Unknown",
+  待处理: "Queued",
   正常: "Healthy",
   待改密: "Password change required",
   待应用: "Pending",
@@ -699,7 +711,7 @@ export function localizedText(value, targetLocale = state.locale) {
       .replace(/^在线 · 远控已开启$/, "Online · Remote desktop enabled")
       .replace(/^离线 · 远控尚未就绪$/, "Offline · Remote desktop not ready")
       .replace(/^共 (\d+) 条连接$/, "$1 connections total")
-      .replace(/^待确认 · 尚无备份记录$/, "Unknown · No backup record")
+      .replace(/^待确认 · 尚无备份记录$/, "Unknown · No backups yet")
       .replace(/^需要处理 · 待处理 (\d+)$/, "Needs attention · $1 pending")
       .replace(/^连接详情 · (.+)$/, "Connection details · $1")
       .replace(/^显示 (\d+)–(\d+)，共 ([\d,]+) 条$/, "Showing $1–$2 of $3")
@@ -736,6 +748,7 @@ export function localizedText(value, targetLocale = state.locale) {
       .replace(/^↑ 上传 (.+) · ↓ 下载 (.+)$/, "↑ Upload $1 · ↓ Download $2");
   } else {
     translated = translated
+      .replace(/^Unknown · No backups yet$/, "待确认 · 尚无备份记录")
       .replace(/^Showing (\d+)–(\d+) of ([\d,]+)$/, "显示 $1–$2，共 $3 条")
       .replace(/^Page (\d+) of (\d+)$/, "第 $1 / $2 页")
       .replace(/^(\d+) items$/, "$1 条")

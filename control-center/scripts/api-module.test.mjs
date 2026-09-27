@@ -26,6 +26,7 @@ globalThis.location = { pathname: "/admin" };
 globalThis.window = {
   localStorage: { getItem: () => null, setItem: () => undefined },
   addEventListener: () => undefined,
+  matchMedia: () => ({ matches: false, addEventListener: () => undefined }),
 };
 globalThis.MutationObserver = class {
   observe() {

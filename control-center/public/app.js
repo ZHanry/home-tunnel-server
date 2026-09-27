@@ -284,6 +284,12 @@ function renderPageActions(view) {
 }
 
 async function renderView(view, { background = false } = {}) {
+  // Keep the foreground request responsible for its loading/error state. A
+  // WebSocket opening during first load must not supersede it with stale data.
+  if (background && viewContent.getAttribute("aria-busy") === "true") {
+    state.pendingRefresh = true;
+    return;
+  }
   if (
     background &&
     (document.hidden ||
@@ -308,6 +314,7 @@ async function renderView(view, { background = false } = {}) {
   const renderId = ++state.renderId;
   view = resolveView(view);
   state.currentView = view;
+  if (!background) closeMoreNavigation();
   document
     .querySelectorAll(".nav-item")
     .forEach((item) => {
@@ -316,6 +323,9 @@ async function renderView(view, { background = false } = {}) {
       if (selected) item.setAttribute("aria-current", "page");
       else item.removeAttribute("aria-current");
     });
+  document.querySelector("#nav-more").classList.toggle(
+    "active", Boolean(document.querySelector("#nav-secondary .nav-item.active")),
+  );
   const [title, eyebrow] = viewLabels(view);
   pageTitle.textContent = title;
   pageEyebrow.textContent = eyebrow;
@@ -347,10 +357,12 @@ async function renderView(view, { background = false } = {}) {
         viewContent.dataset.dirty = "true";
       }
     }
+    const refreshAfterLoad = !background && state.pendingRefresh;
     state.lastSync = Date.now();
     state.pendingRefresh = false;
     updateSyncStatus("已同步 · " + new Date(state.lastSync).toLocaleTimeString(localeTag()));
     if (!background) document.querySelector("#main-content").focus({ preventScroll: true });
+    if (refreshAfterLoad) void renderView(state.currentView, { background: true });
   } catch (error) {
     if (renderId !== state.renderId) return;
     viewContent.setAttribute("aria-busy", "false");
@@ -382,17 +394,18 @@ async function renderDashboard(renderId) {
   const healthRows = health.components
     .map((item) => {
       const label =
-        { healthy: "正常", unhealthy: "异常", degraded: "需要处理", unknown: "待确认" }[
+        { healthy: t("正常", "Healthy"), unhealthy: t("异常", "Unhealthy"),
+          degraded: t("需要处理", "Needs attention"), unknown: t("待确认", "Unknown") }[
           item.status
-        ] ?? "待确认";
+        ] ?? t("待确认", "Unknown");
       const detail =
         item.component === "backup"
           ? item.completed_at
-            ? `${label} · ${formatDate(item.completed_at)}`
-            : "待确认 · 尚无备份记录"
+            ? `<span>${label}</span> · ${formatDate(item.completed_at)}`
+            : t("待确认 · 尚无备份记录", "Unknown · No backups yet")
           : item.component === "outbox"
-            ? `${label} · 待处理 ${Number(item.pending ?? 0)}`
-            : `${label}${item.latency_ms == null ? "" : ` · ${Number(item.latency_ms)} ms`}`;
+            ? `<span>${label}</span> · <span>${t("待处理", "Queued")}</span> ${Number(item.pending ?? 0)}`
+            : `<span>${label}</span>${item.latency_ms == null ? "" : ` · ${Number(item.latency_ms)} ms`}`;
       return `<div class="health-rail-item ${item.status === "healthy" ? "" : item.status === "unhealthy" ? "error" : "warn"}"><span class="health-rail-dot"></span><strong>${escapeHtml(componentLabel(item.component))}</strong><span class="health-rail-val">${detail}</span></div>`;
     })
     .join("");
@@ -1670,6 +1683,34 @@ viewContent.addEventListener("submit", async (event) => {
   pageDrafts.delete(`${state.me?.id}:audit`);
   await renderView("audit");
 });
+
+const moreNavigation = document.querySelector("#nav-more");
+const secondaryNavigation = document.querySelector("#nav-secondary");
+function closeMoreNavigation(restoreFocus = false) {
+  document.querySelector("#nav-more").setAttribute("aria-expanded", "false");
+  document.querySelector("#nav-secondary").classList.remove("is-open");
+  if (restoreFocus) document.querySelector("#nav-more").focus();
+}
+moreNavigation.addEventListener("click", () => {
+  const open = moreNavigation.getAttribute("aria-expanded") !== "true";
+  moreNavigation.setAttribute("aria-expanded", String(open));
+  secondaryNavigation.classList.toggle("is-open", open);
+  if (open) [...secondaryNavigation.querySelectorAll(".nav-item")]
+    .find((item) => item.getClientRects().length)?.focus();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && moreNavigation.getAttribute("aria-expanded") === "true") {
+    event.preventDefault();
+    closeMoreNavigation(true);
+  }
+});
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".nav-list")) closeMoreNavigation();
+});
+document.addEventListener("focusin", (event) => {
+  if (!event.target.closest(".nav-list")) closeMoreNavigation();
+});
+window.matchMedia("(max-width: 600px)").addEventListener("change", () => closeMoreNavigation());
 
 document.querySelectorAll(".nav-item").forEach((button) =>
   button.addEventListener("click", () => {

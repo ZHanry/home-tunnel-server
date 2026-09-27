@@ -311,6 +311,7 @@ test("unknown backup and degraded queue are never called normal", async ({ page 
         components: [
           { component: "backup", status: "unknown" },
           { component: "outbox", status: "degraded", pending: 4 },
+          { component: "control-center", status: "healthy", latency_ms: 3 },
         ],
       },
     }),
@@ -318,6 +319,12 @@ test("unknown backup and degraded queue are never called normal", async ({ page 
   await ready(page, "/admin#dashboard");
   await expect(page.locator(".health-rail-list")).toContainText("尚无备份记录");
   await expect(page.locator(".health-rail-list")).toContainText("需要处理");
+  await page.locator(".sidebar [data-locale-toggle]").click();
+  await expect(page.locator(".health-rail-list")).toContainText("Healthy · 3 ms");
+  await expect(page.locator(".health-rail-list")).toContainText("Queued 4");
+  await page.locator(".sidebar [data-locale-toggle]").click();
+  await expect(page.locator(".health-rail-list")).toContainText("正常 · 3 ms");
+  await expect(page.locator(".health-rail-list")).toContainText("待处理 4");
 });
 
 test("creation draft survives dismissal and owner without devices cannot submit", async ({
@@ -460,25 +467,35 @@ for (const width of [375, 768, 1024, 1280, 1440])
     await expect(page.locator('[data-action="edit-connection"]').first()).toBeVisible();
   });
 
-test("mobile top navigation exposes every destination and supports keyboard activation", async ({
+test("mobile navigation exposes labelled tabs and a keyboard accessible More panel", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await ready(page);
-  for (const view of [
-    "dashboard",
-    "users",
-    "devices",
-    "remote",
-    "connections",
-    "audit",
-    "settings",
-    "updates",
-    "account",
-  ]) {
+  for (const view of ["dashboard", "remote", "devices", "connections"]) {
+    await expect(page.locator(`[data-view="${view}"]`)).toBeVisible();
+    await expect(page.locator(`[data-view="${view}"]`)).toHaveAccessibleName(/\S/);
+    await expect(page.locator(`[data-view="${view}"] .nav-mobile-label`)).toBeVisible();
+    const box = await page.locator(`[data-view="${view}"]`).boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(375);
+  }
+  await expect(page.locator("#nav-secondary")).toBeHidden();
+  await page.locator("#nav-more").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator('[data-view="users"]')).toBeFocused();
+  for (const view of ["users", "audit", "settings", "updates", "account"]) {
     await expect(page.locator(`[data-view="${view}"]`)).toBeVisible();
     await expect(page.locator(`[data-view="${view}"]`)).toHaveAccessibleName(/\S/);
   }
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#nav-more")).toBeFocused();
+  await expect(page.locator("#nav-secondary")).toBeHidden();
+  await page.locator("#nav-more").click();
+  await page.locator('[data-view="settings"]').click();
+  await expect(page.locator("#page-title")).toHaveText("系统设置");
+  await expect(page.locator("#nav-more")).toHaveClass(/active/);
+  await expect(page.locator("#nav-secondary")).toBeHidden();
   await page.locator('[data-view="devices"]').focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#page-title")).toHaveText("设备管理");
@@ -486,6 +503,58 @@ test("mobile top navigation exposes every destination and supports keyboard acti
   await page.locator(".mobile-preferences [data-locale-toggle]").click();
   await expect(page.locator('[data-view="devices"]')).toHaveAccessibleName("Devices");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("mobile More hides admin routes and closes when focus leaves or the layout widens", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await ready(page, "/admin?role=user#account");
+  await page.locator("#nav-more").click();
+  for (const view of ["users", "audit", "settings"]) await expect(page.locator(`[data-view="${view}"]`)).toBeHidden();
+  await expect(page.locator('[data-view="updates"]')).toBeFocused();
+  await expect(page.locator('[data-view="account"]')).toHaveAttribute("aria-current", "page");
+  await page.locator(".mobile-preferences [data-locale-toggle]").focus();
+  await expect(page.locator("#nav-secondary")).toBeHidden();
+  await page.locator("#nav-more").click();
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await expect(page.locator("#nav-more")).toBeHidden();
+  await expect(page.locator('[data-view="account"]')).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 700 });
+  await expect(page.locator("#nav-secondary")).toBeHidden();
+});
+
+test("remote access choices translate in both directions", async ({ page }) => {
+  await page.route("**/api/v1/public/capabilities", (route) => route.fulfill({ json: { remote_desktop: { enabled: true } } }));
+  await page.route("**/api/v1/rd/endpoints?**", (route) => route.fulfill({ json: { items: [] } }));
+  await ready(page, "/admin#remote");
+  await page.locator(".sidebar [data-locale-toggle]").click();
+  await expect(page.locator(".remote-unattended-preview").first()).toContainText("Connect to another account");
+  await expect(page.locator(".remote-unattended-preview").last()).toContainText("Unattended access");
+  expect(await page.locator(".remote-dashboard").innerText()).not.toMatch(/[\u3400-\u9fff]/);
+  await page.locator(".sidebar [data-locale-toggle]").click();
+  await expect(page.locator(".remote-unattended-preview").last()).toContainText("无人值守");
+});
+
+test("realtime startup preserves foreground loading failures and an explicit retry", async ({ page }) => {
+  let release, requests = 0;
+  const pending = new Promise((resolve) => { release = resolve; });
+  await page.route(/\/api\/v1\/admin\/users(?:\?|$)/, async (route) => {
+    requests++;
+    if (requests > 1) return route.continue();
+    await pending;
+    return route.fulfill({ status: 503, json: { error_code: "TEMPORARY_UNAVAILABLE", message: "服务暂不可用" } });
+  });
+  try {
+    await page.goto("/admin#users");
+    await expect(page.locator("#sync-status")).toContainText("实时连接已恢复");
+    await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "true");
+    expect(requests).toBe(1);
+    release();
+    await expect(page.locator("#view-content")).toContainText("无法加载数据");
+    await expect(page.locator("#view-content .skeleton")).toHaveCount(0);
+    await page.locator("#view-content").getByRole("button", { name: "重试", exact: true }).click();
+    await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
+    await expect(page.locator("#view-content")).not.toContainText("无法加载数据");
+  } finally { release(); }
 });
 
 test("standard user can access account limits and edit raw targets without errors", async ({
