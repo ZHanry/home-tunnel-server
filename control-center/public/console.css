@@ -1650,6 +1650,36 @@ input[type="checkbox"] {
 .account-panel > .helper {
   padding: 0 28px 28px;
 }
+.account-security-stack {
+  margin-top: 20px;
+  gap: 16px;
+}
+.account-security-stack > .account-panel {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+.account-security-stack > .account-panel > :is(h3, p, .section-intro) {
+  margin: 0;
+}
+.account-security-stack > .account-panel > .helper {
+  padding: 0;
+}
+.account-security-stack .panel-header {
+  padding: 0 0 16px;
+}
+.account-security-stack .section-intro {
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.account-security-stack .section-intro > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.config-state {
+  display: inline-grid;
+  gap: 4px;
+}
 .account-signout {
   padding: 0 28px 24px;
 }

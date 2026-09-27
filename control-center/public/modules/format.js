@@ -79,5 +79,5 @@ export function configState(device) {
   const applied = Number(device.applied_config_version ?? 0);
   const target = Number(device.config_version ?? 0);
   const inSync = applied === target;
-  return `<span class="config-state"><strong class="${inSync ? "" : "drift"}">${inSync ? "已同步" : "待应用"}</strong><small>应用 v${applied} · 目标 v${target}</small></span>`;
+  return `<span class="config-state"><strong class="${inSync ? "" : "drift"}">${inSync ? "已同步" : "待应用"}</strong> <small>应用 v${applied} · 目标 v${target}</small></span>`;
 }
