@@ -515,7 +515,7 @@ async function renderUserDashboard(renderId) {
               .slice(0, 6)
               .map(
                 (item) =>
-                  `<tr><td data-label="连接"><span class="cell-primary" data-no-translate>${escapeHtml(item.name)}</span>${copyableAddress(item)}</td><td data-label="设备">${escapeHtml(item.device_name)}</td><td data-label="上传" class="mono">${formatBytes(item.upload_bytes)}</td><td data-label="下载" class="mono">${formatBytes(item.download_bytes)}</td><td data-label="请求" class="mono">${item.requests.toLocaleString(localeTag())}</td></tr>`,
+                  `<tr><td data-label="连接"><span class="cell-primary" data-no-translate>${escapeHtml(item.name)}</span>${copyableAddress(item)}</td><td data-label="设备"><span data-no-translate>${escapeHtml(item.device_name)}</span></td><td data-label="上传" class="mono">${formatBytes(item.upload_bytes)}</td><td data-label="下载" class="mono">${formatBytes(item.download_bytes)}</td><td data-label="请求" class="mono">${item.requests.toLocaleString(localeTag())}</td></tr>`,
               )
               .join("")}</tbody></table>`
           : emptyState(

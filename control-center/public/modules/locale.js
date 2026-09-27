@@ -4,6 +4,58 @@ const appShell = document.querySelector("#app-shell");
 
 const localeStorageKey = "ht_locale";
 const zhToEn = {
+  "服务": "Service",
+  "运行概况": "Operational overview",
+  "更多用户操作": "More user actions",
+  "更多连接操作": "More tunnel actions",
+  "审计事件分页": "Audit event pagination",
+  "查找设备": "Find devices",
+  "设备名称或标签": "Device name or tag",
+  "标签与收藏不会重启隧道": "Tags and favorites do not restart tunnels",
+  "标签与收藏": "Tags and favorites",
+  "已同步": "Synced",
+  "条连接": "connections",
+  "暂停所选连接": "Pause selected tunnels",
+  "恢复所选连接": "Resume selected tunnels",
+  "每页独立选择，切页后清空": "Selection applies to this page and clears when you change pages",
+  "选择此连接": "Select this tunnel",
+  "创建连接以发布家庭服务；设备需先在家里注册": "Create a tunnel to publish a home service; register its device first",
+  "按权限自助开通": "Create tunnels within your permissions",
+  "没有匹配设备": "No matching devices",
+  "安装客户端并登录，或调整搜索条件。": "Install and sign in to a client, or adjust your search.",
+  "账号安全": "Account security",
+  "双重验证：": "Two-factor authentication:",
+  "未开启": "Not enabled",
+  "添加验证器": "Add authenticator",
+  "设备接入码": "Device enrollment codes",
+  "生成接入码": "Generate enrollment code",
+  "接入码只用于登记新电脑，不会显示账号密码。": "Enrollment codes register new computers without revealing the account password.",
+  "管理会话": "Management sessions",
+  "这里管理 Web、手机和未登记的桌面登录。已登记电脑的长期接入权限请在设备管理中撤销。": "Manage Web, mobile and unenrolled desktop sign-ins here. Revoke enrolled computers in Devices.",
+  "已启用双重验证时必填；每个动态码只能使用一次": "Required when two-factor authentication is enabled; each authenticator code can be used once",
+  "确认双重验证": "Confirm two-factor authentication",
+  "在验证器中手动添加以下密钥，类型选择基于时间（TOTP），再输入生成的 6 位动态码。密钥 10 分钟内有效。": "Add this key to your authenticator as a time-based (TOTP) account, then enter its six-digit code. The key expires in 10 minutes.",
+  "再次输入当前密码": "Re-enter current password",
+  "验证器动态码": "Authenticator code",
+  "保存恢复码": "Save recovery codes",
+  "每个恢复码只能使用一次。离线保存在安全位置；其他管理会话已退出。已登记设备仍保持接入。": "Each recovery code can be used once. Store them safely offline. Other management sessions have signed out; enrolled devices remain connected.",
+  "关闭双重验证": "Disable two-factor authentication",
+  "重新生成恢复码": "Regenerate recovery codes",
+  "新恢复码": "New recovery codes",
+  "旧恢复码已失效，请离线安全保存新恢复码。": "Old recovery codes are invalid. Store the new codes safely offline.",
+  "双重验证已关闭，其他管理会话已退出": "Two-factor authentication is disabled. Other management sessions have signed out",
+  "生成一次性接入码": "Generate a one-time enrollment code",
+  "在新电脑客户端输入服务器地址和接入码，即可登记到当前账号。有效期 10 分钟，只能使用一次。": "Enter the server address and enrollment code in the new computer's client to register it to this account. The code expires in 10 minutes and can be used once.",
+  "用途备注": "Purpose or note",
+  "新设备": "New device",
+  "已使用": "Used",
+  "待接入": "Awaiting enrollment",
+  "撤销": "Revoke",
+  "（当前会话）": "(current session)",
+  "退出此会话": "Sign out this session",
+  "显示最近 100 个会话。修改密码可退出所有会话。": "Showing the 100 most recent sessions. Change your password to sign out all sessions.",
+  "无法连接服务器，请检查网络后重试": "Unable to connect to the server. Check your network and try again",
+  "请求超时，请检查网络后重试": "Request timed out. Check your network and try again",
   "发布内网服务": "Publish a service",
   "发布步骤": "Publishing steps",
   "设备与模板": "Device and template",
@@ -704,6 +756,13 @@ export function localizedText(value, targetLocale = state.locale) {
   let translated = targetLocale === "en" ? (zhToEn[core] ?? core) : (enToZh[core] ?? core);
   if (targetLocale === "en") {
     translated = translated
+      .replace(/^共 (\d+) 台设备$/, "Devices: $1")
+      .replace(/^第 (\d+) \/ (\d+) 页 · 共 (\d+) 条$/, "Page $1 of $2 · $3 items")
+      .replace(/^标签与收藏 · (.+)$/, "Tags and favorites · $1")
+      .replace(/^· 剩余恢复码 (\d+) 个$/, "· Recovery codes remaining: $1")
+      .replace(/^登录 (.+) · 最近刷新 (.+)$/, "Signed in $1 · Last refreshed $2")
+      .replace(/^仅用于此服务器，有效期至 (.+)。请只交给你要接入的设备。$/, "Valid only on this server until $1. Share it only with the device you want to enroll.")
+      .replace(/^每月按 UTC 自然月重置。下次重置：(.+)。TCP\/UDP 不经过 Web 网关，不包含在这里的流量与配额统计中。$/, "Resets monthly in UTC. Next reset: $1. TCP/UDP bypass the Web gateway and are excluded from these traffic and quota totals.")
       .replace(/^已同步 · (.+)$/, "Synced · $1")
       .replace(/^(\d+) 条连接$/, "$1 connections")
       .replace(/^(\d+) 台在线可连接$/, "$1 available online")
@@ -749,6 +808,13 @@ export function localizedText(value, targetLocale = state.locale) {
       .replace(/^↑ 上传 (.+) · ↓ 下载 (.+)$/, "↑ Upload $1 · ↓ Download $2");
   } else {
     translated = translated
+      .replace(/^Devices: (\d+)$/, "共 $1 台设备")
+      .replace(/^Page (\d+) of (\d+) · (\d+) items$/, "第 $1 / $2 页 · 共 $3 条")
+      .replace(/^Tags and favorites · (.+)$/, "标签与收藏 · $1")
+      .replace(/^· Recovery codes remaining: (\d+)$/, "· 剩余恢复码 $1 个")
+      .replace(/^Signed in (.+) · Last refreshed (.+)$/, "登录 $1 · 最近刷新 $2")
+      .replace(/^Valid only on this server until (.+)\. Share it only with the device you want to enroll\.$/, "仅用于此服务器，有效期至 $1。请只交给你要接入的设备。")
+      .replace(/^Resets monthly in UTC\. Next reset: (.+)\. TCP\/UDP bypass the Web gateway and are excluded from these traffic and quota totals\.$/, "每月按 UTC 自然月重置。下次重置：$1。TCP/UDP 不经过 Web 网关，不包含在这里的流量与配额统计中。")
       .replace(/^Unknown · No backups yet$/, "待确认 · 尚无备份记录")
       .replace(/^Showing (\d+)–(\d+) of ([\d,]+)$/, "显示 $1–$2，共 $3 条")
       .replace(/^Page (\d+) of (\d+)$/, "第 $1 / $2 页")

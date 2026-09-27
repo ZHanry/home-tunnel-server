@@ -1,4 +1,4 @@
-import { localizedApiError } from "./locale.js?v=9.0.0";
+import { localizedApiError, localizedText } from "./locale.js?v=9.0.0";
 import { state } from "./state.js?v=9.0.0";
 
 let refreshInFlight = null;
@@ -28,9 +28,9 @@ async function request(path, options) {
   } catch (error) {
     if (options.signal?.aborted) throw error;
     throw new ApiError(
-      error.name === "TimeoutError"
+      localizedText(error.name === "TimeoutError"
         ? "请求超时，请检查网络后重试"
-        : "无法连接服务器，请检查网络后重试",
+        : "无法连接服务器，请检查网络后重试"),
       "NETWORK_UNAVAILABLE",
     );
   }
