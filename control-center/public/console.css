@@ -838,6 +838,9 @@ input[type="checkbox"] {
 .password-field input {
   min-width: 0;
 }
+.password-field input::-ms-reveal {
+  display: none;
+}
 .field-error,
 .modal-error {
   color: var(--danger);
@@ -864,11 +867,13 @@ input[type="checkbox"] {
 .notice-warning {
   background: var(--surface-muted);
 }
-.confirmation-notice {
+.confirmation-notice,
+.notice-stacked {
   flex-direction: column;
   gap: 10px;
 }
-.confirmation-notice > strong {
+.confirmation-notice > strong,
+.notice-stacked > strong {
   overflow-wrap: normal;
 }
 .notice-icon {

@@ -1021,7 +1021,7 @@ async function openUserPolicy(userId) {
     title: `账号带宽与配额 · ${user.username}`,
     draftId: `user-policy:${user.id}`,
     eyebrow: "带宽与配额策略",
-    body: `<div class="notice"><strong>动态共享带宽池</strong><span>该用户全部活跃连接共享此上限；上传和下载共同消耗。</span></div>${field("bandwidth_mbps", "账号带宽上限 (Mbps)", user.bandwidth_limit_bps == null ? "" : user.bandwidth_limit_bps / 1_000_000, { type: "number", required: false, min: 0.1, helper: "留空表示不限速" })}<div class="notice"><strong>月度流量配额</strong><span>按自然月（UTC）统计上传+下载合计；达到配额后网关暂停该用户全部连接，次月自动恢复。本月已用 ${formatBytes(user.month_to_date_bytes)}${user.quota_suspended ? "（当前已因超额停用）" : ""}。</span></div>${field("monthly_quota_gib", "月度配额 (GiB)", user.monthly_quota_bytes == null ? "" : (user.monthly_quota_bytes / 1024 ** 3).toFixed(2), { type: "number", required: false, min: 0.1, helper: "留空表示不限配额" })}`,
+    body: `<div class="notice notice-stacked"><strong>动态共享带宽池</strong><span>该用户全部活跃连接共享此上限；上传和下载共同消耗。</span></div>${field("bandwidth_mbps", "账号带宽上限 (Mbps)", user.bandwidth_limit_bps == null ? "" : user.bandwidth_limit_bps / 1_000_000, { type: "number", required: false, min: 0.1, helper: "留空表示不限速" })}<div class="notice notice-stacked"><strong>月度流量配额</strong><span>按 UTC 自然月统计 Web 上传和下载总量；达到配额后暂停此账号的 Web 访问，次月自动恢复。TCP/UDP 不计入此配额。</span><span>本月已用 ${formatBytes(user.month_to_date_bytes)}。</span>${user.quota_suspended ? "<span>当前 Web 访问已因超额暂停。</span>" : ""}</div>${field("monthly_quota_gib", "月度配额 (GiB)", user.monthly_quota_bytes == null ? "" : (user.monthly_quota_bytes / 1024 ** 3).toFixed(2), { type: "number", required: false, min: 0.1, helper: "留空表示不限配额" })}`,
     onSubmit: async (form) => {
       const raw = String(form.get("bandwidth_mbps") ?? "").trim();
       const quotaRaw = String(form.get("monthly_quota_gib") ?? "").trim();
@@ -1857,7 +1857,9 @@ passwordForm.addEventListener("submit", async (event) => {
     showLogin("密码已修改，请使用新密码重新登录");
   } catch (error) {
     errorNode.textContent = error.message;
-    document.querySelector("#new-password").setAttribute("aria-invalid", "true");
+    const failedField = document.querySelector(error.code === "MFA_REQUIRED" || error.code === "MFA_INVALID" ? "#password-mfa" : "#new-password");
+    failedField.setAttribute("aria-invalid", "true");
+    failedField.focus();
   } finally {
     button.disabled = false;
     button.removeAttribute("aria-busy");
@@ -1868,6 +1870,7 @@ passwordForm.addEventListener("submit", async (event) => {
 
 passwordForm.addEventListener("input", () => {
   document.querySelector("#new-password").removeAttribute("aria-invalid");
+  document.querySelector("#password-mfa").removeAttribute("aria-invalid");
   document.querySelector("#password-error").textContent = "";
 });
 

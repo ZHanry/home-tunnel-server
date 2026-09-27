@@ -23,6 +23,48 @@ async function untranslated(page, selector = "#view-content") {
 
 test.beforeEach(async ({ request }) => { await request.post("/__preview/reset"); });
 
+test("quota policies and applied tunnel versions localize on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
+  await page.goto("/admin#users");
+  await page.locator('[data-action="user-policy"]').first().click();
+  await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
+  await expect(page.locator("#modal")).toContainText("TCP/UDP traffic is excluded");
+  await page.keyboard.press("Escape");
+  await page.goto("/admin?role=user#connections");
+  const action = page.locator('[data-action="connection-details"]').first();
+  await action.click();
+  await expect(page.locator("#modal-title")).toHaveText("Connection details · NAS 控制台");
+  await expect.poll(() => untranslated(page, "#modal-body")).toEqual([]);
+  await expect(page.locator("#modal")).toContainText("Applied 12 / Target 12");
+});
+
+test("forced password change localizes MFA and focuses the code when verification fails", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
+  for (const endpoint of ["session", "refresh"]) await page.route(`**/api/v1/auth/${endpoint}`, route => route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }));
+  await page.route("**/api/v1/auth/login", route => route.fulfill({ json: { password_change_required: true, csrf_token: "fixture" } }));
+  await page.route("**/api/v1/auth/password/change", route => route.fulfill({ status: 401, json: { error_code: "MFA_INVALID", message: "动态码无效" } }));
+  await page.goto("/admin");
+  await page.locator("#login-username").fill("review-member");
+  await page.locator("#login-password").fill("Temporary-Review!1234");
+  await page.locator("#login-form button[type=submit]").click();
+  await expect(page.locator("#password-form:not(.hidden)")).toBeVisible();
+  await expect.poll(() => untranslated(page, "#password-form")).toEqual([]);
+  await page.locator("#new-password").fill("New-Review-Password!1234");
+  await page.locator("#confirm-password").fill("New-Review-Password!1234");
+  await page.keyboard.press("Tab");
+  await expect(page.locator("#password-mfa")).toBeFocused();
+  await page.locator("#password-mfa").fill("123456");
+  await page.keyboard.press("Tab");
+  await expect(page.locator("#password-form button[type=submit]")).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#password-mfa")).toBeFocused();
+  await expect(page.locator("#password-mfa")).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#new-password")).not.toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#password-error")).toHaveText("The authenticator or recovery code is invalid; try again");
+});
+
 test("confirmation dialogs localize their consequences and preserve the selected resource", async ({ page }) => {
   test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -154,6 +196,9 @@ test("account enrollment and authenticator dialogs use the selected language", a
   await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
   await page.goto("/admin?role=user#account");
   await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
+  await page.getByRole("button", { name: "Change password", exact: true }).click();
+  await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Add authenticator", exact: true }).click();
   await expect(page.locator("#modal")).toBeVisible();
   await expect.poll(() => untranslated(page, "#modal")).toEqual([]);

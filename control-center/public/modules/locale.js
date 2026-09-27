@@ -4,6 +4,10 @@ const appShell = document.querySelector("#app-shell");
 
 const localeStorageKey = "ht_locale";
 const zhToEn = {
+  "按 UTC 自然月统计 Web 上传和下载总量；达到配额后暂停此账号的 Web 访问，次月自动恢复。TCP/UDP 不计入此配额。": "Counts Web uploads and downloads per calendar month in UTC. Web access for this account pauses at the limit and resumes next month. TCP/UDP traffic is excluded.",
+  "当前 Web 访问已因超额暂停。": "Web access is currently paused because the quota was exceeded.",
+  "至少 12 个字符，且不能包含用户名": "At least 12 characters; must not contain your username",
+  "动态码或恢复码（已启用时必填）": "Authenticator or recovery code (required if enabled)",
   "批量恢复连接": "Resume tunnels",
   "批量暂停连接": "Pause tunnels",
   "确认执行": "Confirm",
@@ -770,6 +774,8 @@ export function localizedText(value, targetLocale = state.locale) {
   let translated = targetLocale === "en" ? (zhToEn[core] ?? core) : (enToZh[core] ?? core);
   if (targetLocale === "en") {
     translated = translated
+      .replace(/^本月已用 (.+)。$/, "Used this month: $1.")
+      .replace(/^已应用 (\d+) \/ 目标 (\d+)$/, "Applied $1 / Target $2")
       .replace(/^所有设备凭据和会话将撤销，(\d+) 条连接将停止并删除。操作无法撤销，历史审计记录保留。$/, "All device credentials and sessions will be revoked. Tunnels to stop and delete: $1. This cannot be undone. Audit history is retained.")
       .replace(/^本次将恢复以下 (\d+) 条连接。每项独立执行，冲突项保留服务器上的新修改。$/, "Tunnels to resume: $1. Each tunnel is processed independently. Newer server changes are preserved on conflict.")
       .replace(/^本次将暂停以下 (\d+) 条连接。每项独立执行，冲突项保留服务器上的新修改。$/, "Tunnels to pause: $1. Each tunnel is processed independently. Newer server changes are preserved on conflict.")
@@ -825,6 +831,8 @@ export function localizedText(value, targetLocale = state.locale) {
       .replace(/^↑ 上传 (.+) · ↓ 下载 (.+)$/, "↑ Upload $1 · ↓ Download $2");
   } else {
     translated = translated
+      .replace(/^Used this month: (.+)\.$/, "本月已用 $1。")
+      .replace(/^Applied (\d+) \/ Target (\d+)$/, "已应用 $1 / 目标 $2")
       .replace(/^All device credentials and sessions will be revoked\. Tunnels to stop and delete: (\d+)\. This cannot be undone\. Audit history is retained\.$/, "所有设备凭据和会话将撤销，$1 条连接将停止并删除。操作无法撤销，历史审计记录保留。")
       .replace(/^Tunnels to resume: (\d+)\. Each tunnel is processed independently\. Newer server changes are preserved on conflict\.$/, "本次将恢复以下 $1 条连接。每项独立执行，冲突项保留服务器上的新修改。")
       .replace(/^Tunnels to pause: (\d+)\. Each tunnel is processed independently\. Newer server changes are preserved on conflict\.$/, "本次将暂停以下 $1 条连接。每项独立执行，冲突项保留服务器上的新修改。")

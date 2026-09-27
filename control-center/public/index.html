@@ -220,9 +220,9 @@
               required
             />
           </div>
-          <button class="button button-primary button-block" type="submit">保存新密码</button>
-          <div class="field"><label for="password-mfa">动态码或恢复码（已启用时必填）</label><input id="password-mfa" name="mfa_code" type="password" autocomplete="one-time-code" maxlength="128"></div>
+          <div class="field"><label for="password-mfa">动态码或恢复码（已启用时必填）</label><input id="password-mfa" name="mfa_code" type="password" autocomplete="one-time-code" maxlength="128" aria-describedby="password-error"></div>
           <p class="field-error" id="password-error" role="alert"></p>
+          <button class="button button-primary button-block" type="submit">保存新密码</button>
         </form>
 
         <a class="auth-home-link" href="/"
