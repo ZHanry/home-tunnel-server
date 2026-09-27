@@ -4,7 +4,7 @@
 
 **控制台、权限与隧道服务端**
 
-[![Stable 8.0.0](https://img.shields.io/badge/stable-8.0.0-176653)](https://github.com/ZHanry/home-tunnel-server/releases/tag/v8.0.0) [![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Stable 9.0.0](https://img.shields.io/badge/stable-9.0.0-176653)](https://github.com/ZHanry/home-tunnel-server/releases/tag/v9.0.0) [![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 [English](README.en.md) · [项目网站](https://zhanry.github.io/home-tunnel/) · [下载](https://github.com/ZHanry/home-tunnel/blob/main/docs/DOWNLOADS.md) · [快速开始](https://github.com/ZHanry/home-tunnel/blob/main/docs/GETTING_STARTED.md)
 
@@ -12,10 +12,10 @@
 在自己的公网 Linux 主机上部署 Web 控制台、API、流量网关、FRPS 和 Caddy，
 为家庭服务提供访问入口。本仓库负责控制面与部署；隧道执行端见 [Client](https://github.com/ZHanry/home-tunnel-client)。
 
-## 部署 8.0.0
+## 部署 9.0.0
 
 需要公网 Linux amd64/arm64、域名、Docker Compose v2；起步建议 2 GiB 内存。
-从 [Release](https://github.com/ZHanry/home-tunnel-server/releases/tag/v8.0.0) 下载部署包并核验 SHA256SUMS，进入解压目录：
+从 [Release](https://github.com/ZHanry/home-tunnel-server/releases/tag/v9.0.0) 下载部署包并核验 SHA256SUMS，进入解压目录：
 
 ```sh
 python3 deploy/scripts/setup-wizard.py --write
@@ -42,7 +42,7 @@ HTTP 白名单和 Basic Auth；TOTP/恢复码、会话撤销、短期接入码�
 | Grafana、证书与备份告警 | [监控](docs/MONITORING.md) |
 | 开发、字段和兼容性 | [API](docs/API.md) · [OpenAPI](contracts/openapi.v1.json) |
 
-发行组合为 Server/Web、Client/Agent、Android **8.0.0**；7.0 隧道接口保持兼容，远控需要对应 8.0 实现。
+当前稳定发行组合为 Server/Web、Client/Agent、Android **9.0.0**；远控应使用同一发行组合。10.0.0 正在开发，候选构建不代表已通过全部本地验收。
 FRP 0.70.1 独立版本及已固定的安全依赖不受产品版本号变更影响。
 
 ## 开发与质量

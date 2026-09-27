@@ -17,6 +17,13 @@ if component == "server":
     version = json.loads((root / "control-center/package.json").read_text())["version"]
     assert json.loads((root / "traffic-gateway/package.json").read_text())["version"] == version
     assert f'APP_VERSION = "{version}"' in (root / "control-center/src/version.ts").read_text()
+    for name in (".env.example", "deploy/scripts/new-selfhost-config.sh", "deploy/scripts/new-selfhost-config.ps1"):
+        defaults = re.findall(r"^HOME_TUNNEL_VERSION=([^\r\n]+)$", (root / name).read_text(), re.M)
+        assert defaults == [version], f"Deployment version differs from service packages: {name}"
+    compose_defaults = re.findall(r"\$\{HOME_TUNNEL_VERSION:-([^}]+)\}", (root / "compose.yaml").read_text())
+    assert compose_defaults == [version, version], "Root Compose must select the current control and gateway versions"
+    local_images = re.findall(r"image: home-tunnel/(?:control-center|traffic-gateway):([^\s]+)", (root / "deploy/compose.yaml").read_text())
+    assert local_images == [version + "-arm64", version + "-arm64"], "Local ARM64 deployment version drift"
     assert not (root / "control-center/browser-tests/desktop.spec.mjs").exists()
     assert not (root / "go.mod").exists()
 else:
