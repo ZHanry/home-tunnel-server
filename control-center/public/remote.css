@@ -68,14 +68,20 @@
 .remote-text { display: flex; gap: 12px; align-items: end; margin-top: 16px; }
 .remote-text label { flex: 1; }
 .remote-text textarea { display: block; width: 100%; }
-.remote-viewer:fullscreen { padding: 16px; background: #09110d; color: #e5f5ee; overflow: auto; }
+.remote-viewer:fullscreen { padding: 16px; background: var(--page); color: var(--text); overflow: auto; }
 .remote-viewer:fullscreen .remote-video { height: calc(100vh - 180px); }
 .remote-dialog [hidden] { display: none !important; }
 .remote-window-bar { position: fixed; bottom: 12px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 8px; z-index: 2147483646; }
 .remote-data { display: grid; gap: 12px; margin-top: 16px; }
 .remote-data textarea { display: block; width: 100%; margin: 8px 0; }
 .remote-file-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
-.remote-file-row span { flex: 1; overflow-wrap: anywhere; }
+.remote-file-row { padding: 12px 0; border-top: 1px solid var(--border); }
+.remote-file-row span { flex: 1 0 100%; min-width: 0; overflow-wrap: anywhere; }
+.remote-file-row span:empty { display: none; }
+.remote-file-row button { max-width: 100%; white-space: normal; }
+.remote-data [data-clipboard-panel] { display: grid; gap: 12px; }
+.remote-data [data-clipboard-panel] label { display: grid; gap: 6px; }
+.remote-data [data-clipboard-panel] textarea { margin: 0; }
 .remote-data pre { max-height: 240px; overflow: auto; white-space: pre-wrap; }
 .remote-popout .sidebar, .remote-popout .topbar, .remote-popout .sync-status { display: none; }
 .remote-popout .app-shell { display: block; padding: 0; }
@@ -125,4 +131,10 @@
   .remote-popout .remote-text, .remote-popout .remote-data { margin-left: 12px; margin-right: 12px; }
   .remote-popout .remote-auth, .remote-popout .remote-pairing { padding: 18px; }
   .remote-popout .remote-text { flex-direction: column; align-items: stretch; }
+  .remote-popout .remote-video-stage { min-height: min(52dvh, 480px); }
+  .remote-popout .remote-video { height: min(52dvh, 480px); }
+  .remote-popout .remote-viewer > .remote-toolbar { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; overflow: visible; }
+  .remote-popout .remote-toolbar .button { width: 100%; min-width: 0; min-height: 48px; white-space: normal; justify-content: center; }
+  .remote-popout .remote-toolbar label { grid-column: 1 / -1; min-width: 0; white-space: normal; }
+  .remote-popout .remote-toolbar select { flex: 1; min-width: 0; max-width: 100%; }
 }

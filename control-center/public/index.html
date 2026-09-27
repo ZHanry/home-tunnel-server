@@ -214,6 +214,7 @@
             <input
               id="confirm-password"
               name="confirm_password"
+              aria-describedby="password-error"
               type="password"
               autocomplete="new-password"
               minlength="12"
@@ -221,7 +222,7 @@
             />
           </div>
           <div class="field"><label for="password-mfa">动态码或恢复码（已启用时必填）</label><input id="password-mfa" name="mfa_code" type="password" autocomplete="one-time-code" maxlength="128" aria-describedby="password-error"></div>
-          <p class="field-error" id="password-error" role="alert"></p>
+          <p class="field-error form-error-summary" id="password-error" role="alert"></p>
           <button class="button button-primary button-block" type="submit">保存新密码</button>
         </form>
 

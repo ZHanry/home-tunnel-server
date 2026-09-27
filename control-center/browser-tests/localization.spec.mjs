@@ -44,7 +44,11 @@ test("forced password change localizes MFA and focuses the code when verificatio
   await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
   for (const endpoint of ["session", "refresh"]) await page.route(`**/api/v1/auth/${endpoint}`, route => route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }));
   await page.route("**/api/v1/auth/login", route => route.fulfill({ json: { password_change_required: true, csrf_token: "fixture" } }));
-  await page.route("**/api/v1/auth/password/change", route => route.fulfill({ status: 401, json: { error_code: "MFA_INVALID", message: "动态码无效" } }));
+  let passwordRequests = 0;
+  await page.route("**/api/v1/auth/password/change", route => {
+    passwordRequests++;
+    return route.fulfill({ status: 401, json: { error_code: "MFA_INVALID", message: "动态码无效" } });
+  });
   await page.goto("/admin");
   await page.locator("#login-username").fill("review-member");
   await page.locator("#login-password").fill("Temporary-Review!1234");
@@ -52,6 +56,12 @@ test("forced password change localizes MFA and focuses the code when verificatio
   await expect(page.locator("#password-form:not(.hidden)")).toBeVisible();
   await expect.poll(() => untranslated(page, "#password-form")).toEqual([]);
   await page.locator("#new-password").fill("New-Review-Password!1234");
+  await page.locator("#confirm-password").fill("Mismatched-Password!1234");
+  await page.locator("#password-form button[type=submit]").click();
+  await expect(page.locator("#confirm-password")).toBeFocused();
+  await expect(page.locator("#confirm-password")).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#confirm-password")).toHaveAttribute("aria-describedby", "password-error");
+  expect(passwordRequests).toBe(0);
   await page.locator("#confirm-password").fill("New-Review-Password!1234");
   await page.keyboard.press("Tab");
   await expect(page.locator("#password-mfa")).toBeFocused();
@@ -62,6 +72,8 @@ test("forced password change localizes MFA and focuses the code when verificatio
   await expect(page.locator("#password-mfa")).toBeFocused();
   await expect(page.locator("#password-mfa")).toHaveAttribute("aria-invalid", "true");
   await expect(page.locator("#new-password")).not.toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#confirm-password")).not.toHaveAttribute("aria-invalid", "true");
+  expect(passwordRequests).toBe(1);
   await expect(page.locator("#password-error")).toHaveText("The authenticator or recovery code is invalid; try again");
 });
 

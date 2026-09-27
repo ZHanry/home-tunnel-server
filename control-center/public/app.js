@@ -1831,7 +1831,8 @@ passwordForm.addEventListener("submit", async (event) => {
   const form = new FormData(passwordForm);
   if (form.get("new_password") !== form.get("confirm_password")) {
     document.querySelector("#password-error").textContent = "两次输入的新密码不一致";
-    document.querySelector("#new-password").setAttribute("aria-invalid", "true");
+    document.querySelector("#confirm-password").setAttribute("aria-invalid", "true");
+    document.querySelector("#confirm-password").focus();
     return;
   }
   const button = passwordForm.querySelector("button[type=submit]");
@@ -1870,6 +1871,7 @@ passwordForm.addEventListener("submit", async (event) => {
 
 passwordForm.addEventListener("input", () => {
   document.querySelector("#new-password").removeAttribute("aria-invalid");
+  document.querySelector("#confirm-password").removeAttribute("aria-invalid");
   document.querySelector("#password-mfa").removeAttribute("aria-invalid");
   document.querySelector("#password-error").textContent = "";
 });
