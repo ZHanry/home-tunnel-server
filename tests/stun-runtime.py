@@ -23,10 +23,34 @@ spec.loader.exec_module(probe)
 
 
 def run(*args, **kwargs):
-    result = subprocess.run(args, text=True, capture_output=True, timeout=60, **kwargs)
+    result = subprocess.run(args, text=True, capture_output=True, timeout=kwargs.pop('timeout', 60), **kwargs)
     if result.returncode:
         raise RuntimeError(f'{args[0]} exited {result.returncode}: {(result.stdout + result.stderr)[-3000:]}')
     return result.stdout.strip()
+
+
+def wait_for_health(name, report, timeout=60):
+    """Let Docker terminate timed-out probes before starting another one.
+
+    turnutils_stunclient has a blocking recv: a datagram sent before coturn is
+    listening can wait forever. Killing only the docker-exec client does not
+    guarantee that the probe inside the container exits.
+    """
+    started = time.monotonic()
+    report['startup'] = {'deadline_seconds': timeout}
+    while True:
+        state = json.loads(run('docker', 'inspect', '--format', '{{json .State}}', name, timeout=10))
+        report['container_state'] = state
+        report['startup']['elapsed_seconds'] = round(time.monotonic() - started, 3)
+        if not state['Running']:
+            raise RuntimeError(f"Coturn stopped: exit={state['ExitCode']}, OOMKilled={state['OOMKilled']}, error={state['Error']}")
+        health = state.get('Health', {})
+        if health.get('Status') == 'healthy':
+            return state
+        remaining = timeout - (time.monotonic() - started)
+        if remaining <= 0:
+            raise RuntimeError(f"Deployment healthcheck never passed within {timeout}s; last status={health.get('Status', 'missing')}")
+        time.sleep(min(0.2, remaining))
 
 
 def namespace_checks(firewall):
@@ -79,29 +103,22 @@ def main(output):
               'repository_revision': run('git', '-C', str(ROOT), 'rev-parse', 'HEAD'),
               'source_modified': bool(run('git', '-C', str(ROOT), 'status', '--porcelain')),
               'source_sha256': {file: hashlib.sha256((ROOT / file).read_bytes()).hexdigest()
-                                for file in ('deploy/stun/turnserver.conf', 'deploy/stun/firewall.nft', 'deploy/scripts/probe-stun.py')}}
+                                for file in ('deploy/compose.stun.yaml', 'deploy/stun/turnserver.conf', 'deploy/stun/firewall.nft',
+                                             'deploy/scripts/probe-stun.py', 'tests/stun-runtime.py')}}
     started = False
     try:
         # --network none ensures that the probe cannot contact another host.
         run('docker', 'run', '-d', '--name', name, '--network', 'none', '--read-only',
             '--cap-drop', 'ALL', '--cap-add', 'NET_BIND_SERVICE', '--security-opt', 'no-new-privileges:true', '--memory', '64m',
             '--cpus', '0.20', '--pids-limit', '32', '--tmpfs', '/tmp:size=8m,noexec,nosuid,nodev',
+            # Same deployment command and 5s timeout, scheduled more often for
+            # this bounded startup test. Docker owns and reaps every probe.
+            '--health-cmd', 'turnutils_stunclient -p 3478 127.0.0.1',
+            '--health-interval', '1s', '--health-timeout', '5s', '--health-retries', '3',
             '-v', str(ROOT / 'deploy/stun/turnserver.conf') + ':/etc/coturn/turnserver.conf:ro',
             image, '-c', '/etc/coturn/turnserver.conf')
         started = True
-        for _ in range(30):
-            state = json.loads(run('docker', 'inspect', '--format', '{{json .State}}', name))
-            if not state['Running']:
-                logs = subprocess.run(['docker', 'logs', name], capture_output=True, text=True, timeout=10)
-                report['container_exit'] = {key: state[key] for key in ('ExitCode', 'OOMKilled', 'Error')}
-                raise RuntimeError('Coturn stopped: ' + (logs.stdout + logs.stderr)[-3000:])
-            health = subprocess.run(['docker', 'exec', name, 'turnutils_stunclient', '-p', '3478', '127.0.0.1'],
-                                    capture_output=True, timeout=6)
-            if health.returncode == 0:
-                break
-            time.sleep(0.2)
-        else:
-            raise RuntimeError('Deployment healthcheck never passed')
+        state = wait_for_health(name, report)
         ns = ['sudo', 'nsenter', '-t', str(state['Pid']), '-n', '--']
         report['coturn_without_firewall'] = json.loads(run(*ns, sys.executable, str(Path(__file__).resolve()), '--namespace-probe'))
         run(*ns, 'nft', '-c', '-f', str(ROOT / 'deploy/stun/firewall.nft'))
@@ -112,10 +129,23 @@ def main(output):
         report['error'] = str(error)
         raise
     finally:
+        cleanup_error = None
+        if started:
+            try:
+                logs = subprocess.run(['docker', 'logs', name], capture_output=True, text=True, timeout=10)
+                report['container_logs'] = (logs.stdout + logs.stderr)[-12000:]
+            except Exception as error:
+                report['container_logs_error'] = str(error)
+            try:
+                run('docker', 'rm', '-f', name)
+            except Exception as error:
+                cleanup_error = error
+                report['cleanup_error'] = str(error)
+                report['status'] = 'failed'
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(report, indent=2) + '\n')
-        if started:
-            run('docker', 'rm', '-f', name)
+        if cleanup_error and 'error' not in report:
+            raise cleanup_error
     print(json.dumps(report, indent=2))
 
 
