@@ -79,6 +79,45 @@ for (const [preference, systemDark, expectedTheme] of [["light", true, "light"],
   });
 }
 
+test("remote account failures remain visible while narrow and short windows scroll permissions", async ({ page }) => {
+  await prepare(page, "dark", true);
+  await page.context().route("**/api/v1/rd/reauth", route => route.fulfill({ status: 401, json: { error_code: "AUTH_INVALID", message: "账号验证失败" } }));
+  const opening = page.waitForEvent("popup");
+  await page.locator("[data-remote-host]").click();
+  const popup = await opening;
+  await popup.setViewportSize({ width: 390, height: 844 });
+  const form = popup.locator(".remote-auth");
+  await form.locator('[name="password"]').fill("Fixture-Password!1234");
+  await form.locator("button[type=submit]").click();
+  const error = popup.locator(".remote-error");
+  await expect(error).toHaveText("Authentication failed");
+  for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    await popup.setViewportSize(viewport);
+    await form.evaluate(element => element.scrollTo(0, element.scrollHeight));
+    await expect(form.locator("button[type=submit]")).toBeInViewport();
+    const layout = await popup.locator(".remote-dialog").evaluate(dialog => {
+      const header = dialog.querySelector(".remote-header").getBoundingClientRect();
+      const message = dialog.querySelector(".remote-error").getBoundingClientRect();
+      const form = dialog.querySelector(".remote-auth");
+      const bounds = form.getBoundingClientRect();
+      return { headerBottom: header.bottom, messageTop: message.top, messageBottom: message.bottom,
+        formTop: bounds.top, formBottom: bounds.bottom, scrollTop: form.scrollTop,
+        dialogScroll: dialog.scrollTop, height: innerHeight };
+    });
+    expect(layout.messageTop).toBeGreaterThanOrEqual(layout.headerBottom);
+    expect(layout.messageBottom).toBeLessThanOrEqual(layout.formTop);
+    expect(layout.formBottom).toBeLessThanOrEqual(layout.height + 1);
+    expect(layout.scrollTop).toBeGreaterThan(0);
+    expect(layout.dialogScroll).toBe(0);
+    await expect(popup.locator("[data-close]")).toBeInViewport();
+    await popup.locator("[data-close]").focus();
+    await popup.keyboard.press("Tab");
+    await expect(form.locator('[name="password"]')).toBeFocused();
+    await expect(form.locator('[name="password"]')).toBeInViewport();
+  }
+  await popup.close();
+});
+
 test("remote MFA focuses its field and follows account language changes without translating the host name", async ({ page }) => {
   await prepare(page, "light", false);
   await page.context().route("**/api/v1/rd/reauth", route => route.fulfill({ status: 401, json: { error_code: "MFA_REQUIRED", message: "请输入动态码或恢复码" } }));

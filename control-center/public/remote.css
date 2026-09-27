@@ -109,6 +109,10 @@
 .remote-popout .remote-auth legend { padding: 0 6px; font-size: 14px; }
 .remote-popout .remote-auth .remote-permission { color: var(--text); font-size: 14px; }
 .remote-popout .remote-auth > button { width: 100%; }
+.remote-popout .remote-dialog[open]:has(> .remote-auth:not([hidden])) { display: flex; flex-direction: column; overflow: hidden; }
+.remote-popout .remote-dialog:has(> .remote-auth:not([hidden])) > .remote-header,
+.remote-popout .remote-dialog:has(> .remote-auth:not([hidden])) > .remote-error { flex: none; }
+.remote-popout .remote-dialog > .remote-auth:not([hidden]) { flex: 0 1 auto; min-height: 0; overflow-y: auto; align-content: start; }
 .remote-popout .remote-pairing { text-align: center; }
 .remote-popout .remote-viewer { display: flex; flex-direction: column; max-width: none; min-height: calc(100dvh - 58px); margin: auto; }
 .remote-popout .remote-video-stage { order: 0; display: grid; place-items: center; flex: 1; min-height: calc(100vh - 151px); margin: 14px 18px; border: 1px solid #303648; border-radius: 8px; overflow: hidden; background: #0d101a; }
