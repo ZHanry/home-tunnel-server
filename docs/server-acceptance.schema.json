@@ -1,0 +1,63 @@
+{
+  "title": "Home Tunnel server candidate acceptance",
+  "x-authoritative-validator": "scripts/release_candidate.py",
+  "x-release-contract": "server-candidate/1",
+  "x-required-server-gates": [
+    "server",
+    "server_ui",
+    "server_migration",
+    "server_backup",
+    "server_network",
+    "server_stability"
+  ],
+  "x-required-batch-gates": [
+    "vm_windows_pair",
+    "vm_web_to_windows",
+    "vm_android_x64",
+    "network_direct_udp",
+    "network_blocked_udp",
+    "network_ipv6",
+    "migration_9_to_10",
+    "repeat_30",
+    "input_release_2s",
+    "network_restore_30s",
+    "active_2h",
+    "online_24h"
+  ],
+  "description": "Fail closed unless the candidate run, image digests, deployment hashes, server/UI/migration/backup/network/stability gates, and the shared four-repository batch all match. A summary status is not acceptance. Do not store a fixture in this shape as evidence.",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "component",
+    "product",
+    "version",
+    "source_sha",
+    "repository",
+    "status",
+    "candidate_run",
+    "images",
+    "deployment_sha256",
+    "batch",
+    "server_gates"
+  ],
+  "properties": {
+    "batch": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "product",
+        "version",
+        "stage",
+        "source_frozen_at",
+        "frp",
+        "batch_id",
+        "sources",
+        "contract",
+        "artifacts",
+        "ui_coverage",
+        "gates"
+      ]
+    }
+  }
+}

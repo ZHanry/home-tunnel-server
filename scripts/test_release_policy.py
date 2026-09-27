@@ -104,20 +104,7 @@ class ReleasePolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "real acceptance"):
             module.require_acceptance(directory)
         (directory / "server-acceptance.json").write_text(json.dumps(acceptance), encoding="utf-8")
-        self.assertEqual(module.require_acceptance(directory)["source_sha"], "test-commit")
-        acceptance["source_sha"] = "f" * 40
-        (directory / "server-acceptance.json").write_text(json.dumps(acceptance), encoding="utf-8")
-        with self.assertRaisesRegex(SystemExit, "source SHA"):
-            module.require_acceptance(directory)
-        acceptance["source_sha"] = "test-commit"
-        acceptance["images"]["traffic-gateway"]["digest"] = "sha256:" + ("11" * 32)
-        (directory / "server-acceptance.json").write_text(json.dumps(acceptance), encoding="utf-8")
-        with self.assertRaisesRegex(SystemExit, "digest"):
-            module.require_acceptance(directory)
-        acceptance["images"]["traffic-gateway"]["digest"] = records["traffic-gateway"]["digest"]
-        acceptance["deployment_sha256"]["compose.release.yaml"] = "00" * 32
-        (directory / "server-acceptance.json").write_text(json.dumps(acceptance), encoding="utf-8")
-        with self.assertRaisesRegex(SystemExit, "hash mismatch"):
+        with self.assertRaisesRegex(SystemExit, "server_ui"):
             module.require_acceptance(directory)
 
     def test_historical_release_identity_and_contract_tags_stay_unchanged(self):

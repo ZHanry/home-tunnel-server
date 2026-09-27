@@ -14,7 +14,11 @@ Android 沿用已有发行签名。Windows/macOS 的实际签名状态以对应�
 
 先冻结契约，再发布客户端并下载实际 Linux 8.0.0 包计算 SHA-256，然后更新服务端 `tests/client-baseline.json`，通过 amd64/arm64 发行联调后发布服务端。在真实 8.0.0 附件可下载之前，保留当前真实 7.0.0 基线，禁止填写预估摘要。契约标签和产品标签可以对应不同提交，但冻结的协议内容不可漂移。最后更新项目入口的 `releases.json`、网站副本和下载说明，使所有链接对应实际正式产物。
 
-服务端发布分成候选构建和正式发布。标签工作流仍然先通过 Quality Gate、CodeQL 和 Secret scan，再构建镜像、封印摘要并运行现有联调与 STUN 检查。候选镜像和 `compose.release.yaml` 绑定源提交与不可变 digest。`vX.Y.Z` 标签不会在这个工作流里直接发布；必须用构建该候选的 run ID，以及一份与该提交、镜像 digest、部署文件 SHA-256 完全一致的真实验收记录，手动运行 `publish-stable.yml`。验收记录不由发布脚本生成。预发布标签仍在现有门禁通过后发布。历史版本标签和 `api-v1.3.0` 及更早契约标签保持不变，当前 `api-v1.4.0` 仍是提案，不能当作已冻结标签。
+服务端稳定版不通过推送 `vX.Y.Z` 标签来构建。`release.yml` 对稳定标签在 metadata 失败，镜像作业不会运行，因此不会在验收前重建最终镜像。候选构建使用源码里的稳定版本号，不把版本改写成 rc，也不创建公开标签。镜像引用是 `sha-<提交>-<run id>` 加上不可变 digest；`compose.release.yaml` 只记录 `image@digest`。
+
+候选入口是默认分支上已经登记的 `ci.yml` `workflow_dispatch`，输入 `build_candidate=true`。它先完成本次提交的 Quality Gate，并要求同一提交已有成功的 CodeQL 与 Secret scan。这两个安全工作流在 `main` 上已有 `workflow_dispatch`。候选作业单独持有 packages、id-token 与 attestations 权限；pull request 不满足 `workflow_dispatch` 条件，不会拿到这些权限。新的 `server-candidate.yml` 只有 `workflow_call`，本身不能被调度。`publish-stable.yml` 是新文件，在进入默认分支之前也不能被调度。在把这三份工作流文件送到 `main` 之前，不要把开发分支上的 `workflow_dispatch` 当成已经可用的入口。
+
+正式发布只接受该候选 run 的原始字节。`publish-stable.yml` 用 GitHub API 核对 run 属于本仓库、调用方是 `ci.yml`、事件是 `workflow_dispatch`、结论成功、head SHA 与 artifact digest 一致，并用 `server-candidate.yml` 的原始 Sigstore 身份验证校验清单和镜像。清单里的 SHA 只在与 API 一致时采用。验收通过后另行签 `server-acceptance.SHA256SUMS.txt`，不覆盖 `SHA256SUMS.txt.sigstore.json`。验收必须包含服务端、Web UI、迁移、备份、网络、长期稳定性记录，以及与聚合仓库相同的四仓批次和 12 项门禁；缺项、未跑、失败、过期或不匹配都失败。发布脚本不生成通过记录。目标标签或附件已存在时拒绝创建。发布时源码版本必须是 10.0.0，且 `api-v1.4.0` 已在该提交标记为冻结。预发布标签仍走原门禁。历史版本标签和 `api-v1.3.0` 及更早契约标签保持不变。
 
 Windows 客户端继续使用两阶段发布：标签构建保留原始候选附件，操作者对其中的最终 worker 完成原生验收后，使用原构建 run ID 和验收报告启动发布。正式版本也必须通过原文件摘要、源提交、安装卸载、反病毒扫描及失联后两秒输入释放检查，不得重建文件替换已验收产物。
 

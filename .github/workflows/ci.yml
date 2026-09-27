@@ -7,12 +7,18 @@ name: Server CI
     branches:
     - main
   merge_group: null
-  workflow_dispatch: null
+  workflow_dispatch:
+    inputs:
+      build_candidate:
+        description: Build and sign immutable server candidate images for this branch SHA. Does not create a tag or release.
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_candidate == 'true' && format('server-candidate-{0}', github.ref) || format('ci-{0}', github.ref) }}
+  cancel-in-progress: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.build_candidate == 'true') }}
 jobs:
   services:
     name: TypeScript services
@@ -244,7 +250,7 @@ jobs:
         python3 scripts/check-repository.py
     - name: Check release policy
       run: |
-        python3 -m unittest discover -s scripts -p "test_release_policy.py"
+        python3 -m unittest discover -s scripts -p "test_release*.py"
         python3 -m unittest discover -s scripts -p "test_landing_contract.py"
     - name: Verify the patched FRP build dependency locks
       run: |
@@ -330,3 +336,17 @@ jobs:
         if failed: raise SystemExit(str(failed))
         print('All component checks passed')
         PY
+  server-candidate:
+    name: Build server candidate
+    needs: quality-gate
+    # Opt-in on the dispatch entry that already exists on main. Pull requests do not receive this token.
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_candidate == 'true' && needs.quality-gate.result == 'success' }}
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+      id-token: write
+      attestations: write
+    uses: ./.github/workflows/server-candidate.yml
+    with:
+      build_candidate: true
