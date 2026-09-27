@@ -22,7 +22,7 @@ const errors = {
   RD_TEXT_UNCONFIRMED: "未收到文字输入确认，远端可能已经输入。请检查远端后再重试。",
   RD_TEXT_CONTROL_TIMEOUT: "文字尚未发送：等待输入授权超时。",
   RD_CLIPBOARD_TEXT_INVALID: "剪贴板文本含有空字符（NUL）或不完整的 Unicode 字符，无法写入远端系统剪贴板。请删除这些字符后重试。",
-  RD_ACCESS_INVALID: "设备 ID 或固定密码不正确，或该设备已暂停连接。",
+  RD_ACCESS_INVALID: "设备 ID 或连接凭据无效，或该设备已暂停连接。",
   RD_ACCESS_REJECTED: "被控端拒绝了连接请求。",
   RD_ACCESS_EXPIRED: "连接请求已超时，请重试。",
 };
@@ -155,7 +155,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     const monitor = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>';
     viewContent.innerHTML = `<div class="remote-dashboard"><section class="remote-dashboard-hero"><div><span class="eyebrow">REMOTE DESKTOP</span><h2>像坐在电脑前一样。</h2><p>选择已在线的设备，在独立窗口中查看远程画面。</p></div><button type="button" class="button button-primary" data-remote-browse>查看设备 <span aria-hidden="true">→</span></button></section><div class="remote-dashboard-heading"><h2>可连接设备</h2><span>${available.length} 台在线可连接</span></div><section class="remote-device-grid" id="remote-device-grid">${hosts.map((endpoint) => {
       const ready = endpoint.online && endpoint.local_enabled && endpoint.capabilities?.status === "ready" && endpoint.capabilities?.displays?.length;
-      return `<article class="panel remote-device-card"><div class="remote-device-top"><span class="remote-device-icon">${monitor}</span><span class="remote-device-state ${ready ? "ready" : "offline"}">${ready ? "可连接" : "不可连接"}</span></div><h3>${escapeHtml(endpoint.name)}</h3><p>${escapeHtml(endpoint.platform)} · ${ready ? "UDP 直连就绪" : "离线或被控端未就绪"}</p><div class="remote-device-actions"><button class="button button-primary" data-remote-host="${escapeHtml(endpoint.id)}" ${ready ? "" : "disabled"}>立即连接 <span aria-hidden="true">→</span></button>${ready && endpoint.capabilities?.unattended_enabled ? `<button class="button button-secondary" data-remote-trust="${escapeHtml(endpoint.id)}">绑定可信设备</button>` : ""}<details class="remote-device-details"><summary class="button button-secondary">设备信息</summary><div><span>设备标识</span><code>${escapeHtml(endpoint.id)}</code><span>当前状态</span><strong>${endpoint.online ? "在线" : "离线"} · ${endpoint.local_enabled && endpoint.capabilities?.status === "ready" ? "远控已开启" : "远控尚未就绪"}</strong></div></details></div></article>`;
+      return `<article class="panel remote-device-card"><div class="remote-device-top"><span class="remote-device-icon">${monitor}</span><span class="remote-device-state ${ready ? "ready" : "offline"}">${ready ? "可连接" : "不可连接"}</span></div><h3 data-no-translate>${escapeHtml(endpoint.name)}</h3><p>${escapeHtml(endpoint.platform)} · ${ready ? "UDP 直连就绪" : "离线或被控端未就绪"}</p><div class="remote-device-actions"><button class="button button-primary" data-remote-host="${escapeHtml(endpoint.id)}" ${ready ? "" : "disabled"}>立即连接 <span aria-hidden="true">→</span></button>${ready && endpoint.capabilities?.unattended_enabled ? `<button class="button button-secondary" data-remote-trust="${escapeHtml(endpoint.id)}">绑定可信设备</button>` : ""}<details class="remote-device-details"><summary class="button button-secondary">设备信息</summary><div><span>设备标识</span><code>${escapeHtml(endpoint.id)}</code><span>当前状态</span><strong>${endpoint.online ? "在线" : "离线"} · ${endpoint.local_enabled && endpoint.capabilities?.status === "ready" ? "远控已开启" : "远控尚未就绪"}</strong></div></details></div></article>`;
     }).join("") || `<article class="panel empty-state"><h2>还没有被控电脑</h2><p>在桌面客户端本机开启远程桌面后，设备会出现在这里。</p></article>`}</section><section class="remote-unattended-preview"><div><h3>连接其他账号</h3><p>支持被控端批准、固定密码和一次性临时密码。</p></div><button type="button" class="button button-secondary" data-remote-assist>输入设备 ID</button></section><section class="remote-unattended-preview"><div><h3>无人值守</h3><p>${available.some((endpoint) => endpoint.capabilities?.unattended_enabled) ? "可在设备卡片发起可信设备绑定。管理员批准后，在授权有效期内快捷连接。" : "当前没有支持高权限服务的在线设备，可信设备绑定暂不可用。"}</p></div></section></div>`;
     viewContent.querySelector("[data-remote-browse]")?.addEventListener("click", () => viewContent.querySelector("#remote-device-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }));
     viewContent.querySelector("[data-remote-assist]")?.addEventListener("click", () => window.open("/admin?remoteAssist=1#remote", "ht-remote-assist", "width=1280,height=840,resizable=yes,scrollbars=yes,noopener"));
@@ -181,7 +181,6 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     if (active.has(host.id)) { raise(active.get(host.id)); return; }
     if (active.size >= 4) return;
     const dialog = document.createElement("dialog"); dialog.className = "remote-dialog";
-    dialog.setAttribute("aria-label", `远程桌面：${host.name}`);
     dialog.innerHTML = `<header class="remote-header"><div><h2>${escapeHtml(host.name)}</h2><p class="remote-status" role="status">正在准备安全连接</p></div><button type="button" class="button button-secondary" data-close>关闭</button></header>
       <p class="remote-error" role="alert"></p>
       <form class="remote-auth" hidden><div class="field"><label>账号密码<input name="password" type="password" autocomplete="current-password" required maxlength="256"></label></div><div class="field remote-mfa-field" hidden><label>动态码或恢复码<input name="mfa" autocomplete="one-time-code" maxlength="128"></label></div>
@@ -189,6 +188,9 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       <button class="button button-primary" type="submit">${mode === "persistent" ? "验证并绑定可信设备" : "验证并请求连接"}</button></form>
       <section class="remote-pairing" hidden><p>${assistInviteId ? "正在验证设备身份与本次连接。" : mode === "persistent" ? "请让被控电脑的管理员确认设备身份并批准持续授权。配对码：" : "请在被控电脑上批准本次连接。配对码用于核对设备身份："}</p><strong class="remote-code" data-no-translate></strong></section>
       <section class="remote-viewer" hidden><div class="remote-toolbar"><button class="button button-secondary" data-input>${toolIcon("keyboard")}<span>允许输入</span></button><button class="button button-secondary" data-release>${toolIcon("release")}<span>释放输入</span></button><button class="button button-secondary" data-fullscreen>${toolIcon("fullscreen")}<span>全屏</span></button><button class="button button-secondary" data-play>${toolIcon("play")}<span>播放画面</span></button><button class="button button-secondary" data-audio ${host.capabilities.permissions?.includes("audio.system") ? "" : "disabled"}>${toolIcon("audio")}<span>开启系统声音</span></button><button class="button button-secondary" data-microphone ${host.capabilities.permissions?.includes("audio.microphone") ? "" : "disabled"}>${toolIcon("microphone")}<span>开启麦克风回传</span></button></div><div class="remote-video-stage"><video class="remote-video" autoplay muted playsinline aria-label="远端桌面"></video><div class="remote-media-mask" data-media-mask>等待身份、直连与画面验证</div></div><form class="remote-text"><label>发送文字（本地完成中文输入）<textarea name="text" rows="2" maxlength="4096"></textarea></label><button class="button button-secondary">发送文字</button></form><details class="remote-viewer-hint"><summary>使用说明</summary><p>退出窗口、失焦或切换页面会释放按键。剪贴板与文件仅在双方启用对应能力后传输。</p></details></section>`;
+    const title = dialog.querySelector("h2"); title.id = `remote-title-${crypto.randomUUID()}`; title.dataset.noTranslate = "";
+    dialog.setAttribute("aria-labelledby", title.id);
+    dialog.querySelector("[data-close]").textContent = "关闭窗口";
     const extras = document.createElement("section"); extras.className = "remote-data";
     extras.innerHTML = `<div class="remote-toolbar"><label>${toolIcon("display")}显示器 <select data-display aria-label="远端显示器" disabled></select></label><button class="button button-secondary" data-clipboard>${toolIcon("clipboard")}<span>开启文本剪贴板</span></button><button class="button button-secondary" data-files>${toolIcon("files")}<span>开启文件收发</span></button></div><div data-clipboard-panel hidden><p>剪贴板仅绑定当前指定窗口；浏览器需要前台操作。远端文本收到后，点击“复制到本机”才写入本机剪贴板。</p><label>发送的文本<textarea data-clipboard-text rows="2" maxlength="65536"></textarea></label><button class="button button-secondary" data-clipboard-read>读取本机剪贴板</button><button class="button button-secondary" data-clipboard-send>发送文本剪贴板</button><label>远端文本<textarea data-clipboard-incoming readonly rows="2"></textarea></label><button class="button button-secondary" data-clipboard-copy>复制到本机</button></div><div data-file-panel hidden><input type="file" data-file-input multiple aria-label="选择要发送的文件"><button class="button button-secondary" data-file-send>发送所选文件</button><p data-file-support></p><div data-file-list aria-live="polite"></div></div><details><summary>连接诊断</summary><pre data-diagnostics>等待身份与直连验证</pre></details>`;
     dialog.querySelector(".remote-viewer").append(extras);
@@ -227,6 +229,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     syncControls();
     active.set(host.id, current); raise(current);
     const switcher = document.createElement("button"); switcher.className = "button remote-window-switch"; switcher.textContent = host.name;
+    switcher.dataset.noTranslate = "";
     let windowBar = document.querySelector(".remote-window-bar");
     if (!windowBar) { windowBar = document.createElement("nav"); windowBar.className = "remote-window-bar"; windowBar.setAttribute("aria-label", "远程桌面窗口"); document.body.append(windowBar); }
     windowBar.append(switcher); switcher.addEventListener("click", () => raise(current));
@@ -272,10 +275,14 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     dialog.addEventListener("cancel", (event) => { event.preventDefault(); close(); });
     const safe = (callback) => (event) => { event?.preventDefault(); Promise.resolve().then(() => callback(event)).catch(showError); };
     const form = dialog.querySelector(".remote-auth");
+    error.id = `remote-error-${crypto.randomUUID()}`;
+    form.setAttribute("aria-describedby", error.id);
     async function startConnection(values) {
       if (current.starting || current.disposed) return;
       current.starting = true;
       const submit = form.querySelector("button"); submit.disabled = true; error.textContent = "";
+      form.setAttribute("aria-busy", "true");
+      if (values) status.textContent = "正在验证账号";
       try {
         if (!navigator.locks) throw new RemoteError("RD_BROWSER_LOCKS_UNAVAILABLE");
         if (values) await api("/api/v1/rd/reauth", { method: "POST", body: JSON.stringify({ password: values.get("password"), ...(values.get("mfa") ? { mfa_code: values.get("mfa") } : {}) }) });
@@ -302,7 +309,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
         form.hidden = true; dialog.querySelector(".remote-pairing").hidden = false;
         status.textContent = assistInviteId ? "正在验证跨账号连接" : "等待被控电脑本机批准";
         await pollPairing();
-      } finally { current.starting = false; submit.disabled = false; }
+      } finally { current.starting = false; submit.disabled = false; form.setAttribute("aria-busy", "false"); }
     }
     form.addEventListener("submit", safe(async () => {
       try { await track(startConnection(new FormData(form))); }
@@ -313,6 +320,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
           form.querySelector('[name="mfa"]').focus();
           return;
         }
+        status.textContent = "请验证账号后重试连接";
         form.querySelector('[name="password"]').value = "";
         throw failure;
       } finally { form.querySelector('[name="mfa"]').value = ""; }
@@ -407,7 +415,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
           }
           if (frame.type === TYPES.DISPLAY_LAYOUT) {
             const select = dialog.querySelector("[data-display]"); select.replaceChildren();
-            for (const display of frame.payload.displays) { const option = document.createElement("option"); option.value = display.id; option.textContent = display.name ?? display.id; select.append(option); }
+            for (const display of frame.payload.displays) { const option = document.createElement("option"); option.dataset.noTranslate = ""; option.value = display.id; option.textContent = display.name ?? display.id; select.append(option); }
             select.value = frame.payload.active_display; select.disabled = frame.payload.displays.length < 2;
           }
           if (frame.type === TYPES.FEATURE_STATE && !frame.payload.enabled) await current.transfers?.revoke(frame.payload.permission);
@@ -529,9 +537,10 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     function fileRow(id, name) {
       if (current.rows.has(id)) return current.rows.get(id);
       if (current.rows.size >= 128) { const oldest = current.rows.keys().next().value; current.rows.get(oldest).row.remove(); current.rows.delete(oldest); }
-      const row = document.createElement("div"), text = document.createElement("span"), cancel = document.createElement("button"); row.className = "remote-file-row"; text.textContent = name ?? id;
+      const row = document.createElement("div"), text = document.createElement("span"), filename = document.createElement("span"), cancel = document.createElement("button"); row.className = "remote-file-row";
+      filename.dataset.noTranslate = ""; filename.textContent = name ?? id;
       cancel.className = "button button-secondary"; cancel.textContent = "取消"; cancel.addEventListener("click", safe(async () => { const result = await current.transfers.cancel(id); text.textContent = result.mayBeSaved ? "已停止传输；保存可能已完成，请检查接收位置" : "已停止传输"; cancel.disabled = true; }));
-      row.append(text, cancel); dialog.querySelector("[data-file-list]").append(row);
+      row.append(filename, text, cancel); dialog.querySelector("[data-file-list]").append(row);
       const entry = { row, text, cancel }; current.rows.set(id, entry); return entry;
     }
     function fileProgress(progress) {

@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+test.beforeEach(async ({ request }) => { await request.post("/__preview/reset"); });
+
 const hosts = Array.from({ length: 5 }, (_, index) => ({
   id: `10000000-0000-4000-8000-00000000000${index}`, name: `测试电脑 ${index + 1}`, role: "host",
   platform: "windows", status: "active", online: true, local_enabled: true,
