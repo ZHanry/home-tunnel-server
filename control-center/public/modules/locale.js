@@ -12,6 +12,7 @@ const zhToEn = {
   "当前 Web 访问已因超额暂停。": "Web access is currently paused because the quota was exceeded.",
   "至少 12 个字符，且不能包含用户名": "At least 12 characters; must not contain your username",
   "动态码或恢复码（已启用时必填）": "Authenticator or recovery code (required if enabled)",
+  "请输入验证器动态码或一次性恢复码以完成登录。": "Enter an authenticator code or a one-time recovery code to finish signing in.",
   "批量恢复连接": "Resume tunnels",
   "批量暂停连接": "Pause tunnels",
   "确认执行": "Confirm",

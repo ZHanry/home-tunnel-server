@@ -167,7 +167,11 @@
               </button>
             </div>
           </div>
-          <div class="field hidden" id="login-mfa-step"><label for="login-mfa">动态码或恢复码</label><input id="login-mfa" name="mfa_code" type="password" autocomplete="one-time-code" maxlength="128" aria-describedby="login-error"></div>
+          <div class="field hidden" id="login-mfa-step">
+            <label for="login-mfa">动态码或恢复码</label>
+            <input id="login-mfa" name="mfa_code" type="password" autocomplete="one-time-code" maxlength="128" aria-describedby="login-mfa-help login-error">
+            <p class="helper" id="login-mfa-help">请输入验证器动态码或一次性恢复码以完成登录。</p>
+          </div>
           <p class="field-error" id="login-error" role="alert"></p>
           <button class="button button-primary button-block" type="submit">登录控制中心</button>
           <p class="auth-help">忘记密码请联系创建该账号的管理员，控制台不提供网上自助重置。</p>

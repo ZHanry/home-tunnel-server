@@ -228,6 +228,10 @@ function showLogin(message = "") {
   state.csrf = "";
   setPendingCurrentPassword(null);
   document.querySelector("#login-password").value = "";
+  document.querySelector("#login-mfa").value = "";
+  document.querySelector("#login-mfa").required = false;
+  document.querySelector("#login-mfa-step").classList.add("hidden");
+  loginForm.querySelectorAll("[aria-invalid]").forEach(field => field.removeAttribute("aria-invalid"));
   disconnectRealtime();
   landingScreen.classList.add("hidden");
   appShell.classList.add("hidden");
@@ -1792,10 +1796,11 @@ loginForm.addEventListener("submit", async (event) => {
       await showApp();
     }
   } catch (error) {
-    errorNode.textContent = error.message;
+    errorNode.textContent = error.code === "MFA_REQUIRED" ? "" : error.message;
     if (error.code === "MFA_REQUIRED" || error.code === "MFA_INVALID") {
       document.querySelector("#login-mfa-step").classList.remove("hidden");
       document.querySelector("#login-mfa").required = true;
+      if (error.code === "MFA_INVALID") document.querySelector("#login-mfa").setAttribute("aria-invalid", "true");
       document.querySelector("#login-mfa").focus();
     } else {
       document.querySelector("#login-username").setAttribute("aria-invalid", "true");
@@ -1812,6 +1817,7 @@ loginForm.addEventListener("submit", async (event) => {
 loginForm.addEventListener("input", (event) => {
   document.querySelector("#login-username").removeAttribute("aria-invalid");
   document.querySelector("#login-password").removeAttribute("aria-invalid");
+  document.querySelector("#login-mfa").removeAttribute("aria-invalid");
   document.querySelector("#login-error").textContent = "";
   if (event.target.id === "login-username" || event.target.id === "login-password") {
     document.querySelector("#login-mfa").value = "";

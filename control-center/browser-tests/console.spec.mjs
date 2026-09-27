@@ -100,11 +100,27 @@ test("login asks for MFA only after the server requires it", async ({ page }) =>
   await page.locator("#login-password").fill("example-password");
   await page.locator("#login-form button[type=submit]").click();
   await expect(page.locator("#login-mfa-step")).toBeVisible();
+  await expect(page.locator("#login-mfa")).toBeFocused();
+  await expect(page.locator("#login-mfa-help")).toBeVisible();
+  await expect(page.locator("#login-error")).toBeEmpty();
+  await expect(page.locator("#login-mfa")).not.toHaveAttribute("aria-invalid", "true");
   expect(attempts[0].mfa_code).toBeUndefined();
+  await page.locator(".auth-locale-toggle").click();
+  await expect(page.locator("#login-mfa-help")).toHaveText("Enter an authenticator code or a one-time recovery code to finish signing in.");
   await page.locator("#login-mfa").fill("123456");
   await page.locator("#login-form button[type=submit]").click();
   expect(attempts[1].mfa_code).toBe("123456");
   await expect(page.locator("#login-mfa-step")).toBeVisible();
+  await expect(page.locator("#login-mfa")).toBeFocused();
+  await expect(page.locator("#login-mfa")).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#login-error")).toHaveText("The authenticator or recovery code is invalid; try again");
+  await page.locator("#login-mfa").fill("654321");
+  await expect(page.locator("#login-error")).toBeEmpty();
+  await expect(page.locator("#login-mfa")).not.toHaveAttribute("aria-invalid", "true");
+  await page.locator("#login-username").fill("another-user");
+  await expect(page.locator("#login-mfa-step")).toBeHidden();
+  await expect(page.locator("#login-mfa")).toHaveValue("");
+  await expect(page.locator("#login-mfa")).not.toHaveAttribute("required");
 });
 
 test("remote desktop opens a separate viewer window", async ({ page, context }) => {
