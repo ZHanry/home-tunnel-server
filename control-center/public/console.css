@@ -864,6 +864,13 @@ input[type="checkbox"] {
 .notice-warning {
   background: var(--surface-muted);
 }
+.confirmation-notice {
+  flex-direction: column;
+  gap: 10px;
+}
+.confirmation-notice > strong {
+  overflow-wrap: normal;
+}
 .notice-icon {
   flex-shrink: 0;
 }
@@ -1057,11 +1064,21 @@ input[type="checkbox"] {
   flex: 1;
 }
 .secret-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
   padding: 18px;
   background: var(--surface-muted);
   border-radius: 8px;
   overflow-wrap: anywhere;
-  font-family: var(--mono);
+}
+.secret-value {
+  display: block;
+  max-width: 100%;
+  font: 600 1.1rem/1.6 var(--mono);
+  white-space: pre-wrap;
+  user-select: all;
 }
 .marketing-header,
 .marketing-footer {

@@ -4,6 +4,16 @@ const appShell = document.querySelector("#app-shell");
 
 const localeStorageKey = "ht_locale";
 const zhToEn = {
+  "批量恢复连接": "Resume tunnels",
+  "批量暂停连接": "Pause tunnels",
+  "确认执行": "Confirm",
+  "逐项结果": "Results for each tunnel",
+  "成功": "Succeeded",
+  "将撤销此账号的全部会话，并要求下次登录时修改临时密码。": "All sessions for this account will be revoked. The user must change their temporary password at the next sign-in.",
+  "将停止此账号的访问。Web 策略通常约 5 秒内生效；TCP/UDP 需等待心跳确认，最长约 90 秒。": "Access for this account will stop. Web access normally stops within 5 seconds; TCP/UDP access can take up to 90 seconds while awaiting a heartbeat.",
+  "恢复账号后，设备仍需有效凭据和租约才能上线。": "After this account is enabled, devices still need valid credentials and leases to connect.",
+  "此设备的凭据、会话、租约、连接和流量明细将被删除，且无法恢复。": "This device's credentials, sessions, leases, tunnels and traffic details will be deleted. This cannot be undone.",
+  "将删除此连接并停止公网访问，无法撤销。TCP/UDP 停止可能需等待约 90 秒。": "This tunnel will be deleted and public access will stop. This cannot be undone. Stopping TCP/UDP access can take up to 90 seconds.",
   "先在家里的电脑上安装客户端并登录，然后选择设备和服务模板来发布服务。": "Install and sign in to the client on your home computer, then choose a device and service template to publish a service.",
   "服务": "Service",
   "运行概况": "Operational overview",
@@ -760,6 +770,9 @@ export function localizedText(value, targetLocale = state.locale) {
   let translated = targetLocale === "en" ? (zhToEn[core] ?? core) : (enToZh[core] ?? core);
   if (targetLocale === "en") {
     translated = translated
+      .replace(/^所有设备凭据和会话将撤销，(\d+) 条连接将停止并删除。操作无法撤销，历史审计记录保留。$/, "All device credentials and sessions will be revoked. Tunnels to stop and delete: $1. This cannot be undone. Audit history is retained.")
+      .replace(/^本次将恢复以下 (\d+) 条连接。每项独立执行，冲突项保留服务器上的新修改。$/, "Tunnels to resume: $1. Each tunnel is processed independently. Newer server changes are preserved on conflict.")
+      .replace(/^本次将暂停以下 (\d+) 条连接。每项独立执行，冲突项保留服务器上的新修改。$/, "Tunnels to pause: $1. Each tunnel is processed independently. Newer server changes are preserved on conflict.")
       .replace(/^共 (\d+) 台设备$/, "Devices: $1")
       .replace(/^第 (\d+) \/ (\d+) 页 · 共 (\d+) 条$/, "Page $1 of $2 · $3 items")
       .replace(/^标签与收藏 · (.+)$/, "Tags and favorites · $1")
@@ -812,6 +825,9 @@ export function localizedText(value, targetLocale = state.locale) {
       .replace(/^↑ 上传 (.+) · ↓ 下载 (.+)$/, "↑ Upload $1 · ↓ Download $2");
   } else {
     translated = translated
+      .replace(/^All device credentials and sessions will be revoked\. Tunnels to stop and delete: (\d+)\. This cannot be undone\. Audit history is retained\.$/, "所有设备凭据和会话将撤销，$1 条连接将停止并删除。操作无法撤销，历史审计记录保留。")
+      .replace(/^Tunnels to resume: (\d+)\. Each tunnel is processed independently\. Newer server changes are preserved on conflict\.$/, "本次将恢复以下 $1 条连接。每项独立执行，冲突项保留服务器上的新修改。")
+      .replace(/^Tunnels to pause: (\d+)\. Each tunnel is processed independently\. Newer server changes are preserved on conflict\.$/, "本次将暂停以下 $1 条连接。每项独立执行，冲突项保留服务器上的新修改。")
       .replace(/^Devices: (\d+)$/, "共 $1 台设备")
       .replace(/^Page (\d+) of (\d+) · (\d+) items$/, "第 $1 / $2 页 · 共 $3 条")
       .replace(/^Tags and favorites · (.+)$/, "标签与收藏 · $1")

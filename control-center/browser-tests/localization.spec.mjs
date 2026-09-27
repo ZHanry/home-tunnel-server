@@ -23,6 +23,65 @@ async function untranslated(page, selector = "#view-content") {
 
 test.beforeEach(async ({ request }) => { await request.post("/__preview/reset"); });
 
+test("confirmation dialogs localize their consequences and preserve the selected resource", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
+  for (const [view, action] of [["users", "reset-password"], ["users", "delete-user"], ["users", "toggle-user"], ["devices", "delete-device"], ["connections", "delete-connection"]]) {
+    await page.goto(`/admin#${view}`);
+    await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
+    const button = page.locator(`[data-action="${action}"]`).first();
+    const menu = button.locator("xpath=ancestor::details");
+    if (await menu.count()) await menu.locator("summary").click();
+    await button.click();
+    await expect(page.locator("#modal[open]")).toBeVisible();
+    await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
+    const subject = await page.locator(".confirmation-notice [data-no-translate]").innerText();
+    expect(subject).not.toBe("");
+    const geometry = await page.locator(".confirmation-notice").evaluate(element => {
+      const [title, name, consequence] = [...element.children].map(child => child.getBoundingClientRect());
+      return title.bottom <= name.top && name.bottom <= consequence.top;
+    });
+    expect(geometry, `${action} readable confirmation`).toBe(true);
+    for (const locale of ["zh-CN", "en"]) {
+      await page.evaluate(async locale => (await import("/modules/locale.js?v=9.0.0")).applyLocale(locale), locale);
+      await expect(page.locator(".confirmation-notice [data-no-translate]")).toHaveText(subject);
+    }
+    await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
+    await page.keyboard.press("Escape");
+  }
+});
+
+test("batch confirmations and one-time credentials remain legible in English", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
+  for (const enabled of [false, true]) {
+    await page.goto("/admin?role=user#connections");
+    await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
+    await page.locator("[data-select-connection]").first().check();
+    await page.locator(`[data-action="batch-connections"][data-enabled="${enabled}"]`).click();
+    await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
+    await expect(page.locator("#modal-body li[data-no-translate]")).toContainText("NAS 控制台");
+    await page.keyboard.press("Escape");
+  }
+  const code = "Review-Only-1234-5678";
+  await page.route("**/api/v1/client/enrollment-codes", async route => {
+    if (route.request().method() === "POST") return route.fulfill({ json: { id: "fixture", code, expires_at: "2026-09-27T12:10:00Z" } });
+    return route.continue();
+  });
+  await page.goto("/admin?role=user#account");
+  await page.locator('[data-security="enrollment"]').click();
+  await page.locator('#modal button[type="submit"]').click();
+  await expect(page.locator(".secret-value")).toHaveText(code);
+  const geometry = await page.locator(".secret-box").evaluate(element => {
+    const label = element.querySelector("strong").getBoundingClientRect();
+    const secret = element.querySelector(".secret-value").getBoundingClientRect();
+    return label.bottom < secret.top && secret.right <= element.getBoundingClientRect().right;
+  });
+  expect(geometry, "credential is distinct from its advisory label").toBe(true);
+  await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
+});
+
 test("public landing copy and footer translate in both directions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));

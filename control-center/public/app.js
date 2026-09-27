@@ -1434,11 +1434,11 @@ async function openCustomDomains(connectionId) {
   );
 }
 
-function confirmAction(title, detail, submitLabel, onSubmit) {
+function confirmAction(title, detail, submitLabel, onSubmit, subject = "") {
   openModal({
     title,
     eyebrow: "需要确认",
-    body: `<div class="notice notice-warning"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(detail)}</span></div>`,
+    body: `<div class="notice notice-warning confirmation-notice"><strong>${escapeHtml(title)}</strong>${subject ? `<span data-no-translate>${escapeHtml(subject)}</span>` : ""}<span>${escapeHtml(detail)}</span></div>`,
     submitLabel,
     danger: true,
     onSubmit,
@@ -1479,10 +1479,10 @@ appShell.addEventListener("click", async (event) => {
       const items=state.connections.filter(item=>ids.has(item.id));if(!items.length){toast("请先选择连接","error");return;}
       const enabled=button.dataset.enabled==="true";
       openModal({title:enabled?"批量恢复连接":"批量暂停连接",draftId:"batch-connections",
-        body:`<p>本次将${enabled?"恢复":"暂停"}以下 ${items.length} 条连接。每项独立执行，冲突项保留服务器上的新修改。</p><ul>${items.map(item=>`<li>${escapeHtml(item.username)} / ${escapeHtml(item.device_name)} / ${escapeHtml(item.name)}</li>`).join("")}</ul>`,submitLabel:"确认执行",
+        body:`<p>本次将${enabled?"恢复":"暂停"}以下 ${items.length} 条连接。每项独立执行，冲突项保留服务器上的新修改。</p><ul>${items.map(item=>`<li data-no-translate>${escapeHtml(item.username)} / ${escapeHtml(item.device_name)} / ${escapeHtml(item.name)}</li>`).join("")}</ul>`,submitLabel:"确认执行",
         onSubmit:async()=>{
           const data=await api(`${connectionsPath()}/batch`,{method:"POST",body:JSON.stringify({enabled,items:items.map(item=>({id:item.id,expected_version:item.version}))})});
-          modalBody.innerHTML=`<h3>逐项结果</h3><ul>${data.results.map(result=>`<li>${escapeHtml(items.find(item=>item.id===result.id)?.name??result.id)}：${result.status===200?"成功":escapeHtml(result.error_code)}</li>`).join("")}</ul>`;
+          modalBody.innerHTML=`<h3>逐项结果</h3><ul>${data.results.map(result=>`<li><span data-no-translate>${escapeHtml(items.find(item=>item.id===result.id)?.name??result.id)}</span>: <span>${result.status===200?"成功":escapeHtml(result.error_code)}</span></li>`).join("")}</ul>`;
           modalFooter.innerHTML='<button class="button button-primary" type="button" data-batch-done>关闭</button>';
           modalFooter.querySelector("[data-batch-done]").onclick=()=>modal.close("done");await renderConnections();
         }});
@@ -1513,7 +1513,7 @@ appShell.addEventListener("click", async (event) => {
       if (!user || user.role === "admin") return;
       confirmAction(
         "删除用户",
-        `删除 ${user.display_name}（${user.username}）后，所有设备凭据和会话将撤销，${user.connection_count} 条连接将停止并删除。操作无法撤销，历史审计记录保留。`,
+        `所有设备凭据和会话将撤销，${user.connection_count} 条连接将停止并删除。操作无法撤销，历史审计记录保留。`,
         "确认删除用户",
         async () => {
           await api(`/api/v1/admin/users/${user.id}`, {
@@ -1524,6 +1524,7 @@ appShell.addEventListener("click", async (event) => {
           toast("用户已删除，设备访问权限已撤销");
           await renderUsers();
         },
+        `${user.display_name} (${user.username})`,
       );
     }
     if (action === "create-user") await openCreateUser();
@@ -1532,7 +1533,7 @@ appShell.addEventListener("click", async (event) => {
       const user = state.users.find((item) => item.id === button.dataset.id);
       confirmAction(
         "重置临时密码",
-        `将撤销 ${user?.username ?? "该用户"} 的全部会话，并重新进入首次改密状态。`,
+        "将撤销此账号的全部会话，并要求下次登录时修改临时密码。",
         "确认重置",
         async () => {
           const result = await api(`/api/v1/admin/users/${button.dataset.id}/reset-password`, {
@@ -1546,6 +1547,7 @@ appShell.addEventListener("click", async (event) => {
           );
           await renderUsers();
         },
+        user?.username,
       );
     }
     if (action === "toggle-user") {
@@ -1554,7 +1556,7 @@ appShell.addEventListener("click", async (event) => {
       confirmAction(
         disabling ? "禁用账号" : "恢复账号",
         disabling
-          ? `将停止 ${user?.username ?? "该用户"} 的访问。Web 策略通常约 5 秒内生效；TCP/UDP 需等待心跳确认，最长约 90 秒。`
+          ? "将停止此账号的访问。Web 策略通常约 5 秒内生效；TCP/UDP 需等待心跳确认，最长约 90 秒。"
           : `恢复账号后，设备仍需有效凭据和租约才能上线。`,
         disabling ? "确认禁用" : "确认恢复",
         async () => {
@@ -1566,13 +1568,14 @@ appShell.addEventListener("click", async (event) => {
           toast(disabling ? "账号禁用正在收敛" : "账号已恢复");
           await renderUsers();
         },
+        user?.username,
       );
     }
     if (action === "delete-device") {
       if (!isAdmin()) return;
       confirmAction(
         "删除设备",
-        `设备“${button.dataset.name}”的凭据、会话、租约、连接和流量明细将被删除，且无法恢复。`,
+        "此设备的凭据、会话、租约、连接和流量明细将被删除，且无法恢复。",
         "确认删除",
         async () => {
           await api(`/api/v1/admin/devices/${button.dataset.id}`, { method: "DELETE", body: "{}" });
@@ -1580,6 +1583,7 @@ appShell.addEventListener("click", async (event) => {
           toast("设备已删除");
           await renderDevices();
         },
+        button.dataset.name,
       );
     }
     if (action === "create-connection") await openCreateConnection();
@@ -1589,7 +1593,7 @@ appShell.addEventListener("click", async (event) => {
       const connection = state.connections.find((item) => item.id === button.dataset.id);
       confirmAction(
         "删除连接",
-        `将删除“${connection?.name ?? "这条连接"}”并停止公网访问，无法撤销。TCP/UDP 停止可能需等待约 90 秒。`,
+        "将删除此连接并停止公网访问，无法撤销。TCP/UDP 停止可能需等待约 90 秒。",
         "删除并停止",
         async () => {
           await api(connectionsPath(connection.id), {
@@ -1601,6 +1605,7 @@ appShell.addEventListener("click", async (event) => {
           toast("连接已删除");
           await renderConnections();
         },
+        connection?.name,
       );
     }
   } catch (error) {
