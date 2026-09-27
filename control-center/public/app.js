@@ -310,7 +310,12 @@ async function renderView(view, { background = false } = {}) {
   state.currentView = view;
   document
     .querySelectorAll(".nav-item")
-    .forEach((item) => item.classList.toggle("active", item.dataset.view === view));
+    .forEach((item) => {
+      const selected = item.dataset.view === view;
+      item.classList.toggle("active", selected);
+      if (selected) item.setAttribute("aria-current", "page");
+      else item.removeAttribute("aria-current");
+    });
   const [title, eyebrow] = viewLabels(view);
   pageTitle.textContent = title;
   pageEyebrow.textContent = eyebrow;

@@ -106,6 +106,6 @@ test("port controls fit mobile widths and translate with the rest of the console
   await page.locator(".mobile-preferences [data-locale-toggle]").click();
   await expect(page.getByRole("heading", { name: "Ports and protocols" })).toBeVisible();
   await expect(page.getByLabel("Enable TCP connections")).toBeVisible();
-  await page.locator(".mobile-preferences [data-theme-toggle]").click();
+  await page.locator(".mobile-preferences [data-theme-select]").selectOption("dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });

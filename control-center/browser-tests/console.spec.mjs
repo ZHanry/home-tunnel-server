@@ -161,14 +161,14 @@ test("account deletion describes affected resources, supports cancellation and s
   await expect(page.locator("#toast-region")).toContainText("用户已删除");
 });
 
-test("one click switches theme and locale without translating resource names", async ({ page }) => {
+test("theme and locale preferences persist without translating resource names", async ({ page }) => {
   await page.route("**/api/v1/admin/connections?**", async (route) => {
     const data = await (await route.fetch()).json();
     data.items[0].name = "在线";
     await route.fulfill({ json: data });
   });
   await ready(page);
-  await page.locator(".sidebar [data-theme-toggle]").click();
+  await page.locator(".sidebar [data-theme-select]").selectOption("dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.locator(".sidebar [data-locale-toggle]").click();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
@@ -176,6 +176,43 @@ test("one click switches theme and locale without translating resource names", a
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
+});
+
+test("system theme follows OS changes and can be restored after an explicit choice", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await ready(page);
+  const theme = page.locator(".sidebar [data-theme-select]");
+  await expect(theme).toHaveValue("system");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.locator(".sidebar [data-locale-toggle]").click();
+  await expect(theme).toHaveValue("system");
+  await expect(theme).toHaveAccessibleName("Theme");
+  await theme.selectOption("light");
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await theme.selectOption("system");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.reload();
+  await expect(theme).toHaveValue("system");
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+});
+
+test("theme choices and clearing preferences synchronize across open tabs", async ({ page, context }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await ready(page);
+  const second = await context.newPage();
+  await second.emulateMedia({ colorScheme: "dark" });
+  await ready(second, "/admin#account");
+  await page.locator(".sidebar [data-theme-select]").selectOption("light");
+  await expect(second.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(second.locator(".sidebar [data-theme-select]")).toHaveValue("light");
+  await page.evaluate(() => localStorage.removeItem("ht_theme"));
+  await expect(second.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(second.locator(".sidebar [data-theme-select]")).toHaveValue("system");
+  await second.close();
 });
 
 test("integer bandwidth is accepted and saves with a version condition", async ({ page }) => {
@@ -432,15 +469,22 @@ test("mobile top navigation exposes every destination and supports keyboard acti
     "dashboard",
     "users",
     "devices",
+    "remote",
     "connections",
     "audit",
     "settings",
+    "updates",
     "account",
-  ])
+  ]) {
     await expect(page.locator(`[data-view="${view}"]`)).toBeVisible();
+    await expect(page.locator(`[data-view="${view}"]`)).toHaveAccessibleName(/\S/);
+  }
   await page.locator('[data-view="devices"]').focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#page-title")).toHaveText("设备管理");
+  await expect(page.locator('[data-view="devices"]')).toHaveAttribute("aria-current", "page");
+  await page.locator(".mobile-preferences [data-locale-toggle]").click();
+  await expect(page.locator('[data-view="devices"]')).toHaveAccessibleName("Devices");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 

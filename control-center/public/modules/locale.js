@@ -321,6 +321,7 @@ const zhToEn = {
   创建用户: "Create user",
   刷新状态: "Refresh status",
   刷新事件: "Refresh events",
+  刷新设置: "Refresh settings",
   身份与权限: "Identity and access",
   设备信任: "Device trust",
   受管隧道: "Managed tunnels",
@@ -873,7 +874,7 @@ export function applyLocale(locale, persist = true) {
     button.setAttribute("aria-label", label);
     button.setAttribute("title", label);
   });
-  applyTheme(currentTheme(), false);
+  applyTheme(currentThemePreference(), false);
   updateDocumentMetadata();
   if (persist) {
     try {
@@ -898,40 +899,51 @@ const localeObserver = new MutationObserver((records) => {
 localeObserver.observe(document.body, { childList: true, characterData: true, subtree: true });
 
 const themeStorageKey = "ht_theme";
+const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
 
 export function currentTheme() {
   return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
 
+export function currentThemePreference() {
+  const preference = document.documentElement.dataset.themePreference;
+  return preference === "light" || preference === "dark" ? preference : "system";
+}
+
 export function applyTheme(theme, persist = true) {
-  const normalized = theme === "dark" ? "dark" : "light";
+  const preference = theme === "dark" || theme === "light" ? theme : "system";
+  const normalized = preference === "system" ? (systemTheme.matches ? "dark" : "light") : preference;
   document.documentElement.dataset.theme = normalized;
+  document.documentElement.dataset.themePreference = preference;
   document.documentElement.style.colorScheme = normalized;
   document
     .querySelector('meta[name="theme-color"]')
     ?.setAttribute("content", normalized === "dark" ? "#0f172a" : "#f8fafc");
-  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
-    const isDark = normalized === "dark";
-    const label = isDark
-      ? t("切换至浅色主题", "Switch to light theme")
-      : t("切换至深色主题", "Switch to dark theme");
-    button.setAttribute("aria-pressed", String(isDark));
-    button.setAttribute("aria-label", label);
-    button.setAttribute("title", label);
+  const labels = { system: t("跟随系统", "System"), light: t("浅色", "Light"), dark: t("深色", "Dark") };
+  document.querySelectorAll("[data-theme-select]").forEach((select) => {
+    select.value = preference;
+    select.setAttribute("aria-label", t("主题", "Theme"));
+    for (const option of select.options) {
+      if (option.textContent !== labels[option.value]) option.textContent = labels[option.value];
+    }
   });
   if (persist) {
     try {
-      window.localStorage.setItem(themeStorageKey, normalized);
+      window.localStorage.setItem(themeStorageKey, preference);
     } catch {}
   }
 }
 
-document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
-  button.addEventListener("click", () => applyTheme(currentTheme() === "dark" ? "light" : "dark"));
+document.querySelectorAll("[data-theme-select]").forEach((select) => {
+  select.addEventListener("change", () => applyTheme(select.value));
+});
+
+systemTheme.addEventListener("change", () => {
+  if (currentThemePreference() === "system") applyTheme("system", false);
 });
 
 window.addEventListener("storage", (event) => {
-  if (event.key === themeStorageKey && (event.newValue === "light" || event.newValue === "dark")) {
+  if (event.key === themeStorageKey || event.key === null) {
     applyTheme(event.newValue, false);
   }
   if (event.key === localeStorageKey && (event.newValue === "zh-CN" || event.newValue === "en")) {
