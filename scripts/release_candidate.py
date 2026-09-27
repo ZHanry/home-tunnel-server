@@ -57,6 +57,7 @@ UNRUN = {"", "not_run", "unrun", "pending", "skipped", "not_verified", "missing"
 BANNED_TEXT = ("fixture", "synthetic", "placeholder")
 ORIGINAL_SEAL = ("SHA256SUMS.txt", "SHA256SUMS.txt.sigstore.json")
 MAX_ARTIFACT_BYTES = 200 * 1024 * 1024
+MAX_EXTRACT_BYTES = 512 * 1024 * 1024
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 PLACEHOLDER_DIGESTS = {
@@ -579,30 +580,76 @@ def acceptance_errors(acceptance, *, source_sha, version, repository, images, de
     return errors
 
 
+def artifact_filename(name):
+    if (not isinstance(name, str) or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,199}", name) is None
+            or name.endswith(".") or re.fullmatch(r"(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?", name, re.I)):
+        raise SystemExit("artifact path is invalid")
+    return name
+
+
 def safe_extract(zip_bytes, directory):
     import io
+    import shutil
+    import stat
     import zipfile
 
     directory = Path(directory)
-    directory.mkdir(parents=True, exist_ok=True)
-    root = directory.resolve()
+    if directory.exists() or directory.is_symlink():
+        raise SystemExit("candidate extraction requires a new directory")
+    if len(zip_bytes) > MAX_ARTIFACT_BYTES:
+        raise SystemExit("candidate archive exceeds the size limit")
     try:
         bundle = zipfile.ZipFile(io.BytesIO(zip_bytes))
     except zipfile.BadZipFile as exc:
         raise SystemExit("candidate artifact is not a zip archive") from exc
     with bundle:
-        for info in bundle.infolist():
-            name = info.filename.replace("\\", "/")
-            if name.endswith("/"):
-                continue
-            parts = tuple(part for part in Path(name).parts if part not in ("",))
-            if not parts or ".." in parts or name.startswith("/") or any(part in (".", "..") for part in parts):
+        members = bundle.infolist()
+        names = [artifact_filename(info.filename) for info in members]
+        if not 1 <= len(members) <= 256 or len({name.casefold() for name in names}) != len(names):
+            raise SystemExit("candidate artifact has empty, excessive or duplicate entries")
+        if sum(info.file_size for info in members) > MAX_EXTRACT_BYTES:
+            raise SystemExit("candidate extracted files exceed the size limit")
+        # Validate the entire archive before creating any output. GitHub
+        # candidate-assets is deliberately a flat collection of regular files.
+        for info in members:
+            if info.orig_filename != info.filename:
                 raise SystemExit("artifact path is invalid")
-            target = root.joinpath(*parts).resolve()
-            if root != target and root not in target.parents:
-                raise SystemExit("artifact path is invalid")
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(bundle.read(info))
+            if (info.is_dir() or info.flag_bits & 1 or info.file_size > MAX_ARTIFACT_BYTES
+                    or stat.S_IFMT(info.external_attr >> 16) not in (0, stat.S_IFREG)
+                    or info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED)):
+                raise SystemExit("candidate artifact contains a linked, unsupported or oversized entry")
+        directory.mkdir(parents=True)
+        for info in members:
+            with bundle.open(info) as source, (directory / info.filename).open("xb") as target:
+                shutil.copyfileobj(source, target, 1024 * 1024)
+
+
+def verify_artifact_files(directory):
+    """Bind every candidate file to the separately verified original checksum seal."""
+    directory = Path(directory)
+    actual = set()
+    for path in directory.iterdir():
+        if path.is_symlink() or not path.is_file():
+            raise SystemExit("candidate contains an unsealed or linked entry")
+        actual.add(artifact_filename(path.name))
+    listed, folded = {}, set()
+    for line in (directory / "SHA256SUMS.txt").read_text(encoding="utf-8").splitlines():
+        match = re.fullmatch(r"([0-9a-f]{64})  (.+)", line)
+        if match is None:
+            raise SystemExit("candidate checksum manifest is invalid")
+        checksum, name = match.groups()
+        artifact_filename(name)
+        if name in ORIGINAL_SEAL or name.casefold() in folded:
+            raise SystemExit("candidate checksum manifest contains a duplicate or seal entry")
+        folded.add(name.casefold())
+        listed[name] = checksum
+    if not listed or actual != set(listed) | set(ORIGINAL_SEAL):
+        raise SystemExit("candidate has unsealed or missing files")
+    for name, expected in listed.items():
+        with (directory / name).open("rb") as stream:
+            if hashlib.file_digest(stream, "sha256").hexdigest() != expected:
+                raise SystemExit(f"candidate checksum mismatch: {name}")
+    return listed
 
 
 def seal_snapshot(directory):

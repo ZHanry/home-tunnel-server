@@ -399,6 +399,7 @@ def verify_publication_origin():
     release_candidate.require(release_candidate.image_binding_errors(records, manifest, compose, candidate_sha, REPO))
     identity = release_candidate.candidate_signer_identity(REPO, str(run_meta.get("head_branch") or ""))
     verify_blob_signature(directory / "SHA256SUMS.txt.sigstore.json", directory / "SHA256SUMS.txt", identity)
+    release_candidate.verify_artifact_files(directory)
     for name in ("control-center", "traffic-gateway"):
         reference = f"{records[name]['image']}@{records[name]['digest']}"
         try:
