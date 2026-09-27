@@ -180,8 +180,9 @@ jobs:
         name: server-smoke-${{ matrix.arch }}
         path: integration/*
         if-no-files-found: error
-  rc-release:
-    name: Publish verified release
+  publish-prerelease:
+    name: Publish verified prerelease
+    if: needs.metadata.outputs.stable != 'true'
     runs-on: ubuntu-latest
     needs:
     - metadata
@@ -199,13 +200,13 @@ jobs:
         path: release
         merge-multiple: true
     - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
-    - name: Seal and publish verified release
+    - name: Seal and publish verified prerelease
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         python3 scripts/release.py seal
         cosign sign-blob --yes --bundle release/SHA256SUMS.txt.sigstore.json release/SHA256SUMS.txt
-        python3 scripts/release.py stable
+        python3 scripts/release.py publish
     - name: Preserve release verification evidence
       if: ${{ always() }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -214,3 +215,28 @@ jobs:
         path: release/*
         if-no-files-found: error
         retention-days: 90
+  hold-stable:
+    name: Hold stable publication
+    if: needs.metadata.outputs.stable == 'true'
+    runs-on: ubuntu-latest
+    needs:
+    - metadata
+    - collect
+    - integration
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      with:
+        name: candidate-assets
+        path: release
+    - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      with:
+        pattern: server-smoke-*
+        path: release
+        merge-multiple: true
+    - name: Require real acceptance before stable publication
+      run: |
+        python3 scripts/release.py verify-candidate
+        echo "Candidate images and deployment files are bound to $GITHUB_SHA."
+        echo "Stable publication requires publish-stable.yml with a real acceptance record for these exact artifacts."
+        exit 1

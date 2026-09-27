@@ -1,0 +1,55 @@
+name: Publish accepted server candidate
+'on':
+  workflow_dispatch:
+    inputs:
+      candidate_run_id:
+        description: Actions run that built the candidate images and deployment files
+        required: true
+        type: string
+      acceptance_json:
+        description: Real acceptance JSON for that exact source SHA and image digests
+        required: true
+        type: string
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+jobs:
+  publish:
+    name: Publish the accepted candidate
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        fetch-depth: 0
+    - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      with:
+        name: candidate-assets
+        run-id: ${{ inputs.candidate_run_id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path: release
+    - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      with:
+        pattern: server-smoke-*
+        run-id: ${{ inputs.candidate_run_id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path: evidence
+        merge-multiple: true
+    - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+    - name: Publish only when acceptance matches the candidate
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        HOME_TUNNEL_RELEASE_WORKFLOW: publish-stable.yml
+        HOME_TUNNEL_RELEASE_REF: ${{ github.ref }}
+        ACCEPTANCE_JSON: ${{ inputs.acceptance_json }}
+      run: |
+        set -euo pipefail
+        printf '%s\n' "$ACCEPTANCE_JSON" > release/server-acceptance.json
+        revision="$(jq -r .revision release/release-manifest.json)"
+        tag="$(jq -r .rc_tag release/release-manifest.json)"
+        git merge-base --is-ancestor "$revision" origin/main
+        export GITHUB_SHA="$revision"
+        export GITHUB_REF_NAME="$tag"
+        python3 scripts/release.py verify-candidate
+        cosign sign-blob --yes --bundle release/SHA256SUMS.txt.sigstore.json release/SHA256SUMS.txt
+        python3 scripts/release.py publish

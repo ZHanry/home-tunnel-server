@@ -80,17 +80,108 @@ def required_assets(directory):
         if not (directory/name).is_file() or not (directory/name).stat().st_size:
             raise SystemExit(f"Missing release asset: {name}")
 
+def image_records(directory):
+    records = {}
+    for name in ("control-center", "traffic-gateway"):
+        path = directory / f"image-{name}.json"
+        if not path.is_file():
+            raise SystemExit(f"Missing candidate image record: {name}")
+        record = json.loads(path.read_text(encoding="utf-8"))
+        if record.get("name") != name or record.get("revision") != SHA or not re.fullmatch(r"sha256:[a-f0-9]{64}", record.get("digest", "")):
+            raise SystemExit("Invalid server image identity")
+        records[name] = record
+    return records
+
+def assert_candidate_bound(directory):
+    if COMPONENT != "server":
+        return {}
+    records = image_records(directory)
+    manifest_path = directory / "release-manifest.json"
+    if not manifest_path.is_file():
+        raise SystemExit("Candidate manifest is missing")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("revision") != SHA or manifest.get("component") != COMPONENT or manifest.get("repository") != REPO:
+        raise SystemExit("Candidate manifest is not bound to this source SHA")
+    compose = (directory / "compose.release.yaml").read_text(encoding="utf-8")
+    for name, record in records.items():
+        pinned = manifest.get("images", {}).get(name, {})
+        if pinned.get("digest") != record["digest"] or pinned.get("revision") != SHA or pinned.get("image") != record["image"]:
+            raise SystemExit(f"Candidate manifest digest mismatch: {name}")
+        if f"{record['image']}@{record['digest']}" not in compose:
+            raise SystemExit(f"Deployment file is not pinned to {name}")
+    return records
+
+def evidence_dir(directory):
+    for candidate in (directory, directory.parent / "evidence"):
+        if (candidate / "stun-runtime-amd64.json").is_file():
+            return candidate
+    return directory
+
+def assert_candidate_evidence(directory):
+    if COMPONENT != "server":
+        return
+    directory = evidence_dir(directory)
+    records = image_records(ROOT / "release" if not (directory / "image-control-center.json").is_file() else directory)
+    for arch in ("amd64", "arm64"):
+        stun_path = directory / f"stun-runtime-{arch}.json"
+        smoke_path = directory / f"server-smoke-{arch}.json"
+        if not stun_path.is_file() or not smoke_path.is_file():
+            raise SystemExit(f"Candidate is missing {arch} acceptance evidence")
+        stun = json.loads(stun_path.read_text(encoding="utf-8"))
+        smoke = json.loads(smoke_path.read_text(encoding="utf-8"))
+        if stun.get("status") != "passed" or stun.get("repository_revision") != SHA:
+            raise SystemExit(f"Candidate STUN evidence does not match this source for {arch}")
+        if smoke.get("status") != "passed" or records["control-center"]["digest"] not in smoke.get("control_image", "") or records["traffic-gateway"]["digest"] not in smoke.get("gateway_image", ""):
+            raise SystemExit(f"Candidate smoke evidence does not match image digests for {arch}")
+
+def require_acceptance(directory):
+    records = assert_candidate_bound(directory)
+    path = directory / "server-acceptance.json"
+    if not path.is_file():
+        raise SystemExit("Stable publication requires a real acceptance record for this candidate")
+    acceptance = json.loads(path.read_text(encoding="utf-8"))
+    if acceptance.get("status") != "passed" or acceptance.get("component") != "server":
+        raise SystemExit("Acceptance record is not a passed server acceptance")
+    if acceptance.get("source_sha") != SHA:
+        raise SystemExit("Acceptance source SHA does not match this candidate")
+    for name, record in records.items():
+        accepted = acceptance.get("images", {}).get(name, {})
+        if accepted.get("digest") != record["digest"] or accepted.get("revision") != SHA or accepted.get("image") != record["image"]:
+            raise SystemExit(f"Acceptance digest does not match candidate image {name}")
+    deployment = acceptance.get("deployment_sha256") or {}
+    for name in ("compose.release.yaml", f"home-tunnel-server-{local_version()}.tar.gz"):
+        expected = deployment.get(name)
+        target = directory / name
+        if not isinstance(expected, str) or not re.fullmatch(r"[a-f0-9]{64}", expected) or not target.is_file():
+            raise SystemExit(f"Acceptance must bind {name}")
+        if hashlib.sha256(target.read_bytes()).hexdigest() != expected:
+            raise SystemExit(f"Acceptance deployment hash mismatch: {name}")
+    return acceptance
+
+def signing_identity(rc_tag):
+    stable = re.fullmatch(r"v\d+\.\d+\.\d+", rc_tag) is not None
+    workflow = os.environ.get("HOME_TUNNEL_RELEASE_WORKFLOW", "release.yml")
+    if workflow == "release.yml":
+        return f"https://github.com/{REPO}/.github/workflows/release.yml@refs/tags/{rc_tag}"
+    if workflow == "publish-stable.yml" and stable:
+        ref = os.environ.get("HOME_TUNNEL_RELEASE_REF", "")
+        if not ref.startswith("refs/heads/"):
+            raise SystemExit("Stable acceptance workflow identity is invalid")
+        return f"https://github.com/{REPO}/.github/workflows/publish-stable.yml@{ref}"
+    raise SystemExit("Unknown release workflow identity")
+
 def seal():
     directory = ROOT / "release"
     required_assets(directory)
     manifest={"component":COMPONENT,"version":local_version(),"repository":REPO,"revision":SHA,"api_major":1,"rc_tag":TAG}
-    (directory/'release-manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
     if COMPONENT == 'server':
-        records = [json.loads((directory/f'image-{name}.json').read_text()) for name in ('control-center','traffic-gateway')]
+        records = image_records(directory)
+        manifest["images"] = {name: {"image": record["image"], "digest": record["digest"], "revision": record["revision"]} for name, record in records.items()}
         lines = ['services:']
-        for record in records:
-            lines += [f"  {record['name']}:", f"    image: {record['image']}@{record['digest']}"]
+        for name, record in records.items():
+            lines += [f"  {name}:", f"    image: {record['image']}@{record['digest']}"]
         (directory/'compose.release.yaml').write_text('\n'.join(lines)+'\n')
+    (directory/'release-manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
     if COMPONENT == 'server':
         import tarfile
         archive = directory/f'home-tunnel-server-{local_version()}.tar.gz'
@@ -100,12 +191,12 @@ def seal():
             bundle.add(directory/'compose.release.yaml',arcname='compose.release.yaml')
     lines=[]
     for path in sorted(directory.iterdir()):
-        if path.is_file() and path.name not in ('SHA256SUMS.txt','SHA256SUMS.txt.sigstore.json'):
+        if path.is_file() and path.name not in ('SHA256SUMS.txt','SHA256SUMS.txt.sigstore.json','server-acceptance.json'):
             lines.append(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n")
     (directory/'SHA256SUMS.txt').write_text(''.join(lines), encoding='utf-8')
 
 def verify(directory, rc_tag):
-    identity = f"https://github.com/{REPO}/.github/workflows/release.yml@refs/tags/{rc_tag}"
+    identity = signing_identity(rc_tag)
     run("cosign","verify-blob","--bundle",str(directory/'SHA256SUMS.txt.sigstore.json'),
         "--certificate-identity",identity,"--certificate-oidc-issuer","https://token.actions.githubusercontent.com",str(directory/'SHA256SUMS.txt'))
     listed = set()
@@ -116,13 +207,14 @@ def verify(directory, rc_tag):
         if hashlib.sha256((directory/name).read_bytes()).hexdigest() != checksum:
             raise SystemExit(f'Checksum mismatch: {name}')
         listed.add(name)
-    actual={p.name for p in directory.iterdir() if p.is_file()}-{'SHA256SUMS.txt','SHA256SUMS.txt.sigstore.json'}
+    actual={p.name for p in directory.iterdir() if p.is_file()}-{'SHA256SUMS.txt','SHA256SUMS.txt.sigstore.json','server-acceptance.json'}
     if actual != listed:
         raise SystemExit('Unsealed or missing release assets')
     manifest=json.loads((directory/'release-manifest.json').read_text())
     for key,value in {'repository':REPO,'revision':SHA,'version':local_version(),'component':COMPONENT,'rc_tag':rc_tag}.items():
         if manifest.get(key)!=value: raise SystemExit(f'Release manifest mismatch: {key}')
     required_assets(directory)
+    assert_candidate_bound(directory)
     return identity
 
 def public_asset_names(component, version):
@@ -137,10 +229,14 @@ def public_asset_names(component, version):
 def publish(stable=False):
     directory=ROOT/'release'
     stable = re.fullmatch(r"v\d+\.\d+\.\d+", TAG) is not None
+    if stable:
+        require_acceptance(directory)
+        assert_candidate_evidence(directory)
     identity=verify(directory,TAG)
     if COMPONENT == 'server':
+        evidence = evidence_dir(directory)
         for arch in ('amd64', 'arm64'):
-            report = json.loads((directory / f'stun-runtime-{arch}.json').read_text())
+            report = json.loads((evidence / f'stun-runtime-{arch}.json').read_text())
             if report.get('status') != 'passed' or report.get('repository_revision') != SHA:
                 raise SystemExit('The exact tagged STUN deployment must pass its isolated runtime check')
     if COMPONENT=='server' and stable:
@@ -153,7 +249,7 @@ def publish(stable=False):
     public.mkdir(exist_ok=True)
     # Publish the exact sealed set, including SBOMs, scan results and signatures.
     # Keeping the signed checksum manifest unchanged makes evidence independently verifiable.
-    selected=sorted(path.name for path in directory.iterdir() if path.is_file())
+    selected=sorted(path.name for path in directory.iterdir() if path.is_file() and path.name != "server-acceptance.json")
     missing=set(public_asset_names(COMPONENT,local_version()))-set(selected)
     if missing: raise SystemExit(f'Missing public deliverables: {missing}')
     for name in selected:
@@ -184,6 +280,10 @@ if __name__=='__main__':
     action=sys.argv[1]
     if action=='metadata': metadata()
     elif action=='seal': seal()
+    elif action=='verify-candidate':
+        assert_candidate_bound(ROOT/'release')
+        assert_candidate_evidence(ROOT/'release')
     elif action=='rc': publish()
     elif action=='stable': publish(stable=True)
+    elif action=='publish': publish()
     else: raise SystemExit('Unknown release action')

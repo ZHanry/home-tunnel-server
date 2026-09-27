@@ -4,6 +4,7 @@
 
 - Propose API 1.4.0 without freezing `api-v1.4.0`. Endpoint capabilities can report agent-discovered displays, DPI, audio, and files; session and tunnel failures carry typed retry actions.
 - Keep 9.0 rows readable. Migration 020 adds a nullable tunnel diagnostic column, and migration 021 stores the selected display metrics.
+- Split server candidate construction from stable publication. Stable publication requires acceptance of the same source SHA, image digests, and deployment hashes.
 
 ## 9.0.0
 
