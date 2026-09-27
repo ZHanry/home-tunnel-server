@@ -898,7 +898,7 @@ async function renderAccount(renderId) {
   const me = await api("/api/v1/auth/me");
   if (renderId !== state.renderId) return;
   state.me = me;
-  viewContent.innerHTML = `<section class="panel account-panel"><div class="panel-header"><div><h3 data-no-translate>${escapeHtml(me.display_name)}</h3><p class="panel-subtle">我的账号与使用额度</p></div><button class="button button-secondary" data-action="change-password">修改密码</button></div><div class="account-metrics"><div><span>本月 Web 流量</span><strong>${formatBytes(me.month_to_date_bytes)}</strong></div><div><span>月度配额</span><strong>${me.monthly_quota_bytes == null ? "不限额" : formatBytes(me.monthly_quota_bytes)}</strong></div><div><span>账号共享带宽</span><strong>${formatBps(me.bandwidth_limit_bps)}</strong></div></div><p class="helper">每月按 UTC 自然月重置。下次重置：${formatDate(me.quota_resets_at)}。TCP/UDP 不经过 Web 网关，不包含在这里的流量与配额统计中。</p></section>`;
+  viewContent.innerHTML = `<section class="panel account-panel"><div class="panel-header"><div><h3 data-no-translate>${escapeHtml(me.display_name)}</h3><p class="panel-subtle">我的账号与使用额度</p></div><button class="button button-secondary" data-action="change-password">修改密码</button></div><div class="account-metrics"><div><span>本月 Web 流量</span><strong>${formatBytes(me.month_to_date_bytes)}</strong></div><div><span>月度配额</span><strong>${me.monthly_quota_bytes == null ? "不限额" : formatBytes(me.monthly_quota_bytes)}</strong></div><div><span>账号共享带宽</span><strong>${formatBps(me.bandwidth_limit_bps)}</strong></div></div><p class="helper">每月按 UTC 自然月重置。下次重置：${formatDate(me.quota_resets_at)}。TCP/UDP 不经过 Web 网关，不包含在这里的流量与配额统计中。</p><div class="actions account-signout"><button class="button button-danger" data-action="logout">退出登录</button></div></section>`;
   await renderSecurity(renderId);
 }
 
@@ -1488,6 +1488,7 @@ appShell.addEventListener("click", async (event) => {
         }});
     }
     if (action === "change-password") changePassword();
+    if (action === "logout") confirmLogout();
     if (action === "connection-details") showConnectionDetails(button.dataset.id);
     if (action === "toggle-connection") {
       const c = state.connections.find((item) => item.id === button.dataset.id);
@@ -1865,7 +1866,7 @@ passwordForm.addEventListener("input", () => {
   document.querySelector("#password-error").textContent = "";
 });
 
-document.querySelector("#logout-button").addEventListener("click", () => {
+function confirmLogout() {
   confirmAction(
     "退出登录",
     "退出后需要重新输入账号密码。未保存的对话框内容会丢失。",
@@ -1882,7 +1883,9 @@ document.querySelector("#logout-button").addEventListener("click", () => {
       showLogin("已安全退出");
     },
   );
-});
+}
+
+document.querySelector("#logout-button").addEventListener("click", confirmLogout);
 
 (async () => {
   await loadPublicConfig();

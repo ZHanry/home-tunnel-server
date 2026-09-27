@@ -1628,6 +1628,9 @@ input[type="checkbox"] {
 .account-panel > .helper {
   padding: 0 28px 28px;
 }
+.account-signout {
+  padding: 0 28px 24px;
+}
 .nav-item[aria-current="page"] {
   font-weight: 700;
 }

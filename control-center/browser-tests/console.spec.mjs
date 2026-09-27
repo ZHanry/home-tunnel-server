@@ -23,6 +23,23 @@ test("an empty audit result clears stale page counts and disables pagination", a
   await expect(page.locator(".audit-table-panel")).toContainText("显示 0–0，共 0 条");
 });
 
+test("a phone user can cancel sign-out or confirm it from the account page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let signOutRequests = 0;
+  page.on("request", request => { if (request.method() === "POST" && new URL(request.url()).pathname === "/api/v1/auth/logout") signOutRequests++; });
+  await ready(page, "/admin?role=user#account");
+  const action = page.locator('[data-action="logout"]');
+  await action.click();
+  await expect(page.locator("#modal[open]")).toBeVisible();
+  expect(signOutRequests).toBe(0);
+  await page.locator("[data-modal-cancel]").click();
+  await expect(page.locator("#app-shell")).toBeVisible();
+  await action.click();
+  await page.locator('#modal button[type="submit"]').click();
+  await expect(page.locator("#auth-screen")).toBeVisible();
+  expect(signOutRequests).toBe(1);
+});
+
 test("public home and return link work without a session", async ({ page }) => {
   await page.route("**/api/v1/auth/refresh", (route) =>
     route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }),
