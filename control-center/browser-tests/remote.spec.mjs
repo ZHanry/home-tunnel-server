@@ -101,7 +101,12 @@ test("a matching persistent grant connects without another pairing request", asy
   await popup.close();
 });
 
-test("temporary assistance redeems in a separate window without putting the password in its URL", async ({ page }) => {
+const allPermissions = ["view", "input.keyboard", "input.pointer", "input.text", "clipboard.read", "clipboard.write", "files.send", "files.receive", "audio.system", "audio.microphone"];
+for (const host of [
+  // A 9.x host pre-approves only screen, input and clipboard; asking for more would wait for a click.
+  { name: "9.x", capabilities: { status: "ready", permissions: allPermissions, displays: [{ id: "main" }] }, legend: "画面、键鼠与文本剪贴板", scope: ["view", "input.keyboard", "input.pointer", "input.text", "clipboard.read", "clipboard.write"] },
+  { name: "10.x", capabilities: { status: "ready", permissions: allPermissions, displays: [{ id: "main" }], transports: ["udp_direct", "udp_relay"] }, legend: "画面、键鼠、剪贴板、文件与声音", scope: ["view", "input.keyboard", "input.pointer", "input.text", "clipboard.read", "clipboard.write", "files.send", "files.receive", "audio.system"] },
+]) test(`temporary assistance to a ${host.name} host redeems in a separate window without putting the password in its URL`, async ({ page }) => {
   const requests = [];
   await page.context().exposeBinding("recordAssistRequest", (_source, request) => { requests.push(request); });
   await page.context().route("**/modules/remote/http.js", (route) => route.fulfill({ contentType: "text/javascript", body: `
@@ -115,7 +120,7 @@ test("temporary assistance redeems in a separate window without putting the pass
         if (path.endsWith("/assist-invites/redeem")) return {
           invite_id: "30000000-0000-4000-8000-000000000001", host_endpoint_id: "40000000-0000-4000-8000-000000000001",
           host_owner_user_id: "50000000-0000-4000-8000-000000000001", host_name: "协助电脑", host_jkt: "host-jkt", host_public_jwk: { kty: "EC" },
-          capabilities: { status: "ready", permissions: ["view"], displays: [{ id: "main" }] },
+          capabilities: ${JSON.stringify(host.capabilities)},
         };
         if (path.endsWith("/pairings") && options.method === "POST") return new Promise(() => {});
         return {};
@@ -136,10 +141,12 @@ test("temporary assistance redeems in a separate window without putting the pass
   await popup.locator('[data-assist-form] [name="password"]').fill("OneTimeCode12");
   await popup.locator("[data-assist-form] button").click();
   await expect(popup.locator(".remote-dialog")).toBeVisible();
-  await expect(popup.locator(".remote-auth legend")).toContainText("画面、键鼠、剪贴板、文件与声音");
+  await expect(popup.locator(".remote-auth legend")).toContainText(host.legend);
   await expect(popup.locator(".remote-pairing")).toContainText("正在验证设备身份");
   await expect(popup.locator("[data-assist-form]")).toHaveCount(0);
   await expect.poll(() => requests.some((request) => request.path.endsWith("/pairings") && request.body?.assist_invite_id === "30000000-0000-4000-8000-000000000001")).toBe(true);
+  // The microphone is never asked for by default.
+  expect([...requests.find((request) => request.path.endsWith("/pairings")).body.permissions].sort()).toEqual([...host.scope].sort());
   await popup.close();
 });
 

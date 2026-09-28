@@ -205,6 +205,11 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
   // Like mainstream remote tools, a connection asks for files and system audio too; the host
   // still sees the full list before approving. The microphone stays opt-in.
   const defaultPermissions = ["view", "input.keyboard", "input.pointer", "input.text", "clipboard.read", "clipboard.write", "files.send", "files.receive", "audio.system"];
+  // A device-ID connection is pre-approved by the host. 9.x hosts pre-approve only screen, input
+  // and clipboard and would hold anything more for a click nobody makes when unattended. Only
+  // 10.x hosts report transports (udp_relay), and they pre-approve files and system audio too.
+  const narrowPermissions = ["view", "input.keyboard", "input.pointer", "input.text", "clipboard.read", "clipboard.write"];
+  const connectionDefaults = (host, assistInviteId) => assistInviteId && !host.capabilities.transports?.includes("udp_relay") ? narrowPermissions : defaultPermissions;
   function open(host, capabilities, assistInviteId = null, mode = "one_session") {
     if (active.has(host.id)) { raise(active.get(host.id)); return; }
     if (active.size >= 4) return;
@@ -215,7 +220,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     dialog.innerHTML = `${popoutWindow ? "" : `<button type="button" class="remote-close" data-close aria-label="关闭远程桌面" title="关闭远程桌面">${toolIcon("close")}</button>`}<div class="remote-card"><header class="remote-header"><span class="remote-badge" aria-hidden="true">${toolIcon("display")}</span><div class="remote-identity"><h2>${escapeHtml(host.name)}</h2><p class="remote-status" role="status">正在准备安全连接</p></div><span class="remote-latency" data-no-translate hidden></span></header>
       <p class="remote-error" role="alert"></p>
       <form class="remote-auth" hidden><div class="field"><label>当前账号的登录密码<input name="password" placeholder="用于确认是你本人" type="password" autocomplete="current-password" required maxlength="256"></label></div><div class="field remote-mfa-field" hidden><label>动态码或恢复码<input name="mfa" autocomplete="one-time-code" maxlength="128"></label></div>
-      <fieldset><legend>${assistInviteId ? "画面、键鼠、剪贴板、文件与声音随本次连接授权" : mode === "persistent" ? "绑定可信设备需本机管理员批准；持续授权最长 30 天" : "本次请求权限，仍需被控端同意"}</legend>${Object.entries(labels).filter(([permission]) => host.capabilities.permissions?.includes(permission)).map(([permission, label]) => `<label class="remote-permission"><input type="checkbox" name="permission" value="${permission}" ${defaultPermissions.includes(permission) ? "checked" : ""} ${permission === "view" ? "disabled" : ""}>${label}</label>`).join("")}</fieldset>
+      <fieldset><legend>${assistInviteId ? (connectionDefaults(host, assistInviteId) === narrowPermissions ? "画面、键鼠与文本剪贴板随本次连接授权" : "画面、键鼠、剪贴板、文件与声音随本次连接授权") : mode === "persistent" ? "绑定可信设备需本机管理员批准；持续授权最长 30 天" : "本次请求权限，仍需被控端同意"}</legend>${Object.entries(labels).filter(([permission]) => host.capabilities.permissions?.includes(permission)).map(([permission, label]) => `<label class="remote-permission"><input type="checkbox" name="permission" value="${permission}" ${connectionDefaults(host, assistInviteId).includes(permission) ? "checked" : ""} ${permission === "view" ? "disabled" : ""}>${label}</label>`).join("")}</fieldset>
       <button class="button button-primary" type="submit">${mode === "persistent" ? "验证并绑定可信设备" : "验证并请求连接"}</button></form>
       <section class="remote-pairing" hidden><p>${assistInviteId ? "正在验证设备身份与本次连接。" : mode === "persistent" ? "请让被控电脑的管理员确认设备身份并批准持续授权。配对码：" : "请在被控电脑上批准本次连接。配对码用于核对设备身份："}</p><strong class="remote-code" data-no-translate></strong></section>
       <div class="remote-card-actions"><button type="button" class="button button-secondary" data-cancel>取消</button></div></div>
