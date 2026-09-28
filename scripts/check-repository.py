@@ -64,4 +64,11 @@ for name in filter(None, files):
     assert "github.com/ZHanry/home-tunnel/linux-client" not in text, f"Old Go module import in {name}"
     if ".github/workflows/" in name or name.startswith("packaging/"):
         assert not re.search(r"(?:linux-client|windows-agent|android-client)[/\\]", text), f"Sibling source dependency in {name}"
+# A flow sequence such as [/tmp:size=8m,noexec] splits at each comma into separate
+# mounts, which Docker rejects at start. Mount options need a quoted block item.
+for compose in sorted(root.glob("**/compose*.y*ml")):
+    if "node_modules" in compose.parts:
+        continue
+    for number, line in enumerate(compose.read_text(encoding="utf-8").splitlines(), 1):
+        assert not re.search(r"^\s*tmpfs:\s*\[[^\]]*,", line), f"Quote tmpfs mount options as a block item: {compose.relative_to(root)}:{number}"
 print(f"{component}: repository boundaries, local versions and API v1 fixture verified")

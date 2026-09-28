@@ -21,7 +21,9 @@ services:
       - home-tunnel-status:/status
       - backup-work:/work
       - ${HOME_TUNNEL_RESTORE_DIRECTORY:-./restore}:/restore
-    tmpfs: [/tmp:size=32m,noexec,nosuid,nodev]
+    # Quoted: in a flow sequence the option commas would split this into four mounts.
+    tmpfs:
+      - "/tmp:size=32m,noexec,nosuid,nodev"
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
