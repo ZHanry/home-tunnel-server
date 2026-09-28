@@ -114,7 +114,12 @@ test("public landing page stays available while Windows release metadata is abse
 
     const stylesheet = await request(origin + "/console.css?v=7.0.0");
     assert.equal(stylesheet.status, 200);
-    assert.equal(stylesheet.headers["cache-control"], "public, max-age=31536000, immutable");
+    assert.equal(stylesheet.headers["cache-control"], "no-cache");
+    // Revalidation stays cheap: an unchanged asset answers 304 without a body.
+    const revalidated = await request(origin + "/console.css?v=7.0.0", {
+      "if-none-match": String(stylesheet.headers.etag),
+    });
+    assert.equal(revalidated.status, 304);
 
     const themeScript = await request(origin + "/theme.js?v=7.0.0");
     assert.equal(themeScript.status, 200);
@@ -132,7 +137,7 @@ test("public landing page stays available while Windows release metadata is abse
       applicationScript.body.toString("utf8").includes(`./modules/realtime.js?v=${APP_VERSION}`),
     );
     assert.match(applicationScript.body.toString("utf8"), /toLocaleString\(localeTag\(\)/);
-    assert.equal(applicationScript.headers["cache-control"], "public, max-age=31536000, immutable");
+    assert.equal(applicationScript.headers["cache-control"], "no-cache");
     const deviceScript = await request(origin + "/modules/devices.js?v=7.0.0");
     assert.equal(deviceScript.status, 200);
     assert.match(deviceScript.body.toString("utf8"), /data-action="delete-device"/);
@@ -156,7 +161,7 @@ test("public landing page stays available while Windows release metadata is abse
       /Home Tunnel — Secure access to services at home/,
     );
     assert.match(localeModule.body.toString("utf8"), /record\.type === "characterData"/);
-    assert.equal(localeModule.headers["cache-control"], "public, max-age=31536000, immutable");
+    assert.equal(localeModule.headers["cache-control"], "no-cache");
 
     const unversionedModule = await request(origin + "/modules/remote/session.js");
     assert.equal(unversionedModule.status, 200);

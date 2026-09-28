@@ -76,13 +76,9 @@ export async function createApplication(
       maxAge: 0,
       setHeaders(response, assetPath) {
         if (/\.(?:css|js|svg)$/i.test(assetPath)) {
-          // Only versioned URLs are immutable. Relative module imports carry no version, so they
-          // must revalidate or an upgrade keeps running the previous release's code.
-          const versioned = /[?&]v=/.test(response.req.originalUrl);
-          response.setHeader(
-            "cache-control",
-            versioned ? "public, max-age=31536000, immutable" : "no-cache",
-          );
+          // Always revalidate (a cheap 304 by ETag). The ?v= token is the release version, so a
+          // fix shipped under the same version would otherwise keep running the cached code.
+          response.setHeader("cache-control", "no-cache");
         }
       },
     }),
