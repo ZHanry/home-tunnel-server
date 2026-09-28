@@ -1064,13 +1064,16 @@ export function applyTheme(theme, persist = true) {
 }
 
 // Delegated so controls rendered later (the account page appearance select) work too.
-document.addEventListener("change", (event) => {
-  const select = event.target.closest?.("[data-theme-select]");
-  if (select) applyTheme(select.value);
-});
-document.addEventListener("click", (event) => {
-  if (event.target.closest?.("[data-theme-toggle]")) applyTheme(currentTheme() === "dark" ? "light" : "dark");
-});
+// Module tests import this file with a minimal document that has no event target.
+if (typeof document.addEventListener === "function") {
+  document.addEventListener("change", (event) => {
+    const select = event.target.closest?.("[data-theme-select]");
+    if (select) applyTheme(select.value);
+  });
+  document.addEventListener("click", (event) => {
+    if (event.target.closest?.("[data-theme-toggle]")) applyTheme(currentTheme() === "dark" ? "light" : "dark");
+  });
+}
 
 systemTheme.addEventListener("change", () => {
   if (currentThemePreference() === "system") applyTheme("system", false);
