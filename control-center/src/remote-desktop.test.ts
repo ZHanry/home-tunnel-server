@@ -1226,6 +1226,20 @@ test("UDP candidates preserve LAN/mDNS and reject relay, TCP and loopback", () =
   assert.equal(candidateAllowed("candidate:1 1 udp 123 ff12.local 12345 typ host"), true);
   assert.equal(candidateAllowed("candidate:1 1 udp 123 ::ffff:127.0.0.1 12345 typ host"), false);
   assert.equal(candidateAllowed("candidate:1 1 udp 123 192.168.1.1 65536 typ host"), false);
+  // Negotiated relay sessions accept UDP relay candidates only.
+  const relay = "candidate:2 1 udp 41885439 158.180.81.141 49170 typ relay raddr 0.0.0.0 rport 0";
+  assert.equal(candidateAllowed(relay), false);
+  assert.equal(candidateAllowed(relay, true), true);
+  assert.equal(candidateAllowed(relay.replace(" udp ", " tcp "), true), false);
+  assert.equal(candidateAllowed("candidate:2 1 udp 1 relay-1.local 49170 typ relay", true), false);
+  assert.equal(candidateAllowed(relay + " tcptype passive", true), false);
+});
+test("relay is offered only to relay-capable hosts paired with the console", () => {
+  const capable = { capability_json: JSON.stringify({ transports: ["udp_direct", "udp_relay"] }) };
+  const legacy = { capability_json: JSON.stringify({ permissions: ["view"] }) };
+  // The test server runs without RD_TURN_URLS, so relay stays off for everyone.
+  assert.equal(rd.relayAllowed(capable, { kind: "browser" }), false);
+  assert.equal(rd.relayAllowed(legacy, { kind: "browser" }), false);
 });
 
 test("configuration defaults off and refuses relay, unknown options and invalid STUN ports", () => {
@@ -1251,6 +1265,18 @@ test("configuration defaults off and refuses relay, unknown options and invalid 
     assert.notEqual(execute(Object.fromEntries(Object.entries(options))).status, 0);
   assert.equal(
     execute({ RD_STUN_URLS: "stun:example.com:3478,stun:[2001:db8::1]:3478" }).status,
+    0,
+  );
+  for (const options of [
+    { RD_TURN_URLS: "turn:example.com:3479?transport=udp" },
+    { RD_TURN_URLS: "turn:example.com:3479?transport=tcp", RD_TURN_SECRET_FILE: "x" },
+    { RD_TURN_URLS: "turns:example.com:5349", RD_TURN_SECRET_FILE: "x" },
+    { RD_TURN_URLS: "turn:example.com:3479", RD_TURN_SECRET_FILE: "x" },
+  ])
+    assert.notEqual(execute(options as Record<string, string>).status, 0);
+  assert.equal(
+    execute({ RD_TURN_URLS: "turn:example.com:3479?transport=udp", RD_TURN_SECRET_FILE: "x" })
+      .status,
     0,
   );
 });

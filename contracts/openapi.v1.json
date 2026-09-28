@@ -14072,6 +14072,17 @@
                           "backends"
                         ],
                         "additionalProperties": false
+                      },
+                      "transports": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "udp_direct",
+                            "udp_relay"
+                          ]
+                        },
+                        "maxItems": 2
                       }
                     },
                     "required": [
@@ -18207,6 +18218,192 @@
           }
         },
         "description": "Remote desktop authorization only. Payloads use authenticated direct UDP WebRTC; no server media or file relay. Disabled deployments return RD_DISABLED. Request JSON is limited to 16 KiB."
+      }
+    },
+    "/api/v1/rd/sessions/{id}/ice-servers": {
+      "get": {
+        "operationId": "get_rd_sessions_id_ice_servers",
+        "summary": "GET /rd/sessions/{id}/ice-servers",
+        "tags": [
+          "remote-desktop"
+        ],
+        "security": [
+          {
+            "dpopAuth": [],
+            "dpopProof": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_ENROLLED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DNS_VERIFICATION_FAILED, ENROLLMENT_INVALID, FORBIDDEN, MFA_INVALID, MFA_REQUIRED, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "session_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "relay_allowed": {
+                      "type": "boolean"
+                    },
+                    "expires_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "ice_servers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "urls": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_ENROLLED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DNS_VERIFICATION_FAILED, ENROLLMENT_INVALID, FORBIDDEN, MFA_INVALID, MFA_REQUIRED, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT"
+                            },
+                            "maxItems": 4
+                          },
+                          "username": {
+                            "type": "string",
+                            "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_ENROLLED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DNS_VERIFICATION_FAILED, ENROLLMENT_INVALID, FORBIDDEN, MFA_INVALID, MFA_REQUIRED, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT"
+                          },
+                          "credential": {
+                            "type": "string",
+                            "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_ENROLLED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DNS_VERIFICATION_FAILED, ENROLLMENT_INVALID, FORBIDDEN, MFA_INVALID, MFA_REQUIRED, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT"
+                          }
+                        },
+                        "required": [
+                          "urls"
+                        ]
+                      },
+                      "maxItems": 2
+                    }
+                  },
+                  "required": [
+                    "session_id",
+                    "relay_allowed",
+                    "expires_at",
+                    "ice_servers"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication or MFA failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission or CSRF failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource absent or not owned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version, policy or state conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Account or device locked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or resource limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unsupported role, protocol or capability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "description": "Session participants fetch STUN and, when both peers support it, short-lived UDP TURN relay credentials. Relay candidates are accepted only for such sessions; TCP remains forbidden."
       }
     },
     "/api/v1/rd/sessions/{id}/decision": {
@@ -22715,6 +22912,26 @@
                 },
                 "maxItems": 4
               },
+              "relay": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "protocol": {
+                    "const": "udp"
+                  },
+                  "ice_servers_path": {
+                    "type": "string",
+                    "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_ENROLLED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DNS_VERIFICATION_FAILED, ENROLLMENT_INVALID, FORBIDDEN, MFA_INVALID, MFA_REQUIRED, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT"
+                  }
+                },
+                "required": [
+                  "enabled",
+                  "protocol",
+                  "ice_servers_path"
+                ]
+              },
               "limits": {
                 "type": "object",
                 "properties": {
@@ -23547,6 +23764,17 @@
                   "backends"
                 ],
                 "additionalProperties": false
+              },
+              "transports": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "udp_direct",
+                    "udp_relay"
+                  ]
+                },
+                "maxItems": 2
               }
             },
             "required": [
@@ -24024,6 +24252,9 @@
                 "type": "null"
               }
             ]
+          },
+          "relay_allowed": {
+            "type": "boolean"
           },
           "ticket_jws": {
             "anyOf": [

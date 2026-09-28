@@ -2592,6 +2592,26 @@
               },
               "maxItems": 4
             },
+            "relay": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "protocol": {
+                  "const": "udp"
+                },
+                "ice_servers_path": {
+                  "type": "string",
+                  "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_ENROLLED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DNS_VERIFICATION_FAILED, ENROLLMENT_INVALID, FORBIDDEN, MFA_INVALID, MFA_REQUIRED, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT"
+                }
+              },
+              "required": [
+                "enabled",
+                "protocol",
+                "ice_servers_path"
+              ]
+            },
             "limits": {
               "type": "object",
               "properties": {
@@ -3424,6 +3444,17 @@
                 "backends"
               ],
               "additionalProperties": false
+            },
+            "transports": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "udp_direct",
+                  "udp_relay"
+                ]
+              },
+              "maxItems": 2
             }
           },
           "required": [
@@ -3901,6 +3932,9 @@
               "type": "null"
             }
           ]
+        },
+        "relay_allowed": {
+          "type": "boolean"
         },
         "ticket_jws": {
           "anyOf": [

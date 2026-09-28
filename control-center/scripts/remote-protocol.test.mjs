@@ -912,9 +912,14 @@ test("selected candidate pair rejects TCP and relay while exposing incomplete br
     ["local", { protocol: "udp", candidateType: "host" }],
     ["remote", { protocol: "udp", candidateType: "srflx" }],
   ]);
-  assert.deepEqual(selectedUdpPair(stats), { id: "pair", verified: true });
+  assert.deepEqual(selectedUdpPair(stats), { id: "pair", relayed: false, verified: true });
   stats.get("remote").candidateType = "relay";
   assert.throws(() => selectedUdpPair(stats));
+  // Negotiated UDP TURN relay is accepted; TCP/TLS allocations never are.
+  assert.deepEqual(selectedUdpPair(stats, true), { id: "pair", relayed: true, verified: true });
+  stats.get("remote").relayProtocol = "tcp";
+  assert.throws(() => selectedUdpPair(stats, true));
+  delete stats.get("remote").relayProtocol;
   stats.get("remote").candidateType = "host";
   stats.get("local").protocol = "tcp";
   assert.throws(() => selectedUdpPair(stats));
@@ -1784,4 +1789,19 @@ test("ES256 uses raw signatures and pins type, algorithm, public key and key id"
   await assert.rejects(verifyJws(parts.join("."), jwk, "ht-rd-proof+jwt"));
   assert.throws(() => publicJwk({ ...jwk, d: "private" }));
   assert.throws(() => unbase64url("AB"));
+});
+
+test("relay candidates require an explicitly negotiated UDP relay session", async () => {
+  const { directCandidate, validateSdp } = await import("../public/modules/remote/protocol.js");
+  const relay = "candidate:1 1 udp 41885439 158.180.81.141 49170 typ relay raddr 203.0.113.9 rport 50000";
+  assert.throws(() => directCandidate(relay));
+  assert.equal(directCandidate(relay, true), relay);
+  assert.throws(() => directCandidate(relay.replace(" udp ", " tcp "), true));
+  assert.throws(() => directCandidate("candidate:1 1 udp 1 abc.local 5000 typ relay", true));
+  assert.throws(() => validateSdp(`v=0
+a=${relay}
+`));
+  assert.doesNotThrow(() => validateSdp(`v=0
+a=${relay}
+`, true));
 });

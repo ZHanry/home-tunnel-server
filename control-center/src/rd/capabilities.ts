@@ -101,6 +101,11 @@ export const capabilitySchema = z.strictObject({
     .default([]),
   status: z.enum(["ready", "locked", "permission_required", "unavailable"]).default("ready"),
   native: nativeSchema.optional(),
+  // Optional: hosts that can use a UDP TURN relay advertise it; older hosts omit it.
+  transports: z
+    .array(z.enum(["udp_direct", "udp_relay"]))
+    .max(2)
+    .optional(),
 });
 
 export type CapabilityReport = z.infer<typeof capabilitySchema>;

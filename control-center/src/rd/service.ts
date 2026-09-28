@@ -1,4 +1,4 @@
-import { randomBytes, randomInt, randomUUID } from "node:crypto";
+import { createHmac, randomBytes, randomInt, randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
 import { config } from "../config.js";
@@ -15,7 +15,7 @@ import {
   type Permission,
 } from "./capabilities.js";
 import { accessModeFor, connectionStateFor, failureView } from "./connection-state.js";
-import { rdConfig } from "./config.js";
+import { loadTurnSecret, rdConfig, relayEnabled } from "./config.js";
 import { genesisKeyset, parseManifest, verifyKeysetUpdate } from "./keyset.js";
 import {
   canonical,
@@ -1905,6 +1905,10 @@ export async function sessionView(row: Session, participant?: string) {
   ]);
   return {
     ...base,
+    relay_allowed: relayAllowed(
+      endpoints.find((e) => e.id === row.host_endpoint_id),
+      endpoints.find((e) => e.id === row.controller_endpoint_id),
+    ),
     ticket_jws: row.ticket_jws,
     lease_jws: row.lease_jws,
     grant_jws: grant?.host_signature ?? null,
@@ -1914,6 +1918,48 @@ export async function sessionView(row: Session, participant?: string) {
     controller_public_jwk: JSON.parse(
       endpoints.find((e) => e.id === row.controller_endpoint_id)!.public_jwk,
     ) as PublicJwk,
+  };
+}
+// A relay path is only offered when both peers understand relay candidates:
+// the host must advertise udp_relay and the controller must be the console.
+export function relayAllowed(
+  host: Pick<Endpoint, "capability_json"> | undefined,
+  controller: Pick<Endpoint, "kind"> | undefined,
+) {
+  if (!relayEnabled() || !host || controller?.kind !== "browser") return false;
+  const reported = JSON.parse(host.capability_json) as { transports?: unknown };
+  return Array.isArray(reported.transports) && reported.transports.includes("udp_relay");
+}
+export async function sessionRelayAllowed(row: Session) {
+  const endpoints = await query<Endpoint>("SELECT * FROM rd_endpoints WHERE id IN (?,?)", [
+    row.host_endpoint_id,
+    row.controller_endpoint_id,
+  ]);
+  return relayAllowed(
+    endpoints.find((e) => e.id === row.host_endpoint_id),
+    endpoints.find((e) => e.id === row.controller_endpoint_id),
+  );
+}
+export async function iceServers(identity: RdIdentity, id: string) {
+  await requireEnabled();
+  const row = await transaction((db) => sessionFor(db, identity, id));
+  if (!["authorized", "connecting", "active", "reconnecting"].includes(row.state))
+    fail(409, "RD_SIGNAL_STATE", "会话不处于建连窗口");
+  const servers: { urls: string[]; username?: string; credential?: string }[] = [];
+  if (rdConfig.stunUrls.length) servers.push({ urls: [...rdConfig.stunUrls] });
+  const relay = await sessionRelayAllowed(row);
+  const expires = Math.floor(Date.now() / 1000) + rdConfig.turnTtlSeconds;
+  if (relay) {
+    // coturn use-auth-secret (TURN REST): username "<expiry>:<label>", credential HMAC-SHA1.
+    const username = `${expires}:${identity.endpoint.id}`;
+    const credential = createHmac("sha1", loadTurnSecret()!).update(username).digest("base64");
+    servers.push({ urls: [...rdConfig.turnUrls], username, credential });
+  }
+  return {
+    session_id: row.id,
+    relay_allowed: relay,
+    expires_at: new Date(expires * 1000).toISOString(),
+    ice_servers: servers,
   };
 }
 export async function getSession(owner: string, id: string, participant?: string) {

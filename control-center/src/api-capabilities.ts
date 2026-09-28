@@ -1,5 +1,5 @@
 import { APP_VERSION } from "./version.js";
-import { rdConfig } from "./rd/config.js";
+import { rdConfig, relayEnabled } from "./rd/config.js";
 
 export const apiCapabilities = {
   api_major: 1,
@@ -19,6 +19,12 @@ export const apiCapabilities = {
     native_media: "signed_endpoint_report",
     server_probes_device_localhost: false,
     stun_urls: rdConfig.stunUrls,
+    // Legacy fields above stay direct-only for 9.x clients; 10.x reads this block.
+    relay: {
+      enabled: relayEnabled(),
+      protocol: "udp",
+      ice_servers_path: "/api/v1/rd/sessions/{session_id}/ice-servers",
+    },
     limits: {
       endpoints_per_user: rdConfig.endpointsPerUser,
       sessions_per_user: rdConfig.sessionsPerUser,
@@ -39,6 +45,7 @@ export const apiCapabilities = {
     "http_latency_metrics",
     "rd_discovered_capabilities",
     "tunnel_agent_diagnostics",
+    "rd_udp_relay",
   ],
   limits: {
     page_size: 100,

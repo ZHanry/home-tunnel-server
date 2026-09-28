@@ -59,7 +59,7 @@ const payloadSchema = z.strictObject({
   created_at: z.string().datetime(),
   payload: z.unknown(),
 });
-export function candidateAllowed(value: string) {
+export function candidateAllowed(value: string, relay = false) {
   if (!value) return true;
   const parts = value.trim().replace(/^a=/, "").split(/\s+/);
   if (
@@ -67,7 +67,8 @@ export function candidateAllowed(value: string) {
     !parts[0]!.startsWith("candidate:") ||
     parts[2]!.toLowerCase() !== "udp" ||
     parts[6] !== "typ" ||
-    !["host", "srflx", "prflx"].includes(parts[7]!)
+    !["host", "srflx", "prflx", ...(relay ? ["relay"] : [])].includes(parts[7]!) ||
+    parts.includes("tcptype")
   )
     return false;
   const address = parts[4]!.toLowerCase();
@@ -79,7 +80,7 @@ export function candidateAllowed(value: string) {
     (family === 6 && /^(?:ff|fe[89ab][0-9a-f]:|::ffff:)/.test(address))
   )
     return false;
-  if (!family && !/^[a-z0-9-]{1,63}\.local$/.test(address)) return false;
+  if (!family && (parts[7] !== "host" || !/^[a-z0-9-]{1,63}\.local$/.test(address))) return false;
   return true;
 }
 const reservedTypes = new Set([
@@ -166,6 +167,7 @@ async function forwardPeer(connection: Connection, message: unknown) {
     BigInt(payload.seq) > 18446744073709551615n
   )
     rd.fail(401, "RD_PROOF_INVALID", "信令签名标识不匹配");
+  const relay = await rd.sessionRelayAllowed(row);
   if (
     (payload.type === "peer.offer" && identity.endpoint.id !== row.controller_endpoint_id) ||
     (payload.type === "peer.answer" && identity.endpoint.id !== row.host_endpoint_id)
@@ -197,18 +199,18 @@ async function forwardPeer(connection: Connection, message: unknown) {
       rd.fail(400, "RD_SDP_INVALID", "SDP 无效");
     const candidates = data.sdp.split(/\r?\n/).filter((line) => line.startsWith("a=candidate:"));
     if (
-      candidates.some((line) => !candidateAllowed(line)) ||
+      candidates.some((line) => !candidateAllowed(line, relay)) ||
       candidates.length > 32 ||
       /a=setup:holdconn|a=ice-lite/i.test(data.sdp)
     )
-      rd.fail(422, "RD_NO_DIRECT_PATH", "只允许标准 UDP 直接候选");
+      rd.fail(422, "RD_NO_DIRECT_PATH", "只允许标准 UDP 候选");
     connection.candidates.set(key, (connection.candidates.get(key) ?? 0) + candidates.length);
   } else if (payload.type === "peer.candidates") {
     const data = z
       .strictObject({ candidates: z.array(candidate).min(1).max(32) })
       .parse(payload.payload);
-    if (data.candidates.some((item) => !candidateAllowed(item.candidate)))
-      rd.fail(422, "RD_NO_DIRECT_PATH", "不允许中继或 TCP 候选");
+    if (data.candidates.some((item) => !candidateAllowed(item.candidate, relay)))
+      rd.fail(422, "RD_NO_DIRECT_PATH", "不允许 TCP 或未协商的中继候选");
     connection.candidates.set(key, (connection.candidates.get(key) ?? 0) + data.candidates.length);
   } else z.strictObject({}).parse(payload.payload);
   if ((connection.candidates.get(key) ?? 0) > 32)

@@ -1,0 +1,50 @@
+# UDP TURN relay fallback for remote desktop. Opt in with the "turn" profile
+# after running deploy/scripts/turn-secret.sh, and set HOME_TUNNEL_TURN_EXTERNAL_IP.
+# Relay traffic uses server bandwidth; media stays DTLS-SRTP end to end.
+services:
+  turn:
+    profiles: [turn]
+    image: coturn/coturn:4.6.3@sha256:71c3c990283385567f11794ee692e3a47b66fd9b0bb39e42afbe776e331dd888
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        umask 077 &&
+        cp /etc/coturn/turnserver.conf /tmp/turnserver.conf &&
+        printf 'external-ip=%s\nstatic-auth-secret=%s\n' "$$TURN_EXTERNAL_IP" "$$(cat /run/secrets/turn_secret)" >> /tmp/turnserver.conf &&
+        exec turnserver -c /tmp/turnserver.conf
+    environment:
+      TURN_EXTERNAL_IP: ${HOME_TUNNEL_TURN_EXTERNAL_IP:?set HOME_TUNNEL_TURN_EXTERNAL_IP}
+    ports:
+      - "${HOME_TUNNEL_TURN_BIND_ADDRESS:-0.0.0.0}:3479:3479/udp"
+      - "${HOME_TUNNEL_TURN_BIND_ADDRESS:-0.0.0.0}:49160-49179:49160-49179/udp"
+    volumes:
+      - ./deploy/turn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - ./deploy/secrets/turn_secret.coturn:/run/secrets/turn_secret:ro
+    networks: [edge]
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - "/tmp:size=8m,noexec,nosuid,nodev"
+    mem_limit: 128m
+    cpus: "0.50"
+    pids_limit: 64
+    healthcheck:
+      test: [CMD, turnutils_stunclient, -p, "3479", "127.0.0.1"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: local
+      options: {max-size: 5m, max-file: "2"}
+  control-center:
+    environment:
+      RD_TURN_URLS: turn:${HOME_TUNNEL_TURN_EXTERNAL_IP}:3479?transport=udp
+      RD_TURN_SECRET_FILE: /run/secrets/turn_secret
+    secrets:
+      - turn_secret
+secrets:
+  turn_secret:
+    file: ./deploy/secrets/turn_secret

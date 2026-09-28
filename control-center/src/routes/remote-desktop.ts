@@ -666,6 +666,13 @@ router.get(
     );
   }),
 );
+router.get(
+  "/sessions/:id/ice-servers",
+  asyncHandler(async (request, response) => {
+    response.setHeader("Cache-Control", "no-store");
+    response.json(await rd.iceServers(identity(request), pathParam(request, "id")));
+  }),
+);
 router.post(
   "/sessions/:id/decision",
   asyncHandler(async (request, response) => {

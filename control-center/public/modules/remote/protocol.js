@@ -124,25 +124,25 @@ export function decodeFrame(input, channel) {
   return { type: view.getUint8(3), flags: view.getUint16(4), epoch, inputEpoch, sequence, payload };
 }
 
-export function directCandidate(candidate) {
+export function directCandidate(candidate, relay = false) {
   if (typeof candidate !== "string" || /[\r\n]/.test(candidate) || encoder.encode(candidate).length > 1024) throw new Error("RD_PATH_REJECTED");
   const fields = candidate.replace(/^a=/, "").trim().split(/\s+/);
-  if (!/^candidate:[a-zA-Z0-9+/]{1,32}$/.test(fields[0]) || !/^[12]$/.test(fields[1]) || fields[2]?.toLowerCase() !== "udp" || !/^\d+$/.test(fields[3]) || Number(fields[3]) > 0xffffffff || !fields[4] || !/^\d+$/.test(fields[5]) || Number(fields[5]) < 1 || Number(fields[5]) > 65535 || fields[6] !== "typ" || !["host", "srflx", "prflx"].includes(fields[7])) throw new Error("RD_PATH_REJECTED");
+  if (!/^candidate:[a-zA-Z0-9+/]{1,32}$/.test(fields[0]) || !/^[12]$/.test(fields[1]) || fields[2]?.toLowerCase() !== "udp" || !/^\d+$/.test(fields[3]) || Number(fields[3]) > 0xffffffff || !fields[4] || !/^\d+$/.test(fields[5]) || Number(fields[5]) < 1 || Number(fields[5]) > 65535 || fields[6] !== "typ" || !["host", "srflx", "prflx", ...(relay ? ["relay"] : [])].includes(fields[7])) throw new Error("RD_PATH_REJECTED");
   const address = fields[4];
   if (address.includes(":")) {
     try { if (!/^[0-9a-f:.]+$/i.test(address)) throw new Error(); new URL(`http://[${address}]/`); }
     catch { throw new Error("RD_PATH_REJECTED"); }
   } else if (/^[0-9.]+$/.test(address)) {
     if (address.split(".").length !== 4 || address.split(".").some((part) => !/^(0|[1-9][0-9]{0,2})$/.test(part) || Number(part) > 255)) throw new Error("RD_PATH_REJECTED");
-  } else if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+local$/i.test(address)) throw new Error("RD_PATH_REJECTED");
+  } else if (fields[7] !== "host" || !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+local$/i.test(address)) throw new Error("RD_PATH_REJECTED");
   if ((fields.length - 8) % 2 || fields.slice(8).includes("tcptype")) throw new Error("RD_PATH_REJECTED");
   return candidate;
 }
 
-export function validateSdp(sdp) {
+export function validateSdp(sdp, relay = false) {
   if (typeof sdp !== "string" || encoder.encode(sdp).length > 24576 || sdp.includes(String.fromCharCode(0))) throw new Error("RD_PROTOCOL_MISMATCH");
   for (const line of sdp.split(/\r?\n/)) {
-    if (line.startsWith("a=candidate:")) directCandidate(line);
+    if (line.startsWith("a=candidate:")) directCandidate(line, relay);
     if (line.startsWith("m=")) {
       const transport = line.trim().split(/\s+/)[2];
       if (!["UDP/TLS/RTP/SAVPF", "UDP/DTLS/SCTP"].includes(transport)) throw new Error("RD_PATH_REJECTED");

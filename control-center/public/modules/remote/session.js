@@ -24,7 +24,7 @@ export class PeerReplayWindow {
   }
 }
 
-export function selectedUdpPair(stats) {
+export function selectedUdpPair(stats, relay = false) {
   const values = [...stats.values()];
   const transport = values.find((item) => item.type === "transport" && item.selectedCandidatePairId);
   const pair = transport ? stats.get(transport.selectedCandidatePairId) : values.find((item) => item.type === "candidate-pair" && item.state === "succeeded" && item.nominated);
@@ -32,9 +32,12 @@ export function selectedUdpPair(stats) {
   const local = stats.get(pair.localCandidateId), remote = stats.get(pair.remoteCandidateId);
   for (const candidate of [local, remote]) {
     if (!candidate) continue;
-    if ((candidate.protocol && candidate.protocol.toLowerCase() !== "udp") || (candidate.candidateType && !["host", "srflx", "prflx"].includes(candidate.candidateType)) || candidate.relayProtocol || candidate.tcpType) throw new RemoteError("RD_PATH_REJECTED");
+    const types = ["host", "srflx", "prflx", ...(relay ? ["relay"] : [])];
+    // A relayed local candidate reaches the TURN server over UDP only; TCP/TLS allocation is refused.
+    if ((candidate.protocol && candidate.protocol.toLowerCase() !== "udp") || (candidate.candidateType && !types.includes(candidate.candidateType)) || (candidate.relayProtocol && (!relay || candidate.relayProtocol.toLowerCase() !== "udp")) || candidate.tcpType) throw new RemoteError("RD_PATH_REJECTED");
   }
-  return { id: pair.id, verified: [local, remote].every((candidate) => candidate?.protocol?.toLowerCase() === "udp" && ["host", "srflx", "prflx"].includes(candidate.candidateType)) };
+  const types = ["host", "srflx", "prflx", ...(relay ? ["relay"] : [])];
+  return { id: pair.id, relayed: [local, remote].some((candidate) => candidate?.candidateType === "relay"), verified: [local, remote].every((candidate) => candidate?.protocol?.toLowerCase() === "udp" && types.includes(candidate.candidateType)) };
 }
 
 export class RemoteSession {
@@ -77,7 +80,9 @@ export class RemoteSession {
     if (this.closed) throw new RemoteError("RD_SESSION_REVOKED");
     if (!Array.isArray(stunUrls) || stunUrls.length > 4 || stunUrls.some((url) => !/^stun:(?:[a-z0-9.-]+|\[[0-9a-f:]+\]):\d{1,5}$/i.test(url))) throw new RemoteError("RD_PATH_REJECTED");
     this.onState?.("connecting");
-    this.pc = new RTCPeerConnection({ iceServers: stunUrls.map((urls) => ({ urls })), iceTransportPolicy: "all", bundlePolicy: "max-bundle" });
+    const iceServers = await this.iceServers(stunUrls);
+    if (this.closed) throw new RemoteError("RD_SESSION_REVOKED");
+    this.pc = new RTCPeerConnection({ iceServers, iceTransportPolicy: "all", bundlePolicy: "max-bundle" });
     this.pc.addTransceiver("video", { direction: "recvonly" });
     if (this.permissions.has("audio.system")) this.pc.addTransceiver("audio", { direction: "recvonly" });
     if (this.permissions.has("audio.microphone")) this.microphoneTransceiver = this.pc.addTransceiver("audio", { direction: "sendonly" });
@@ -94,7 +99,7 @@ export class RemoteSession {
     this.pc.onicecandidate = (event) => {
       if (this.closed) return;
       if (!event.candidate) return;
-      try { directCandidate(event.candidate.candidate); } catch { return; }
+      try { directCandidate(event.candidate.candidate, this.relay); } catch { return; }
       if (this.candidates.length >= 32) return;
       const item = event.candidate.toJSON(); this.candidates.push(item);
       if (this.offerJws) this.sendPeer("peer.candidates", { candidates: [item] }).catch((error) => this.fail(error));
@@ -126,10 +131,31 @@ export class RemoteSession {
     this.iceTimer = setTimeout(() => this.fail(new RemoteError("RD_NO_DIRECT_PATH")), RD.limits.ice_deadline_ms);
     const offer = await this.pc.createOffer();
     await this.pc.setLocalDescription(offer);
-    this.offerJws = await this.sendPeer("peer.offer", { sdp: validateSdp(offer.sdp), type: "offer" });
+    this.offerJws = await this.sendPeer("peer.offer", { sdp: validateSdp(offer.sdp, this.relay), type: "offer" });
     if (this.candidates.length) await this.sendPeer("peer.candidates", { candidates: this.candidates });
     document.addEventListener("visibilitychange", () => { if (document.hidden) { this.releaseInput(); void this.stopMicrophone(); } }, { signal: this.abort.signal });
     window.addEventListener("blur", () => this.releaseInput(), { signal: this.abort.signal });
+  }
+  // STUN always; UDP TURN only when the server says both peers support relay.
+  async iceServers(stunUrls) {
+    this.relay = false;
+    let answer = null;
+    try { answer = await this.api.request(`/api/v1/rd/sessions/${this.id}/ice-servers`); }
+    catch (error) { if (error?.status !== 404) throw error; }
+    if (!answer) return stunUrls.map((urls) => ({ urls }));
+    if (answer.session_id !== this.id || !Array.isArray(answer.ice_servers) || answer.ice_servers.length > 2) throw new RemoteError("RD_PATH_REJECTED");
+    const servers = [];
+    for (const server of answer.ice_servers) {
+      const urls = Array.isArray(server?.urls) ? server.urls : [];
+      if (!urls.length || urls.length > 4) throw new RemoteError("RD_PATH_REJECTED");
+      const stun = urls.every((url) => /^stun:(?:[a-z0-9.-]+|\[[0-9a-f:]+\]):\d{1,5}$/i.test(url));
+      const turn = urls.every((url) => /^turn:(?:[a-z0-9.-]+|\[[0-9a-f:]+\]):\d{1,5}\?transport=udp$/i.test(url));
+      if (stun) servers.push({ urls });
+      else if (turn && answer.relay_allowed === true && typeof server.username === "string" && typeof server.credential === "string" && server.username.length <= 256 && server.credential.length <= 256) servers.push({ urls, username: server.username, credential: server.credential });
+      else throw new RemoteError("RD_PATH_REJECTED");
+    }
+    this.relay = answer.relay_allowed === true && servers.some((server) => server.username);
+    return servers;
   }
   async sendPeer(type, payload) {
     if (this.closed || !this.lease.valid()) throw new RemoteError("RD_SESSION_REVOKED");
@@ -147,13 +173,13 @@ export class RemoteSession {
     if (message.type === "peer.answer") {
       if (this.answerJws || claims.payload.type !== "answer") throw new RemoteError("RD_STATE_CONFLICT");
       this.answerJws = message.payload_jws;
-      await this.pc.setRemoteDescription({ type: "answer", sdp: validateSdp(claims.payload.sdp) });
+      await this.pc.setRemoteDescription({ type: "answer", sdp: validateSdp(claims.payload.sdp, this.relay) });
       for (const candidate of this.pendingCandidates) await this.pc.addIceCandidate(candidate);
       this.pendingCandidates = [];
     } else if (message.type === "peer.candidates") {
       if (!Array.isArray(claims.payload.candidates) || (this.remoteCandidateCount ?? 0) + claims.payload.candidates.length > 32) throw new RemoteError("RD_PROTOCOL_MISMATCH");
       for (const candidate of claims.payload.candidates) {
-        directCandidate(candidate.candidate);
+        directCandidate(candidate.candidate, this.relay);
         if (this.pc.remoteDescription) await this.pc.addIceCandidate(candidate); else this.pendingCandidates.push(candidate);
       }
       this.remoteCandidateCount = (this.remoteCandidateCount ?? 0) + claims.payload.candidates.length;
@@ -245,7 +271,7 @@ export class RemoteSession {
     await this.onControl?.(frame);
   }
   async inspectPath() {
-    const pair = selectedUdpPair(await this.pc.getStats());
+    const pair = selectedUdpPair(await this.pc.getStats(), this.relay);
     if (this.closed) return;
     if (pair && this.selectedPair && pair.id !== this.selectedPair.id) {
       this.releaseInput(); this.pathVerified = false; this.video.pause(); await this.stopMicrophone();
