@@ -75,16 +75,20 @@ for (const locale of ["zh-CN", "en"]) {
       hook: [...button.attributes].map(attribute => attribute.name).find(name => name.startsWith("data-")),
       label: button.getAttribute("aria-label"), title: button.title, text: button.querySelector("span").textContent,
       icons: button.querySelectorAll("svg[aria-hidden=true]").length, hidden: button.hidden })));
-    expect(tools.map(tool => tool.hook)).toEqual(["data-input", "data-release", "data-fullscreen", "data-clipboard", "data-files", "data-text-toggle", "data-audio", "data-microphone", "data-play", "data-diagnostics-toggle"]);
+    expect(tools.map(tool => tool.hook)).toEqual(["data-input", "data-release", "data-fullscreen", "data-clipboard", "data-files", "data-text-toggle", "data-shortcuts", "data-audio", "data-microphone", "data-play", "data-more"]);
     for (const tool of tools) {
       expect(tool.label, tool.hook).toBeTruthy();
       expect(tool.label).toBe(tool.text);
-      expect(tool.title).toBe(tool.label);
+      // Disabled tools append why they are unavailable to the tooltip.
+      expect(tool.title.startsWith(tool.label)).toBe(true);
       expect(tool.icons).toBe(1);
       if (locale === "en") expect(tool.label).not.toMatch(/\p{Script=Han}/u);
     }
     // The host does not offer microphone forwarding, so that tool stays out of the bar.
     expect(tools.find(tool => tool.hook === "data-microphone").hidden).toBe(true);
+    // One control toggle is shown at a time, and play only appears when the browser needs a click.
+    expect(tools.filter(tool => ["data-input", "data-release"].includes(tool.hook) && !tool.hidden)).toHaveLength(1);
+    expect(tools.find(tool => tool.hook === "data-play").hidden).toBe(true);
     await expect(dialog.getByRole("button", { name: locale === "en" ? "Full screen" : "全屏" })).toBeVisible();
     // Every visible control has an accessible name.
     const unnamed = await dialog.locator("button:visible, select:visible, textarea:visible, input:visible").evaluateAll(controls => controls
@@ -116,7 +120,8 @@ for (const viewport of [{ width: 1280, height: 840 }, { width: 960, height: 640 
       expect(layout.dialog.width).toBe(layout.innerWidth);
       expect(layout.dialog.height).toBe(layout.innerHeight);
       expect(layout.toolbarHeight).toBeLessThanOrEqual(60);
-      expect(layout.stage.top).toBeGreaterThanOrEqual(layout.toolbar.bottom - 1);
+      // The toolbar floats over a screen that fills the whole window.
+      expect(Math.abs(layout.stage.top - layout.dialog.top)).toBeLessThanOrEqual(1);
       expect(Math.abs(layout.stage.bottom - layout.innerHeight)).toBeLessThanOrEqual(1);
       expect(layout.stage.width).toBe(layout.innerWidth);
       for (const box of layout.visibleTools) {
@@ -173,4 +178,35 @@ test("the file drawer opens as a compact popover over the screen and disconnect 
   await expect(popup.locator(".remote-text textarea")).toBeFocused();
   await popup.locator("[data-disconnect]").click();
   await expect.poll(() => popup.isClosed()).toBe(true);
+});
+
+test("connecting keeps the screen clear: no drawer opens by itself and clicking the screen closes drawers and menus", async ({ page, context }) => {
+  const popup = await openViewer(page, context);
+  const dialog = popup.locator(".remote-dialog");
+  await expect(dialog.locator(".remote-data")).toBeHidden();
+  await dialog.locator("[data-clipboard]").click();
+  await expect(dialog.locator("[data-clipboard-panel]")).toBeVisible();
+  await expect(dialog.locator("[data-clipboard]")).toHaveAttribute("aria-expanded", "true");
+  await dialog.locator(".remote-video").click({ position: { x: 200, y: 400 } });
+  await expect(dialog.locator("[data-clipboard-panel]")).toBeHidden();
+  await expect(dialog.locator("[data-clipboard]")).toHaveAttribute("aria-expanded", "false");
+  // Shortcuts need control first and say so; the more menu opens under its button and closes with Escape.
+  await expect(dialog.locator("[data-shortcuts]")).toBeDisabled();
+  await expect(dialog.locator("[data-shortcuts]")).toHaveAttribute("title", "快捷键 · 请先开始控制");
+  await dialog.locator("[data-more]").click();
+  await expect(dialog.locator("[data-more-menu]")).toBeVisible();
+  await expect(dialog.locator("[data-diagnostics-toggle]")).toBeFocused();
+  await popup.keyboard.press("Escape");
+  await expect(dialog.locator("[data-more-menu]")).toBeHidden();
+  await expect(dialog.locator("[data-more]")).toBeFocused();
+  await expect(dialog).toBeVisible();
+  // Tucking the toolbar away leaves a tab at the top edge that brings it back.
+  await dialog.locator("[data-more]").click();
+  await dialog.locator("[data-toolbar-hide]").click();
+  const toolbar = dialog.locator(".remote-toolbar");
+  await popup.mouse.move(640, 600);
+  await expect.poll(() => toolbar.evaluate(bar => bar.getBoundingClientRect().bottom)).toBeLessThanOrEqual(8);
+  await popup.mouse.move(640, 3);
+  await expect.poll(() => toolbar.evaluate(bar => bar.getBoundingClientRect().top)).toBeGreaterThanOrEqual(0);
+  await popup.close();
 });

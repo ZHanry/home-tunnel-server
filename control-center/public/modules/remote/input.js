@@ -65,6 +65,9 @@ export class RemoteInput {
     return point ? { ...point, slot: display.slot, epoch: layout.layout_epoch } : null;
   }
   pointer(event) {
+    // Like other remote desktop tools, moving over the screen takes control back from the
+    // toolbar, but never from a text box the user is typing in.
+    if (document.activeElement !== this.video && this.session.inputEnabled && !document.activeElement?.matches?.("textarea, input, select, [contenteditable]")) this.video.focus({ preventScroll: true });
     const point = this.position(event); if (!point) return;
     event.preventDefault();
     const channel = this.session.channels.get("motion");
@@ -131,6 +134,24 @@ export class RemoteInput {
   cancelText() {
     for (const pending of this.pendingText.values()) { clearTimeout(pending.timer); pending.reject(new RemoteError("RD_TEXT_UNCONFIRMED")); }
     this.pendingText.clear();
+  }
+  // Presses a shortcut the local browser or OS would otherwise swallow (Win, Alt+Tab...):
+  // keys go down in order and always come back up in reverse.
+  combo(codes) {
+    if (!this.allowed("input.keyboard")) throw new RemoteError("RD_INPUT_DENIED");
+    const usages = codes.map(keyUsage);
+    if (!usages.length || usages.some((usage) => !usage)) throw new Error("RD_INVALID_SHORTCUT");
+    const key = (usage, down) => {
+      const payload = new Uint8Array(8), view = new DataView(payload.buffer);
+      view.setUint16(0, 7); view.setUint16(2, usage); view.setUint8(4, down ? 1 : 0);
+      this.session.send(TYPES.KEY, payload);
+    };
+    const pressed = [];
+    try { for (const usage of usages) { key(usage, true); pressed.push(usage); } }
+    finally {
+      // If a release cannot be sent, drop control so nothing stays held on the host.
+      try { for (const usage of pressed.reverse()) key(usage, false); } catch { this.release(); }
+    }
   }
   liftHeld() {
     if (this.buttons) { this.release(); return; }

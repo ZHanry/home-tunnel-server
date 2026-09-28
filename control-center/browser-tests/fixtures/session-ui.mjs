@@ -111,7 +111,7 @@ export async function exerciseSessionUi(popup, state) {
   for (const checkbox of await popup.locator('.remote-auth [name=permission]:not(:disabled)').all()) await checkbox.check();
   await popup.locator('.remote-auth button[type=submit]').click();
   await popup.waitForFunction(() => window.reviewSession?.rendered === true);
-  if (state === 'input') await popup.locator('[data-release]').click();
+  if (state === 'input' && await popup.locator('[data-release]').isVisible()) await popup.locator('[data-release]').click();
   if (state === 'display') await popup.locator('[data-display]').selectOption('secondary');
   if (state === 'audio') await popup.locator('[data-audio]').click();
   if (state === 'clipboard') {
@@ -130,7 +130,7 @@ export async function exerciseSessionUi(popup, state) {
     await popup.locator('.remote-file-row button').first().click();
     await popup.evaluate(() => window.reviewTransfers.onOffer({ id: 'review-incoming', name: 'Incoming fixture.txt', size: 1024 }));
   }
-  if (state === 'diagnostics') await popup.locator('[data-diagnostics-toggle]').click();
+  if (state === 'diagnostics') { await popup.locator('[data-more]').click(); await popup.locator('[data-diagnostics-toggle]').click(); }
   if (state === 'fullscreen') {
     await popup.locator('[data-fullscreen]').click();
     await popup.waitForFunction(() => document.fullscreenElement?.classList.contains('remote-viewer'));

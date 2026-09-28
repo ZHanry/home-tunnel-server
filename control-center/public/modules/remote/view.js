@@ -31,7 +31,9 @@ const message = (error) => errors[error?.code ?? error?.message] ?? error?.messa
 // One stroke icon set (24px grid, currentColor) for the whole viewer.
 const toolPaths = {
   input: '<path d="M5.5 3.5 18.5 10l-5.8 1.9-2.3 6.1z"/><path d="m12.8 12.1 4.7 4.7"/>',
-  release: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.5"/>',
+  release: '<path d="M5.5 3.5 18.5 10l-5.8 1.9-2.3 6.1z"/><path d="M3 21 21 3"/>',
+  keyboard: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h1M10.5 10h1M14.5 10h1M6.5 14h11"/>',
+  more: '<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>',
   fullscreen: '<path d="M8.5 4H4v4.5M15.5 4H20v4.5M4 15.5V20h4.5M20 15.5V20h-4.5"/>',
   play: '<circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5z"/>',
   audio: '<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/>',
@@ -45,9 +47,23 @@ const toolPaths = {
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
 };
 const toolIcon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${toolPaths[name]}</svg>`;
-// Icon-only tool: the hidden span carries the (translatable) label that setToolLabel updates.
-const tool = (hook, icon, label, extra = "") => `<button type="button" class="remote-tool" ${hook} ${extra} aria-label="${label}" title="${label}">${toolIcon(icon)}<span class="visually-hidden">${label}</span></button>`;
+// Icon-only tool: the first hidden span carries the (translatable) label that setToolLabel updates;
+// the second one says why a disabled tool is unavailable and is appended to the tooltip.
+const tool = (hook, icon, label, extra = "") => `<button type="button" class="remote-tool" ${hook} ${extra} aria-label="${label}" title="${label}">${toolIcon(icon)}<span class="visually-hidden">${label}</span><span class="visually-hidden" data-reason></span></button>`;
 export const setToolLabel = (root, selector, label, pressed = false) => { const button = root.querySelector(selector); button.querySelector("span").textContent = label; button.setAttribute("aria-pressed", String(pressed)); };
+const disabledReasons = { idle: "连接后可用", scope: "被控端未授权此功能", control: "请先开始控制" };
+const setToolDisabled = (button, reason) => {
+  button.disabled = !!reason;
+  const span = button.querySelector("[data-reason]");
+  if (span && span.dataset.key !== (reason || "")) { span.dataset.key = reason || ""; span.textContent = reason ? disabledReasons[reason] : ""; }
+};
+// Windows shortcuts the browser itself would swallow. Ctrl+Alt+Del is a secure attention
+// sequence that only the OS can raise, so it is deliberately absent.
+const shortcuts = [
+  ["开始菜单", "Win", ["MetaLeft"]], ["切换窗口", "Alt+Tab", ["AltLeft", "Tab"]], ["任务视图", "Win+Tab", ["MetaLeft", "Tab"]],
+  ["显示桌面", "Win+D", ["MetaLeft", "KeyD"]], ["文件资源管理器", "Win+E", ["MetaLeft", "KeyE"]], ["运行", "Win+R", ["MetaLeft", "KeyR"]],
+  ["任务管理器", "Ctrl+Shift+Esc", ["ControlLeft", "ShiftLeft", "Escape"]], ["关闭当前程序", "Alt+F4", ["AltLeft", "F4"]], ["截图", "PrtSc", ["PrintScreen"]],
+];
 
 export function createRemoteView({ api, state, viewContent, escapeHtml }) {
   const active = new Map();
@@ -193,7 +209,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     // The desktop client and console open the viewer in its own window, which has an OS close button.
     const popoutWindow = document.body.classList.contains("remote-popout");
     const microphonePermitted = !!host.capabilities.permissions?.includes("audio.microphone");
-    dialog.innerHTML = `${popoutWindow ? "" : `<button type="button" class="remote-close" data-close aria-label="关闭远程桌面" title="关闭远程桌面">${toolIcon("close")}</button>`}<div class="remote-card"><header class="remote-header"><span class="remote-badge" aria-hidden="true">${toolIcon("display")}</span><div class="remote-identity"><h2>${escapeHtml(host.name)}</h2><p class="remote-status" role="status">正在准备安全连接</p></div></header>
+    dialog.innerHTML = `${popoutWindow ? "" : `<button type="button" class="remote-close" data-close aria-label="关闭远程桌面" title="关闭远程桌面">${toolIcon("close")}</button>`}<div class="remote-card"><header class="remote-header"><span class="remote-badge" aria-hidden="true">${toolIcon("display")}</span><div class="remote-identity"><h2>${escapeHtml(host.name)}</h2><p class="remote-status" role="status">正在准备安全连接</p></div><span class="remote-latency" data-no-translate hidden></span></header>
       <p class="remote-error" role="alert"></p>
       <form class="remote-auth" hidden><div class="field"><label>当前账号的登录密码<input name="password" placeholder="用于确认是你本人" type="password" autocomplete="current-password" required maxlength="256"></label></div><div class="field remote-mfa-field" hidden><label>动态码或恢复码<input name="mfa" autocomplete="one-time-code" maxlength="128"></label></div>
       <fieldset><legend>${assistInviteId ? "画面、键鼠与文本剪贴板随本次连接授权" : mode === "persistent" ? "绑定可信设备需本机管理员批准；持续授权最长 30 天" : "本次请求权限，仍需被控端同意"}</legend>${Object.entries(labels).filter(([permission]) => host.capabilities.permissions?.includes(permission)).map(([permission, label]) => `<label class="remote-permission"><input type="checkbox" name="permission" value="${permission}" ${["view", "input.keyboard", "input.pointer", "input.text", "clipboard.read", "clipboard.write"].includes(permission) ? "checked" : ""} ${permission === "view" ? "disabled" : ""}>${label}</label>`).join("")}</fieldset>
@@ -201,20 +217,31 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       <section class="remote-pairing" hidden><p>${assistInviteId ? "正在验证设备身份与本次连接。" : mode === "persistent" ? "请让被控电脑的管理员确认设备身份并批准持续授权。配对码：" : "请在被控电脑上批准本次连接。配对码用于核对设备身份："}</p><strong class="remote-code" data-no-translate></strong></section>
       <div class="remote-card-actions"><button type="button" class="button button-secondary" data-cancel>取消</button></div></div>
       <section class="remote-viewer" hidden><div class="remote-toolbar"><div class="remote-tools" role="group" aria-label="远程控制工具">
-        ${tool("data-input", "input", "允许输入")}${tool("data-release", "release", "释放输入")}<label class="remote-display-picker" title="显示器">${toolIcon("display")}<span class="visually-hidden">显示器</span><select data-display aria-label="远端显示器" disabled></select></label>${tool("data-fullscreen", "fullscreen", "全屏")}<span class="remote-tool-divider" aria-hidden="true"></span>
-        ${tool("data-clipboard", "clipboard", "开启文本剪贴板")}${tool("data-files", "files", "开启文件收发")}${tool("data-text-toggle", "text", "发送文字", 'aria-expanded="false"')}<span class="remote-tool-divider" aria-hidden="true"></span>
-        ${tool("data-audio", "audio", "开启系统声音", host.capabilities.permissions?.includes("audio.system") ? "" : "disabled")}${tool("data-microphone", "microphone", "开启麦克风回传", microphonePermitted ? "" : "disabled hidden")}${tool("data-play", "play", "播放画面")}${tool("data-diagnostics-toggle", "diagnostics", "连接诊断", 'aria-expanded="false"')}
+        ${tool("data-input", "input", "开始控制")}${tool("data-release", "release", "停止控制", "hidden")}<label class="remote-display-picker" title="显示器">${toolIcon("display")}<span class="visually-hidden">显示器</span><select data-display aria-label="远端显示器" disabled></select></label>${tool("data-fullscreen", "fullscreen", "全屏")}<span class="remote-tool-divider" aria-hidden="true"></span>
+        ${tool("data-clipboard", "clipboard", "剪贴板", 'aria-expanded="false"')}${tool("data-files", "files", "文件传输", 'aria-expanded="false"')}${tool("data-text-toggle", "text", "发送文字", 'aria-expanded="false"')}${tool("data-shortcuts", "keyboard", "快捷键", 'aria-haspopup="menu" aria-expanded="false"')}<span class="remote-tool-divider" aria-hidden="true"></span>
+        ${tool("data-audio", "audio", "开启系统声音", host.capabilities.permissions?.includes("audio.system") ? "" : "disabled")}${tool("data-microphone", "microphone", "开启麦克风回传", microphonePermitted ? "" : "disabled hidden")}${tool("data-play", "play", "播放画面", "hidden")}${tool("data-more", "more", "更多", 'aria-haspopup="menu" aria-expanded="false"')}
       </div><button type="button" class="remote-disconnect" data-disconnect title="断开连接">${toolIcon("disconnect")}<span>断开</span></button></div>
+      <div class="remote-menu" role="menu" data-shortcut-menu hidden aria-label="发送快捷键">${shortcuts.map(([name, keys], index) => `<button type="button" role="menuitem" class="remote-menu-item" data-shortcut="${index}"><span>${name}</span><kbd data-no-translate>${keys}</kbd></button>`).join("")}<p class="remote-menu-note">Ctrl+Alt+Del 与锁屏、UAC 窗口受 Windows 保护，无法远程发送。</p></div>
+      <div class="remote-menu" role="menu" data-more-menu hidden aria-label="更多"><button type="button" role="menuitemcheckbox" aria-checked="false" class="remote-menu-item" data-diagnostics-toggle><span>连接诊断</span></button><button type="button" role="menuitem" class="remote-menu-item" data-toolbar-hide><span>收起工具栏</span></button></div>
       <div class="remote-video-stage"><video class="remote-video" autoplay muted playsinline aria-label="远端桌面"></video><div class="remote-media-mask" data-media-mask>正在建立安全连接</div>
-      <section class="remote-data" aria-label="连接工具面板"><div class="remote-panel" data-clipboard-panel hidden><h3>文本剪贴板</h3><p class="remote-panel-note">远端复制的文字会出现在下方，点“复制到本机”后生效。</p><label>发给远端<textarea data-clipboard-text rows="2" placeholder="输入或粘贴要发给远端的文字" maxlength="65536"></textarea></label><div class="remote-panel-actions"><button type="button" class="button button-secondary" data-clipboard-read>粘贴本机内容</button><button type="button" class="button button-primary" data-clipboard-send>发送</button></div><label>来自远端<textarea data-clipboard-incoming readonly rows="2" placeholder="远端复制文字后会显示在这里"></textarea></label><div class="remote-panel-actions"><button type="button" class="button button-primary" data-clipboard-copy>复制到本机</button></div></div>
+      <p class="remote-toast" role="status" aria-live="polite" hidden></p>
+      <section class="remote-data" aria-label="连接工具面板"><div class="remote-panel" data-clipboard-panel hidden><h3>剪贴板</h3><p class="remote-panel-note" data-clipboard-note>已开启双向同步：在本机复制后回到远程画面即可粘贴；远端复制的文字会自动写入本机剪贴板。</p><div class="remote-panel-actions"><button type="button" class="button button-secondary" data-clipboard-pause>暂停同步</button></div><label>手动发给远端<textarea data-clipboard-text rows="2" placeholder="输入或粘贴要发给远端的文字" maxlength="65536"></textarea></label><div class="remote-panel-actions"><button type="button" class="button button-secondary" data-clipboard-read>粘贴本机内容</button><button type="button" class="button button-primary" data-clipboard-send>发送</button></div><label>最近来自远端<textarea data-clipboard-incoming readonly rows="2" placeholder="远端复制文字后会显示在这里"></textarea></label><div class="remote-panel-actions"><button type="button" class="button button-secondary" data-clipboard-copy>复制到本机</button></div></div>
         <div class="remote-panel" data-file-panel hidden><h3>文件传输</h3><input type="file" data-file-input multiple aria-label="选择要发送的文件"><div class="remote-panel-actions"><button type="button" class="button button-primary" data-file-send>发送所选文件</button></div><p class="remote-panel-note" data-file-support></p><div class="remote-file-list" data-file-list aria-live="polite"></div></div>
         <form class="remote-panel remote-text" data-text-panel hidden><h3>发送文字</h3><label>在这里输入，完成后发送到远端光标处<textarea name="text" rows="3" maxlength="4096"></textarea></label><div class="remote-panel-actions"><button class="button button-primary">发送文字</button></div></form>
         <div class="remote-panel" data-diagnostics-panel hidden><h3>连接诊断</h3><pre data-diagnostics>正在建立安全连接</pre></div></section></div></section>`;
     const title = dialog.querySelector("h2"); title.id = `remote-title-${crypto.randomUUID()}`; title.dataset.noTranslate = "";
     dialog.setAttribute("aria-labelledby", title.id);
-    for (const selector of ["[data-audio]", "[data-microphone]", "[data-clipboard]", "[data-files]"]) dialog.querySelector(selector).setAttribute("aria-pressed", "false");
-    // Icon-only tools expose their (translated) hidden label as aria-label and tooltip.
-    const mirrorToolLabels = () => { for (const button of dialog.querySelectorAll(".remote-tool")) { const label = button.querySelector("span").textContent; if (button.getAttribute("aria-label") !== label) { button.setAttribute("aria-label", label); button.title = label; } } };
+    for (const selector of ["[data-audio]", "[data-microphone]"]) dialog.querySelector(selector).setAttribute("aria-pressed", "false");
+    // Icon-only tools expose their (translated) hidden label as aria-label, and the tooltip
+    // adds why a disabled tool is unavailable.
+    const mirrorToolLabels = () => {
+      for (const button of dialog.querySelectorAll(".remote-tool")) {
+        const label = button.querySelector("span").textContent, reason = button.querySelector("[data-reason]").textContent;
+        const title = reason ? `${label} · ${reason}` : label;
+        if (button.getAttribute("aria-label") !== label) button.setAttribute("aria-label", label);
+        if (button.title !== title) button.title = title;
+      }
+    };
     new MutationObserver(mirrorToolLabels).observe(dialog.querySelector(".remote-tools"), { subtree: true, childList: true, characterData: true });
     document.body.append(dialog); dialog.show();
     const current = { dialog, mode, disposed: false, pollTimer: null, pairing: null, api: null, signal: null, session: null, input: null, abort: new AbortController(), rows: new Map(), pending: new Set() };
@@ -237,22 +264,40 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
         if (closeButton) viewer.querySelector(".remote-toolbar").append(closeButton);
       }
       dialog.dataset.live = String(!!visible);
-      dialog.querySelector("[data-media-mask]").hidden = !!visible;
+      const mask = dialog.querySelector("[data-media-mask]");
+      mask.hidden = !!visible && !current.needsGesture; mask.dataset.gesture = String(!!current.needsGesture);
+      dialog.querySelector("[data-play]").hidden = !current.needsGesture;
       dialog.querySelector("[data-display]").disabled = !visible || session.layout?.displays.length < 2;
-      const input = allowed("input.keyboard", "input.pointer", "input.text");
-      for (const selector of ["[data-input]", "[data-release]"]) dialog.querySelector(selector).disabled = !input;
+      // Why a tool is unavailable: not connected yet, or the host did not grant the permission.
+      const reason = (...permissions) => !visible ? "idle" : permissions.some((permission) => session.permissions.has(permission)) ? "" : "scope";
+      // One control toggle, like mainstream remote tools: "start control" or "stop control".
+      const inputReason = reason("input.keyboard", "input.pointer", "input.text");
+      const controlling = !inputReason && !!(session.inputEnabled || session.inputRequested);
+      for (const selector of ["[data-input]", "[data-release]"]) setToolDisabled(dialog.querySelector(selector), inputReason);
+      dialog.querySelector("[data-input]").hidden = controlling;
+      dialog.querySelector("[data-release]").hidden = !controlling;
       for (const [selector, permissions] of [
         ["[data-audio]", ["audio.system"]], ["[data-microphone]", ["audio.microphone"]],
-        ["[data-clipboard]", ["clipboard.read", "clipboard.write"]], ["[data-files]", ["files.send", "files.receive"]],
+        ["[data-clipboard]", ["clipboard.read", "clipboard.write"]], ["[data-files]", ["files.send", "files.receive"]], ["[data-text-toggle]", ["input.text"]],
+      ]) setToolDisabled(dialog.querySelector(selector), reason(...permissions));
+      setToolDisabled(dialog.querySelector("[data-shortcuts]"), reason("input.keyboard") || (session.inputEnabled ? "" : "control"));
+      for (const [selector, permissions] of [
         ["[data-file-send]", ["files.send"]], ["[data-file-input]", ["files.send"]],
-        ["[data-clipboard-send]", ["clipboard.write"]], ["[data-clipboard-read]", ["clipboard.write"]],
-        ["[data-clipboard-copy]", ["clipboard.read"]], [".remote-text button", ["input.text"]], [".remote-text textarea", ["input.text"]], ["[data-text-toggle]", ["input.text"]],
+        ["[data-clipboard-send]", ["clipboard.write"]], ["[data-clipboard-read]", ["clipboard.write"]], ["[data-clipboard-pause]", ["clipboard.read", "clipboard.write"]],
+        ["[data-clipboard-copy]", ["clipboard.read"]], [".remote-text button", ["input.text"]], [".remote-text textarea", ["input.text"]],
       ]) dialog.querySelector(selector).disabled = !allowed(...permissions);
+      if (dialog.querySelector("[data-shortcuts]").disabled) closeMenus();
       if (current.pendingText !== undefined || current.textSending) {
         dialog.querySelector(".remote-text button").disabled = true;
         dialog.querySelector("[data-input]").disabled = true;
       }
     };
+    function closeMenus() {
+      for (const [menu, button] of [["[data-shortcut-menu]", "[data-shortcuts]"], ["[data-more-menu]", "[data-more]"]]) {
+        const element = dialog.querySelector(menu); if (element.hidden) continue;
+        element.hidden = true; dialog.querySelector(button).setAttribute("aria-expanded", "false");
+      }
+    }
     syncControls();
     active.set(host.id, current); raise(current);
     const switcher = document.createElement("button"); switcher.className = "button remote-window-switch"; switcher.textContent = host.name;
@@ -273,10 +318,21 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       try { session.requestInput(); } catch (failure) { showError(failure); }
     };
     window.addEventListener("focus", resumeInput, { signal: current.abort.signal });
+    // Round-trip time of the connected path, shown next to the host name like other remote tools.
+    current.latencyTimer = setInterval(async () => {
+      const session = current.session, badge = dialog.querySelector(".remote-latency");
+      let rtt;
+      try {
+        const stats = session?.pc && dialog.dataset.live === "true" ? await session.pc.getStats() : null;
+        stats?.forEach((entry) => { if (entry.type === "transport" && entry.selectedCandidatePairId) rtt = stats.get(entry.selectedCandidatePairId)?.currentRoundTripTime; });
+      } catch {}
+      badge.hidden = !Number.isFinite(rtt);
+      if (Number.isFinite(rtt)) badge.textContent = `${Math.max(1, Math.round(rtt * 1000))} ms`;
+    }, 2000);
     document.addEventListener("visibilitychange", resumeInput, { signal: current.abort.signal });
     const close = () => {
       if (current.disposed) return;
-      current.disposed = true; current.abort.abort(); clearTimeout(current.pollTimer); clearTimeout(current.textRequestTimer); current.input?.close(); void current.transfers?.close(); current.session?.close();
+      current.disposed = true; current.abort.abort(); clearTimeout(current.pollTimer); clearInterval(current.latencyTimer); clearTimeout(current.textRequestTimer); current.input?.close(); void current.transfers?.close(); current.session?.close();
       active.delete(host.id); switcher.remove(); if (!active.size) windowBar.remove();
       const cleanup = (async () => {
         await Promise.allSettled([...current.pending]);
@@ -393,24 +449,13 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       current.session = new RemoteSession({ api: current.api, signal: current.signal, session: snapshot, hostThumbprint: host.jkt, hostOwnerUserId: host.owner_user_id ?? current.api.userId, video,
         onState: (phase, failure) => {
           syncControls();
-          status.textContent = { connecting: "正在连接", waiting_for_frame: "已连接，等待画面", viewing: "已连接 · 仅查看", switching_display: "正在切换显示器，等待新画面", closed: "会话已结束", failed: "会话失败", playback_gesture_required: "请点击播放画面" }[phase] ?? phase;
+          status.textContent = { connecting: "正在连接", waiting_for_frame: "已连接，等待画面", viewing: "已连接 · 仅查看", switching_display: "正在切换显示器，等待新画面", closed: "会话已结束", failed: "会话失败", playback_gesture_required: "点击画面开始播放" }[phase] ?? phase;
+          if (phase === "playback_gesture_required") { current.needsGesture = true; syncControls(); }
           if (phase === "viewing") {
-            current.retries = 0;
+            current.retries = 0; current.needsGesture = false; syncControls();
             resumeInput();
-            if (!current.clipboardRequested && ["clipboard.read", "clipboard.write"].some((permission) => current.session.permissions.has(permission))) {
-              current.clipboardRequested = true;
-              void navigator.locks.request(`rd-clipboard:${location.origin}`, async () => {
-                if (current.disposed || !current.session?.ready || document.hidden) return;
-                for (const other of active.values()) if (other !== current && other.session) {
-                  await Promise.all(["clipboard.read", "clipboard.write"].filter((permission) => other.session.featureState.has(permission)).map((permission) => other.session.setFeature(permission, false)));
-                  other.dialog.querySelector("[data-clipboard-panel]").hidden = true;
-                  setToolLabel(other.dialog, "[data-clipboard]", "开启文本剪贴板");
-                }
-                await setFeatures(["clipboard.read", "clipboard.write"], true);
-                dialog.querySelector("[data-clipboard-panel]").hidden = false;
-                setToolLabel(dialog, "[data-clipboard]", "关闭文本剪贴板", true);
-              }).catch(showError);
-            }
+            // Clipboard sync starts silently in the background; the panel is only a fallback.
+            void resumeClipboard();
             if (!current.hostRemembered) {
               current.hostRemembered = true;
               void current.api.identity.rememberHost(host.id, host.jkt).catch(showError);
@@ -418,7 +463,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
           }
           if (phase !== "viewing") dialog.querySelector("[data-media-mask]").textContent = status.textContent;
           if (failure) showError(failure);
-          if (["closed", "failed"].includes(phase)) { void current.transfers?.close(); current.pendingText = undefined; clearTimeout(current.textRequestTimer); dialog.querySelector("[data-clipboard-incoming]").value = ""; }
+          if (["closed", "failed"].includes(phase)) { current.needsGesture = false; closeMenus(); void current.transfers?.close(); current.pendingText = undefined; clearTimeout(current.textRequestTimer); dialog.querySelector("[data-clipboard-incoming]").value = ""; }
         },
         onControl: async (frame) => {
           if (frame.type === TYPES.INPUT_SYNC_ACK) {
@@ -458,19 +503,15 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
           if (permission === "audio.system") setToolLabel(dialog, "[data-audio]", "开启系统声音");
           if (permission === "audio.microphone") setToolLabel(dialog, "[data-microphone]", "开启麦克风回传");
           if (permission.startsWith("clipboard.")) {
-            dialog.querySelector("[data-clipboard-panel]").hidden = true;
-            setToolLabel(dialog, "[data-clipboard]", "开启文本剪贴板");
+            current.clipboardRequested = false;
             dialog.querySelector("[data-clipboard-incoming]").value = "";
             dialog.querySelector("[data-clipboard-text]").value = "";
           }
-          if (permission.startsWith("files.")) {
-            dialog.querySelector("[data-file-panel]").hidden = true;
-            setToolLabel(dialog, "[data-files]", "开启文件收发");
-          }
+          if (permission.startsWith("files.")) { current.filesEnabled = null; if (!transferring()) showPanel("[data-file-panel]", false); }
         },
       });
       current.input = new RemoteInput(current.session, video);
-      current.transfers = new RemoteTransfers(current.session, { onOffer: offerFile, onProgress: fileProgress, onClipboard: (text) => { dialog.querySelector("[data-clipboard-incoming]").value = text; }, canUseClipboard: () => !document.hidden && document.hasFocus() && dialog.contains(document.activeElement) });
+      current.transfers = new RemoteTransfers(current.session, { onOffer: offerFile, onProgress: fileProgress, onClipboard: (text) => receiveClipboard(text), canUseClipboard: () => !document.hidden && document.hasFocus() && dialog.contains(document.activeElement) });
       try { await current.session.start(capabilities.stun_urls); } catch (failure) { current.session.fail(failure); throw failure; }
     }
     async function reconnect(reason, displayId) {
@@ -479,7 +520,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       if ((reason !== "display_changed" && (current.retries ?? 0) >= 3) || !previous.lease.valid()) { previous.fail(new RemoteError("RD_NO_DIRECT_PATH")); return; }
       current.reconnecting = true; if (reason !== "display_changed") current.retries = (current.retries ?? 0) + 1;
       current.input?.close(); previous.close({ remote: false }); void current.transfers?.close(); current.session = null;
-      current.inputRequested = false; current.clipboardRequested = false;
+      current.inputRequested = false; current.clipboardRequested = false; current.filesEnabled = null; current.needsGesture = false;
       current.pendingText = undefined; clearTimeout(current.textRequestTimer);
       syncControls();
       status.textContent = reason === "display_changed" ? "正在切换显示器，等待本机批准和新画面" : "网络波动，正在重新连接";
@@ -493,7 +534,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       } finally { current.reconnecting = false; }
     }
     dialog.querySelector("[data-input]").addEventListener("click", safe(() => { current.manualInputRelease = false; current.session?.requestInput(); }));
-    dialog.querySelector("[data-release]").addEventListener("click", () => { current.manualInputRelease = true; current.pendingText = undefined; clearTimeout(current.textRequestTimer); current.input?.release(); syncControls(); status.textContent = "只看画面 · 输入已释放"; });
+    dialog.querySelector("[data-release]").addEventListener("click", () => { current.manualInputRelease = true; current.pendingText = undefined; clearTimeout(current.textRequestTimer); current.input?.release(); syncControls(); status.textContent = "已停止控制 · 仅查看画面"; });
     dialog.querySelector("[data-fullscreen]").addEventListener("click", safe(() => document.fullscreenElement === dialog.querySelector(".remote-viewer") ? document.exitFullscreen() : dialog.querySelector(".remote-viewer").requestFullscreen()));
     // Full screen shows the toolbar briefly, then collapses it to a small handle (hover or focus reveals it).
     document.addEventListener("fullscreenchange", () => {
@@ -502,14 +543,56 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       clearTimeout(current.peekTimer);
       if (entered) { viewer.dataset.peek = ""; current.peekTimer = setTimeout(() => delete viewer.dataset.peek, 2500); } else delete viewer.dataset.peek;
     }, { signal: current.abort.signal });
-    const togglePanel = (buttonSelector, panelSelector, focusSelector) => dialog.querySelector(buttonSelector).addEventListener("click", () => {
-      const panel = dialog.querySelector(panelSelector), open = panel.hidden;
-      panel.hidden = !open; dialog.querySelector(buttonSelector).setAttribute("aria-expanded", String(open));
-      if (open && focusSelector) panel.querySelector(focusSelector)?.focus();
+    // Drawers: one button each, closed by the same button or by clicking the remote screen.
+    const panelToggles = { "[data-clipboard-panel]": "[data-clipboard]", "[data-file-panel]": "[data-files]", "[data-text-panel]": "[data-text-toggle]", "[data-diagnostics-panel]": "[data-diagnostics-toggle]" };
+    const showPanel = (panelSelector, open) => {
+      dialog.querySelector(panelSelector).hidden = !open;
+      const toggle = dialog.querySelector(panelToggles[panelSelector]);
+      toggle.setAttribute(toggle.getAttribute("role") === "menuitemcheckbox" ? "aria-checked" : "aria-expanded", String(open));
+    };
+    const togglePanel = (panelSelector, before, focusSelector) => dialog.querySelector(panelToggles[panelSelector]).addEventListener("click", safe(async () => {
+      const open = dialog.querySelector(panelSelector).hidden;
+      closeMenus();
+      if (open && before) await before();
+      showPanel(panelSelector, open);
+      if (open && focusSelector) dialog.querySelector(panelSelector).querySelector(focusSelector)?.focus();
+    }));
+    togglePanel("[data-text-panel]", null, "textarea");
+    togglePanel("[data-diagnostics-panel]");
+    togglePanel("[data-clipboard-panel]");
+    togglePanel("[data-file-panel]", () => enableFiles());
+    const transferring = () => [...current.rows.values()].some((entry) => !entry.cancel.disabled);
+    dialog.querySelector(".remote-video-stage").addEventListener("pointerdown", (event) => {
+      if (event.target.closest(".remote-data, .remote-toast")) return;
+      for (const panelSelector of Object.keys(panelToggles)) if (!dialog.querySelector(panelSelector).hidden && !(panelSelector === "[data-file-panel]" && transferring())) showPanel(panelSelector, false);
     });
-    togglePanel("[data-text-toggle]", "[data-text-panel]", "textarea");
-    togglePanel("[data-diagnostics-toggle]", "[data-diagnostics-panel]");
-    dialog.querySelector("[data-play]").addEventListener("click", safe(() => current.session?.resumePlayback()));
+    // Menus (shortcuts, more) drop down under their toolbar button.
+    const menus = { "[data-shortcut-menu]": "[data-shortcuts]", "[data-more-menu]": "[data-more]" };
+    for (const [menuSelector, buttonSelector] of Object.entries(menus)) {
+      const button = dialog.querySelector(buttonSelector), menu = dialog.querySelector(menuSelector);
+      button.addEventListener("click", () => {
+        const open = menu.hidden; closeMenus(); if (!open) return;
+        const viewer = dialog.querySelector(".remote-viewer").getBoundingClientRect(), anchor = button.getBoundingClientRect();
+        menu.hidden = false; button.setAttribute("aria-expanded", "true");
+        menu.style.top = `${anchor.bottom - viewer.top + 8}px`;
+        menu.style.left = `${Math.max(8, Math.min(anchor.left - viewer.left, viewer.width - menu.offsetWidth - 8))}px`;
+        menu.querySelector("button:not(:disabled)")?.focus();
+      });
+      menu.addEventListener("keydown", (event) => { if (event.key === "Escape") { event.preventDefault(); closeMenus(); button.focus(); } });
+    }
+    document.addEventListener("pointerdown", (event) => { if (!event.target.closest?.(".remote-menu, [data-shortcuts], [data-more]")) closeMenus(); }, { signal: current.abort.signal });
+    dialog.querySelector("[data-shortcut-menu]").addEventListener("click", safe((event) => {
+      const item = event.target.closest("[data-shortcut]"); if (!item) return;
+      closeMenus(); dialog.querySelector("video").focus();
+      current.input?.combo(shortcuts[Number(item.dataset.shortcut)][2]);
+    }));
+    // The toolbar can be tucked away to a small tab; hovering or clicking the tab brings it back.
+    const viewerElement = dialog.querySelector(".remote-viewer");
+    dialog.querySelector("[data-toolbar-hide]").addEventListener("click", () => { closeMenus(); viewerElement.dataset.collapsed = ""; dialog.querySelector("video").focus(); });
+    dialog.querySelector(".remote-toolbar").addEventListener("click", (event) => { if ("collapsed" in viewerElement.dataset && event.target === event.currentTarget) delete viewerElement.dataset.collapsed; });
+    const resumePlayback = safe(async () => { await current.session?.resumePlayback(); current.needsGesture = false; syncControls(); });
+    dialog.querySelector("[data-play]").addEventListener("click", resumePlayback);
+    dialog.querySelector("[data-media-mask]").addEventListener("click", (event) => { if (current.needsGesture) resumePlayback(event); });
     dialog.querySelector("[data-audio]").addEventListener("click", safe(async () => { const enabled = !current.session.featureState.has("audio.system"); await current.session.setSystemAudio(enabled); setToolLabel(dialog, "[data-audio]", enabled ? "关闭系统声音" : "开启系统声音", enabled); }));
     dialog.querySelector("[data-microphone]").addEventListener("click", safe(() => navigator.locks.request(`rd-microphone:${location.origin}`, async () => { if (current.disposed || !current.session?.ready) throw new RemoteError("RD_MEDIA_FAILED"); if (current.session.microphone) { await current.session.stopMicrophone(); await current.session.setFeature("audio.microphone", false); } else { for (const other of active.values()) if (other !== current && other.session?.microphone) { await other.session.stopMicrophone(); await other.session.setFeature("audio.microphone", false); setToolLabel(other.dialog, "[data-microphone]", "开启麦克风回传"); } await current.session.startMicrophone(); } setToolLabel(dialog, "[data-microphone]", current.session.microphone ? "关闭麦克风回传" : "开启麦克风回传", !!current.session.microphone); })));
     dialog.querySelector(".remote-text").addEventListener("submit", safe(() => {
@@ -549,16 +632,66 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
         throw failure;
       }
     };
-    dialog.querySelector("[data-clipboard]").addEventListener("click", safe(() => navigator.locks.request(`rd-clipboard:${location.origin}`, async () => {
-      if (current.disposed || !current.session?.ready) throw new RemoteError("RD_MEDIA_FAILED");
-      const panel = dialog.querySelector("[data-clipboard-panel]"), enabled = panel.hidden;
-      if (enabled) for (const other of active.values()) if (other !== current && other.session) {
-        await Promise.all(["clipboard.read", "clipboard.write"].filter((permission) => other.session.featureState.has(permission) || other.session.featureRequests.has(permission)).map((permission) => other.session.setFeature(permission, false)));
-        other.dialog.querySelector("[data-clipboard-panel]").hidden = true; setToolLabel(other.dialog, "[data-clipboard]", "开启文本剪贴板");
+    // Text clipboard syncs both ways while this window has focus, like mainstream remote tools.
+    // Leaving the window pauses it (the host only receives what the user copies here).
+    const clipboardNote = (text) => { dialog.querySelector("[data-clipboard-note]").textContent = text; };
+    async function resumeClipboard() {
+      const session = current.session;
+      if (current.disposed || current.clipboardUserPaused || current.clipboardRequested || !session?.ready || document.hidden || !document.hasFocus() ||
+        !["clipboard.read", "clipboard.write"].some((permission) => session.permissions.has(permission))) return;
+      current.clipboardRequested = true;
+      try {
+        await navigator.locks.request(`rd-clipboard:${location.origin}`, async () => {
+          if (current.disposed || current.session !== session || !session.ready || document.hidden) return;
+          for (const other of active.values()) if (other !== current && other.session) {
+            await Promise.all(["clipboard.read", "clipboard.write"].filter((permission) => other.session.featureState.has(permission) || other.session.featureRequests.has(permission)).map((permission) => other.session.setFeature(permission, false)));
+            other.clipboardRequested = false;
+          }
+          // A pause that is still being acknowledged must settle before re-enabling.
+          for (const permission of ["clipboard.read", "clipboard.write"]) await session.featureRequests.get(permission)?.promise.catch(() => {});
+          const wanted = ["clipboard.read", "clipboard.write"].filter((permission) => !session.featureState.has(permission));
+          if (wanted.length) await setFeatures(wanted, true);
+        });
+        if (current.session === session) { clipboardNote("已开启双向同步：在本机复制后回到远程画面即可粘贴；远端复制的文字会自动写入本机剪贴板。"); void pushLocalClipboard(); }
+      } catch (failure) {
+        if (current.session === session) { current.clipboardRequested = false; clipboardNote("剪贴板同步未开启，可在下方手动收发文字。"); }
+        if (failure?.code !== "RD_SCOPE_DENIED") showError(failure);
       }
-      await setFeatures(["clipboard.read", "clipboard.write"], enabled); panel.hidden = !enabled;
-      setToolLabel(dialog, "[data-clipboard]", enabled ? "关闭文本剪贴板" : "开启文本剪贴板", enabled);
-    })));
+    }
+    // Sends what the user copied on this computer, once per change.
+    async function pushLocalClipboard() {
+      if (current.pushingClipboard || current.clipboardReadDenied || !current.transfers?.allowed("clipboard.write") || !navigator.clipboard?.readText) return;
+      current.pushingClipboard = true;
+      try {
+        const permission = await navigator.permissions?.query({ name: "clipboard-read" }).catch(() => null);
+        if (permission?.state === "denied") { current.clipboardReadDenied = true; return; }
+        const text = await navigator.clipboard.readText();
+        if (!text || text === current.lastClipboardText || new TextEncoder().encode(text).length > 65536 || !current.transfers?.allowed("clipboard.write")) return;
+        await current.transfers.sendClipboard(text); current.lastClipboardText = text;
+      } catch (failure) { if (failure?.name === "NotAllowedError") current.clipboardReadDenied = true; }
+      finally { current.pushingClipboard = false; }
+    }
+    async function receiveClipboard(text) {
+      dialog.querySelector("[data-clipboard-incoming]").value = text; current.lastClipboardText = text;
+      try {
+        if (!document.hasFocus() || !navigator.clipboard?.writeText) throw new Error("unavailable");
+        await navigator.clipboard.writeText(text);
+      } catch { toast("远端复制了文字，打开剪贴板面板可复制到本机"); }
+    }
+    function toast(text) {
+      const note = dialog.querySelector(".remote-toast"); note.textContent = text; note.hidden = false;
+      clearTimeout(current.toastTimer); current.toastTimer = setTimeout(() => { note.hidden = true; }, 3500);
+    }
+    dialog.querySelector("[data-clipboard-pause]").addEventListener("click", safe(async () => {
+      current.clipboardUserPaused = !current.clipboardUserPaused;
+      dialog.querySelector("[data-clipboard-pause]").textContent = current.clipboardUserPaused ? "恢复同步" : "暂停同步";
+      if (current.clipboardUserPaused) { pauseClipboard(); clipboardNote("同步已暂停，可在下方手动收发文字。"); } else await resumeClipboard();
+    }));
+    const enableFiles = async () => {
+      if (current.filesEnabled === current.session) return;
+      await setFeatures(["files.send", ...(typeof window.showSaveFilePicker === "function" ? ["files.receive"] : [])], true);
+      current.filesEnabled = current.session;
+    };
     dialog.querySelector("[data-clipboard-read]").addEventListener("click", safe(async () => {
       if (!current.transfers?.allowed("clipboard.write") || !navigator.clipboard?.readText) throw new Error("浏览器不支持此操作或当前窗口未获得权限，请手动粘贴文本。");
       const text = await navigator.clipboard.readText();
@@ -573,21 +706,19 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     }));
     function pauseClipboard() {
       current.transfers?.clearClipboard(); dialog.querySelector("[data-clipboard-incoming]").value = ""; dialog.querySelector("[data-clipboard-text]").value = "";
-      dialog.querySelector("[data-clipboard-panel]").hidden = true; setToolLabel(dialog, "[data-clipboard]", "开启文本剪贴板");
+      current.clipboardRequested = false;
       for (const permission of ["clipboard.read", "clipboard.write"]) if (current.session?.featureState.has(permission) || current.session?.featureRequests.get(permission)?.enabled) {
         void current.session.setFeature(permission, false).catch(() => {});
       }
     }
     dialog.addEventListener("focusout", (event) => { if (!dialog.contains(event.relatedTarget)) pauseClipboard(); });
-    document.addEventListener("visibilitychange", () => { if (document.hidden) pauseClipboard(); }, { signal: current.abort.signal });
+    document.addEventListener("visibilitychange", () => { if (document.hidden) pauseClipboard(); else void resumeClipboard(); }, { signal: current.abort.signal });
     window.addEventListener("blur", pauseClipboard, { signal: current.abort.signal });
+    window.addEventListener("focus", () => { if (!dialog.contains(document.activeElement) && !dialog.querySelector(".remote-viewer").hidden) dialog.querySelector("video").focus(); void resumeClipboard(); }, { signal: current.abort.signal });
+    dialog.addEventListener("focusin", () => { void resumeClipboard(); });
+    dialog.querySelector("video").addEventListener("pointerdown", () => { void pushLocalClipboard(); });
     dialog.querySelector("[data-file-support]").textContent = typeof window.showSaveFilePicker === "function" ? "收到文件后请选择保存位置。浏览器确认覆盖已有文件时，请检查文件名。" : "此浏览器不支持流式保存文件，接收功能不可用；请使用支持文件保存选择器的浏览器或桌面客户端。";
-    dialog.querySelector("[data-files]").addEventListener("click", safe(async () => {
-      const panel = dialog.querySelector("[data-file-panel]"), enabled = panel.hidden;
-      await setFeatures(["files.send", ...(typeof window.showSaveFilePicker === "function" ? ["files.receive"] : [])], enabled);
-      panel.hidden = !enabled; setToolLabel(dialog, "[data-files]", enabled ? "关闭文件收发" : "开启文件收发", enabled);
-    }));
-    dialog.querySelector("[data-file-send]").addEventListener("click", safe(async () => { const input = dialog.querySelector("[data-file-input]"); await current.transfers.offerFiles([...input.files]); input.value = ""; }));
+    dialog.querySelector("[data-file-send]").addEventListener("click", safe(async () => { await enableFiles(); const input = dialog.querySelector("[data-file-input]"); await current.transfers.offerFiles([...input.files]); input.value = ""; }));
     function fileRow(id, name) {
       if (current.rows.has(id)) return current.rows.get(id);
       if (current.rows.size >= 128) { const oldest = current.rows.keys().next().value; current.rows.get(oldest).row.remove(); current.rows.delete(oldest); }
@@ -604,6 +735,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       else if (!progress.offered) row.text.textContent = `${progress.received ?? progress.sent ?? 0} / ${progress.size} 字节`;
     }
     function offerFile(offer) {
+      showPanel("[data-file-panel]", true);
       const row = fileRow(offer.id, offer.name), accept = document.createElement("button"); accept.className = "button button-secondary"; accept.textContent = "选择保存位置";
       accept.addEventListener("click", safe(async () => {
         if (!current.transfers.allowed("files.receive") || typeof window.showSaveFilePicker !== "function") throw new Error("当前无法接收文件。");

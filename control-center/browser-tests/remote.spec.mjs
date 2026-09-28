@@ -219,7 +219,7 @@ test("viewer toolbar keeps its icons and disabled state when labels change", asy
     const { setToolLabel } = await import("/modules/remote/view.js");
     setToolLabel(document.querySelector(".remote-dialog"), "[data-clipboard]", "关闭文本剪贴板", true);
   });
-  await expect(dialog.locator("[data-clipboard] span")).toHaveText("关闭文本剪贴板");
+  await expect(dialog.locator("[data-clipboard] span:first-of-type")).toHaveText("关闭文本剪贴板");
   await expect(dialog.locator("[data-clipboard] svg")).toHaveCount(1);
   await expect(dialog.locator("[data-clipboard]")).toHaveAttribute("aria-pressed", "true");
   await expect(dialog.locator("[data-clipboard]")).toBeDisabled();
