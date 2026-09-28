@@ -499,6 +499,8 @@ test("assist invitations are single use, attempt-limited and do not expose anoth
     device_id: string;
     temporary_password: string;
   };
+  // Temporary passwords use the host's own device ID, like the fixed password.
+  assert.equal(invite.device_id, (await rd.accessProfile(host.identity, false)).device_id);
   const redeemPath = "/api/v1/rd/assist-invites/redeem";
   const redeemed = await fetch(origin + redeemPath, {
     method: "POST",

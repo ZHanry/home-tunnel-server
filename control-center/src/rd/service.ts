@@ -922,6 +922,40 @@ async function createRedeemedAccessInvite(
   return id;
 }
 
+// The host's one device ID. Fixed and temporary passwords both use it, as in mainstream
+// remote tools; a new temporary password always revokes the host's previous one.
+async function createAccessProfile(
+  db: DatabaseClient,
+  host: { id: string; owner_user_id: string },
+) {
+  let deviceCode = "";
+  for (let attempt = 0; attempt < 16; attempt++) {
+    const candidate = String(randomInt(100_000_000, 1_000_000_000));
+    if (
+      !(await first(db, "SELECT host_endpoint_id FROM rd_access_profiles WHERE device_code=?", [
+        candidate,
+      ])) &&
+      !(await first(db, "SELECT id FROM rd_assist_invites WHERE device_code=? AND state='active'", [
+        candidate,
+      ]))
+    ) {
+      deviceCode = candidate;
+      break;
+    }
+  }
+  if (!deviceCode) fail(503, "RD_ACCESS_UNAVAILABLE", "暂时无法生成设备 ID");
+  await db.query(
+    "INSERT INTO rd_access_profiles(host_endpoint_id,host_owner_user_id,device_code,created_at,updated_at) VALUES(?,?,?,?,?)",
+    [host.id, host.owner_user_id, deviceCode, nowIso(), nowIso()],
+  );
+  await audit(db, host.owner_user_id, "AccessProfileCreated", host.id);
+  return (await first<AccessProfile>(
+    db,
+    "SELECT * FROM rd_access_profiles WHERE host_endpoint_id=?",
+    [host.id],
+  ))!;
+}
+
 export async function accessProfile(identity: RdIdentity, create: boolean) {
   requireHost(identity);
   return transaction(async (db) => {
@@ -935,34 +969,7 @@ export async function accessProfile(identity: RdIdentity, create: boolean) {
     if (!profile && create) {
       if (!host.local_enabled || JSON.parse(host.capability_json).status !== "ready")
         fail(422, "RD_HOST_UNAVAILABLE", "被控端尚未准备好");
-      let deviceCode = "";
-      for (let attempt = 0; attempt < 16; attempt++) {
-        const candidate = String(randomInt(100_000_000, 1_000_000_000));
-        if (
-          !(await first(db, "SELECT host_endpoint_id FROM rd_access_profiles WHERE device_code=?", [
-            candidate,
-          ])) &&
-          !(await first(
-            db,
-            "SELECT id FROM rd_assist_invites WHERE device_code=? AND state='active'",
-            [candidate],
-          ))
-        ) {
-          deviceCode = candidate;
-          break;
-        }
-      }
-      if (!deviceCode) fail(503, "RD_ACCESS_UNAVAILABLE", "暂时无法生成设备 ID");
-      await db.query(
-        "INSERT INTO rd_access_profiles(host_endpoint_id,host_owner_user_id,device_code,created_at,updated_at) VALUES(?,?,?,?,?)",
-        [host.id, host.owner_user_id, deviceCode, nowIso(), nowIso()],
-      );
-      profile = await first<AccessProfile>(
-        db,
-        "SELECT * FROM rd_access_profiles WHERE host_endpoint_id=?",
-        [host.id],
-      );
-      await audit(db, host.owner_user_id, "AccessProfileCreated", host.id);
+      profile = await createAccessProfile(db, host);
     }
     return profile
       ? {
@@ -1295,21 +1302,11 @@ export async function createAssistInvite(identity: RdIdentity) {
       "UPDATE rd_assist_invites SET state='revoked',revoked_at=home_tunnel_now() WHERE host_endpoint_id=? AND state='active'",
       [host.id],
     );
-    let deviceCode = "";
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const candidate = String(randomInt(100_000_000, 1_000_000_000));
-      if (
-        !(await first(
-          db,
-          "SELECT id FROM rd_assist_invites WHERE device_code=? AND state='active'",
-          [candidate],
-        ))
-      ) {
-        deviceCode = candidate;
-        break;
-      }
-    }
-    if (!deviceCode) fail(503, "RD_INVITE_UNAVAILABLE", "暂时无法生成协助码");
+    const profile =
+      (await first<AccessProfile>(db, "SELECT * FROM rd_access_profiles WHERE host_endpoint_id=?", [
+        host.id,
+      ])) ?? (await createAccessProfile(db, host));
+    const deviceCode = profile.device_code;
     const password = Array.from(
       { length: 12 },
       () => assistCharacters[randomInt(assistCharacters.length)],
