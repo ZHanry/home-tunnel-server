@@ -23,6 +23,7 @@ const errors = {
   RD_TEXT_CONTROL_TIMEOUT: "文字尚未发送：等待输入授权超时。",
   RD_CLIPBOARD_TEXT_INVALID: "剪贴板文本含有空字符（NUL）或不完整的 Unicode 字符，无法写入远端系统剪贴板。请删除这些字符后重试。",
   RD_ACCESS_INVALID: "设备 ID 或连接凭据无效，或该设备已暂停连接。",
+  RD_DEVICE_ID_FORMAT: "设备 ID 应为 9 位数字。",
   RD_ACCESS_REJECTED: "被控端拒绝了连接请求。",
   RD_ACCESS_EXPIRED: "连接请求已超时，请重试。",
 };
@@ -99,7 +100,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     }
     if (new URLSearchParams(location.search).has("remoteAssist")) {
       document.body.classList.add("remote-popout");
-      viewContent.innerHTML = `<section class="panel remote-assist-entry"><h2>连接其他账号的电脑</h2><p>输入对方电脑的 9 位设备 ID。双方需登录同一台服务器。</p><form data-assist-form><label>连接方式<select name="access_mode"><option value="request">发送请求，由被控端批准</option><option value="fixed">固定密码</option><option value="temporary">一次性临时密码</option></select></label><label>设备 ID<input name="device_id" inputmode="numeric" pattern="[0-9]{9}" maxlength="9" autocomplete="off" required></label><label data-assist-password hidden>密码<input name="password" type="password" minlength="1" maxlength="128" autocomplete="off"></label><button class="button button-primary" type="submit">请求连接</button></form><p role="status" data-assist-status></p><p role="alert" data-assist-error></p></section>`;
+      viewContent.innerHTML = `<section class="panel remote-assist-entry"><h2>连接其他账号的电脑</h2><p>输入对方电脑的 9 位设备 ID。双方需登录同一台服务器。</p><form data-assist-form><label>连接方式<select name="access_mode"><option value="request">发送请求，由被控端批准</option><option value="fixed">固定密码</option><option value="temporary">一次性临时密码</option></select></label><label>设备 ID<input name="device_id" inputmode="numeric" maxlength="15" placeholder="123 456 789" autocomplete="off" spellcheck="false" required></label><label data-assist-password hidden>密码<input name="password" type="password" minlength="1" maxlength="128" autocomplete="off"></label><button class="button button-primary" type="submit">请求连接</button></form><p role="status" data-assist-status></p><p role="alert" data-assist-error></p></section>`;
       const assistForm = viewContent.querySelector("[data-assist-form]");
       const accessMode = assistForm.querySelector('[name="access_mode"]');
       const accessPassword = assistForm.querySelector('[name="password"]');
@@ -112,6 +113,9 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       };
       accessMode.addEventListener("change", updateAccessMode);
       updateAccessMode();
+      // The desktop client opens this window with the ID the user already typed.
+      const prefilledId = (new URLSearchParams(location.search).get("remoteAccessId") || "").replace(/[\s-]/g, "");
+      if (/^[0-9]{9}$/.test(prefilledId)) assistForm.querySelector('[name="device_id"]').value = prefilledId.replace(/(\d{3})(?=\d)/g, "$1 ");
       viewContent.querySelector("[data-assist-form]").addEventListener("submit", async (event) => {
         event.preventDefault();
         const form = event.currentTarget;
@@ -122,7 +126,9 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
         try {
           const values = new FormData(form);
           const context = await controllerConnection();
-          const deviceId = values.get("device_id");
+          // Spaces and dashes only group the digits for reading.
+          const deviceId = String(values.get("device_id") || "").replace(/[\s-]/g, "");
+          if (!/^[0-9]{9}$/.test(deviceId)) throw new RemoteError("RD_DEVICE_ID_FORMAT");
           let target;
           if (values.get("access_mode") === "temporary") target = await context.api.request("/api/v1/rd/assist-invites/redeem", { method: "POST", body: { device_id: deviceId, temporary_password: values.get("password") } });
           else if (values.get("access_mode") === "fixed") target = await context.api.request("/api/v1/rd/access/fixed/redeem", { method: "POST", body: { device_id: deviceId, password: values.get("password") } });

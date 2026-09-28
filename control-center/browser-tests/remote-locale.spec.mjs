@@ -160,3 +160,31 @@ test("device-code forms hide unused credentials and localize all connection meth
   await expect(panel.locator('[name="password"]')).toBeHidden();
   await popup.close();
 });
+
+test("device-code form accepts a grouped ID and is prefilled by the desktop client", async ({ page }) => {
+  await prepare(page, "light", false);
+  const popup = await page.context().newPage();
+  const sent = [];
+  await popup.route("**/modules/remote/http.js", route => route.fulfill({ contentType: "text/javascript", body: `
+    export class RemoteError extends Error { constructor(code) { super(code); this.code = code; } }
+    export class RemoteApi {
+      constructor() { this.userId = "fixture"; this.identity = {}; }
+      assertCurrent() {}
+      async initialize() {}
+      async request(path, options) { window.__sent = [...(window.__sent || []), { path, body: options?.body }]; throw new RemoteError("RD_ACCESS_INVALID"); }
+      close() {}
+    }
+  ` }));
+  await popup.goto("/admin?remoteAssist=1&remoteAccessId=482913570#remote");
+  const panel = popup.locator(".remote-assist-entry");
+  await expect(panel.locator('[name="device_id"]')).toHaveValue("482 913 570");
+  await panel.locator('[name="device_id"]').fill("12345");
+  await panel.locator("button[type=submit]").click();
+  await expect(panel.locator("[data-assist-error]")).toHaveText("The device ID must be 9 digits.");
+  await panel.locator('[name="device_id"]').fill(" 123 456-789 ");
+  await panel.locator("button[type=submit]").click();
+  await expect(panel.locator("[data-assist-error]")).toHaveText(/invalid/);
+  sent.push(...await popup.evaluate(() => window.__sent));
+  expect(sent).toEqual([{ path: "/api/v1/rd/access/requests", body: { device_id: "123456789" } }]);
+  await popup.close();
+});

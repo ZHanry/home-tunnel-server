@@ -29,6 +29,7 @@ export const remoteTranslations = {
   "文字尚未发送：等待输入授权超时。": "Text was not sent: the input permission request timed out.",
   "剪贴板文本含有空字符（NUL）或不完整的 Unicode 字符，无法写入远端系统剪贴板。请删除这些字符后重试。": "Clipboard text contains NUL or incomplete Unicode characters. Remove those characters before sending it to the host.",
   "设备 ID 或连接凭据无效，或该设备已暂停连接。": "The device ID or connection credentials are invalid, or connections to this device are paused.",
+  "设备 ID 应为 9 位数字。": "The device ID must be 9 digits.",
   "被控端拒绝了连接请求。": "The host declined the connection request.",
   "连接请求已超时，请重试。": "The connection request timed out. Try again.",
   "远程桌面操作失败。": "The remote desktop operation failed.",
