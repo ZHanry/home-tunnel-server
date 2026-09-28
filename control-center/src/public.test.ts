@@ -5,7 +5,7 @@ import { get } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { APP_VERSION } from "./version.js";
+import { ASSET_VERSION } from "./version.js";
 
 function request(
   url: string,
@@ -88,10 +88,10 @@ test("public landing page stays available while Windows release metadata is abse
     assert.match(landing.body.toString("utf8"), /id="features"/);
     assert.doesNotMatch(landing.body.toString("utf8"), /home-tunnel\/releases\/latest\/download/);
     assert.match(landing.body.toString("utf8"), /home-tunnel-client status/);
-    assert.ok(landing.body.toString("utf8").includes(`app.js?v=${APP_VERSION}`));
+    assert.ok(landing.body.toString("utf8").includes(`app.js?v=${ASSET_VERSION}`));
     assert.match(landing.body.toString("utf8"), /type="module"/);
-    assert.ok(landing.body.toString("utf8").includes(`console.css?v=${APP_VERSION}`));
-    assert.ok(landing.body.toString("utf8").includes(`theme.js?v=${APP_VERSION}`));
+    assert.ok(landing.body.toString("utf8").includes(`console.css?v=${ASSET_VERSION}`));
+    assert.ok(landing.body.toString("utf8").includes(`theme.js?v=${ASSET_VERSION}`));
     assert.match(landing.body.toString("utf8"), /data-locale-toggle/);
     assert.doesNotMatch(landing.body.toString("utf8"), /实时同步正常|系统健康|受管请求路径/);
     assert.match(landing.body.toString("utf8"), /id="page-actions"/);
@@ -128,13 +128,13 @@ test("public landing page stays available while Windows release metadata is abse
     const applicationScript = await request(origin + "/app.js?v=7.0.0");
     assert.equal(applicationScript.status, 200);
     assert.ok(
-      applicationScript.body.toString("utf8").includes(`./modules/api.js?v=${APP_VERSION}`),
+      applicationScript.body.toString("utf8").includes(`./modules/api.js?v=${ASSET_VERSION}`),
     );
     assert.ok(
-      applicationScript.body.toString("utf8").includes(`./modules/locale.js?v=${APP_VERSION}`),
+      applicationScript.body.toString("utf8").includes(`./modules/locale.js?v=${ASSET_VERSION}`),
     );
     assert.ok(
-      applicationScript.body.toString("utf8").includes(`./modules/realtime.js?v=${APP_VERSION}`),
+      applicationScript.body.toString("utf8").includes(`./modules/realtime.js?v=${ASSET_VERSION}`),
     );
     assert.match(applicationScript.body.toString("utf8"), /toLocaleString\(localeTag\(\)/);
     assert.equal(applicationScript.headers["cache-control"], "no-cache");

@@ -98,7 +98,7 @@ test("confirmation dialogs localize their consequences and preserve the selected
     });
     expect(geometry, `${action} readable confirmation`).toBe(true);
     for (const locale of ["zh-CN", "en"]) {
-      await page.evaluate(async locale => (await import("/modules/locale.js?v=10.0.0")).applyLocale(locale), locale);
+      await page.evaluate(async locale => (await import("/modules/locale.js?v=10.0.0-1")).applyLocale(locale), locale);
       await expect(page.locator(".confirmation-notice [data-no-translate]")).toHaveText(subject);
     }
     await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
