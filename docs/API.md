@@ -1,4 +1,4 @@
-# Home Tunnel API 1.4 proposed / server 9.0.0
+# Home Tunnel API 1.4 / server 10.0.0
 
 [OpenAPI 3.1](../contracts/openapi.v1.json) · [JSON Schema 2020-12](../contracts/api.schema.json) · [Capabilities](../control-center/src/api-capabilities.ts)
 
@@ -32,10 +32,10 @@ or modify a peer device; `/client/devices` remains device-scoped. Internal
 hooks require private networking and, where specified, `x-home-tunnel-key`.
 Never publish the control-center, gateway, metrics or FRPS plugin ports directly.
 
-## Proposed 1.4 discovery
+## 1.4 discovery
 
-`contract_version` is `1.4.0` with status `proposed`. `api-v1.3.0` remains the
-last immutable contract tag. A server `remote_desktop.enabled` flag only opens
+`contract_version` is `1.4.0`, frozen as `api-v1.4.0`. `api-v1.3.0` and earlier
+contract tags are unchanged. A server `remote_desktop.enabled` flag only opens
 the control plane. Audio, files, displays, DPI, and secure desktop are available
 only when the signed endpoint capability says the device agent discovered them.
 The server does not connect to a device's `local_host` or `localhost`; tunnel
@@ -106,15 +106,15 @@ Batch operations return one status per item and can partially succeed.
 
 ## Version policy and validation
 
-The 9.0.0 combination is server/Web, desktop/CLI, Android and managed Agent.
+The 10.0.0 combination is server/Web, desktop/CLI, Android and managed Agent.
 Existing tunnel management retains 7.0 compatibility; remote desktop requires
-negotiated capabilities and matching 9.0.0 components. Remote desktop remains
-disabled by default and has platform limitations described in the release notes.
+negotiated capabilities and matching 10.0.0 components. Remote desktop remains
+disabled by default; remote control payloads use direct UDP P2P only and has platform limitations described in the release notes.
 There is no promised lifetime for obsolete versions.
 
-The proposed contract identifier is `api-v1.4.0`. It is not frozen. The immutable
-`api-v1.3.0` tag and all earlier contract tags remain unchanged.
-Consumers vendor all three files with SHA-256 locks tied to its reviewed commit.
+The frozen contract identifier is `api-v1.4.0`. The immutable `api-v1.3.0` tag and
+all earlier contract tags remain unchanged. Consumers vendor all three files with
+SHA-256 locks tied to the commit that the `api-v1.4.0` tag identifies.
 
 ```sh
 python3 scripts/generate-api-spec.py --check

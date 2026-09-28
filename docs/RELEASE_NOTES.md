@@ -1,4 +1,29 @@
-# Home Tunnel Server 9.0.0
+# Home Tunnel Server 10.0.0
+
+Server/Web, desktop/CLI, Android and the managed Agent use 10.0.0; FRP keeps its
+independent 0.70.1 version. The REST API stays on `/api/v1` and freezes contract
+`api-v1.4.0`. `api-v1.3.0` and earlier contract tags are unchanged.
+
+- Endpoint capabilities report agent-discovered displays, DPI, audio and files.
+  The server offers these only when the device's signed report includes them and
+  never probes a device's `localhost`.
+- Remote sessions and tunnels return typed failures with retry actions; tunnel
+  diagnostics come from the device agent's report.
+- The Web console adds guided service publishing with device-report verification,
+  an MFA challenge as the next sign-in step, and completed localization, theme,
+  mobile navigation and accessibility fixes.
+- Migrations 020 and 021 are additive: a nullable tunnel diagnostic column and
+  stored display metrics. 9.0 rows remain readable.
+- Stable publication promotes the accepted, sealed candidate bytes and image
+  digests; it does not rebuild images.
+
+Remote desktop remains disabled by default. Remote control payloads use direct
+UDP P2P only; no media relay or TURN fallback is provided. Capabilities that the
+attached acceptance evidence does not cover remain unverified. Before deploying,
+verify an encrypted backup can be restored and use the release's
+`compose.release.yaml` to pin both image digests. See [upgrading](UPGRADING.md).
+
+## Previous release: 9.0.0
 
 This release adds three authenticated remote-access modes: a host-approved
 request, a reusable fixed password, and a single-use temporary password.

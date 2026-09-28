@@ -1,10 +1,11 @@
-# RD data protocol 1 (development)
+# RD data protocol 1
 
 The numeric registry is `remote-desktop.v1.json`; generated JavaScript,
 TypeScript, C++ and Kotlin constants share its 24-byte big-endian frame header.
-This document specifies the additional JSON payloads used by the 8.0 clients.
-The contract is not frozen for release yet. A successful build or protocol test
-does not establish operational native media support.
+This document specifies the additional JSON payloads used by 8.0 and later
+clients; 10.0.0 ships it with `api-v1.4.0`. Messages marked reserved below remain
+unfrozen. A successful build or protocol test does not establish operational
+native media support.
 
 All payloads below require the current connection epoch, valid monotonic lease,
 peer proof and actual direct UDP path. No server payload forwarding is permitted.
