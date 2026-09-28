@@ -1368,7 +1368,7 @@ async function openCustomDomains(connectionId) {
     title: `自定义域名 · ${connection.name}`,
     draftId: `custom-domains:${connection.id}`,
     eyebrow: "DNS 所有权验证",
-    body: `<div class="notice"><strong>需要两条 DNS 记录</strong><span>先添加 TXT 所有权证明，再把域名 CNAME 到受管地址。验证成功后会自动申请证书并重配隧道。</span></div>${rows || '<p class="helper">尚未绑定自定义域名。</p>'}<div class="form-grid">${field("domain", "新增域名", "", { helper: "例如 nas.example.com" })}</div>`,
+    body: `<div class="notice notice-stacked"><strong>需要两条 DNS 记录</strong><span>先添加 TXT 所有权证明，再把域名 CNAME 到受管地址。验证成功后会自动申请证书并重配隧道。</span></div>${rows || '<p class="helper">尚未绑定自定义域名。</p>'}<div class="form-grid">${field("domain", "新增域名", "", { helper: "例如 nas.example.com" })}</div>`,
     submitLabel: "创建验证记录",
     onSubmit: async (form) => {
       await api(customDomainsPath(connectionId), {
