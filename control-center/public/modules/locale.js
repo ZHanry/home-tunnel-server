@@ -164,7 +164,7 @@ const zhToEn = {
   "当前没有支持高权限服务的在线设备，可信设备绑定暂不可用。": "No online device currently supports the privileged host service. Trusted-device pairing is unavailable.",
   可连接: "Available",
   不可连接: "Unavailable",
-  "UDP 直连就绪": "Direct UDP ready",
+  "可远程控制": "Ready for remote control",
   离线或被控端未就绪: "Offline or host not ready",
   立即连接: "Connect now",
   设备信息: "Device details",
@@ -799,7 +799,7 @@ export function localizedText(value, targetLocale = state.locale) {
       .replace(/^已同步 · (.+)$/, "Synced · $1")
       .replace(/^(\d+) 条连接$/, "$1 connections")
       .replace(/^(\d+) 台在线可连接$/, "$1 available online")
-      .replace(/^(.+) · UDP 直连就绪$/, "$1 · Direct UDP ready")
+      .replace(/^(.+) · 可远程控制$/, "$1 · Ready for remote control")
       .replace(/^(.+) · 离线或被控端未就绪$/, "$1 · Offline or host not ready")
       .replace(/^在线 · 远控已开启$/, "Online · Remote desktop enabled")
       .replace(/^离线 · 远控尚未就绪$/, "Offline · Remote desktop not ready")

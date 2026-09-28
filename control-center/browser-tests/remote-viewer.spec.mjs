@@ -55,7 +55,7 @@ test("the popout viewer has no close-window button or how-to block, before or af
   for (const phrase of ["关闭窗口", "使用说明"]) expect(await text()).not.toContain(phrase);
   // The host name and status now live in the slim top bar next to a red disconnect button.
   await expect(dialog.locator(".remote-toolbar h2")).toHaveText(host.name);
-  await expect(dialog.locator(".remote-toolbar .remote-status")).toHaveText(/UDP/);
+  await expect(dialog.locator(".remote-toolbar .remote-status")).toHaveText(/已连接/);
   await expect(dialog).toHaveAttribute("data-live", "true");
   await expect(dialog.locator("[data-disconnect]")).toHaveText("断开");
   const disconnect = await dialog.locator("[data-disconnect]").evaluate(button => getComputedStyle(button).backgroundColor);

@@ -12,7 +12,7 @@ const labels = {
   "clipboard.write": "写入远端文本剪贴板", "files.send": "发送文件", "files.receive": "接收文件",
 };
 const errors = {
-  RD_DISABLED: "服务器未启用远程桌面。", RD_NO_DIRECT_PATH: "当前网络未找到 UDP 直连路径。请检查防火墙、IPv6 或切换网络。",
+  RD_DISABLED: "服务器未启用远程桌面。", RD_NO_DIRECT_PATH: "无法连接到对方设备。请确认对方在线后重试，或切换网络。",
   RD_BROWSER_LOCKS_UNAVAILABLE: "此浏览器无法安全协调远控身份，请升级浏览器。", RD_IDENTITY_STORAGE_UNAVAILABLE: "无法安全保存浏览器身份，请检查站点存储权限。",
   RD_SERVER_TRUST_CHANGED: "服务器签名身份发生变化。请先核实服务器恢复或密钥更换情况。", RD_FEATURE_DENIED: "被控端未允许该功能。",
   RD_PEER_IDENTITY_MISMATCH: "对端身份验证失败，会话已终止。", RD_MEDIA_FAILED: "画面或媒体连接失败，会话已终止。",
@@ -168,7 +168,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     const monitor = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>';
     viewContent.innerHTML = `<div class="remote-dashboard"><section class="remote-dashboard-hero"><div><span class="eyebrow">REMOTE DESKTOP</span><h2>像坐在电脑前一样。</h2><p>选择已在线的设备，在独立窗口中查看远程画面。</p></div><button type="button" class="button button-primary" data-remote-browse>查看设备 <span aria-hidden="true">→</span></button></section><div class="remote-dashboard-heading"><h2>可连接设备</h2><span>${available.length} 台在线可连接</span></div><section class="remote-device-grid" id="remote-device-grid">${hosts.map((endpoint) => {
       const ready = endpoint.online && endpoint.local_enabled && endpoint.capabilities?.status === "ready" && endpoint.capabilities?.displays?.length;
-      return `<article class="panel remote-device-card"><div class="remote-device-top"><span class="remote-device-icon">${monitor}</span><span class="remote-device-state ${ready ? "ready" : "offline"}">${ready ? "可连接" : "不可连接"}</span></div><h3 data-no-translate>${escapeHtml(endpoint.name)}</h3><p>${escapeHtml(endpoint.platform)} · ${ready ? "UDP 直连就绪" : "离线或被控端未就绪"}</p><div class="remote-device-actions"><button class="button button-primary" data-remote-host="${escapeHtml(endpoint.id)}" ${ready ? "" : "disabled"}>立即连接 <span aria-hidden="true">→</span></button><details class="remote-device-details"><summary class="button button-secondary">设备信息</summary><div><span>设备标识</span><code>${escapeHtml(endpoint.id)}</code><span>当前状态</span><strong>${endpoint.online ? "在线" : "离线"} · ${endpoint.local_enabled && endpoint.capabilities?.status === "ready" ? "远控已开启" : "远控尚未就绪"}</strong></div></details></div></article>`;
+      return `<article class="panel remote-device-card"><div class="remote-device-top"><span class="remote-device-icon">${monitor}</span><span class="remote-device-state ${ready ? "ready" : "offline"}">${ready ? "可连接" : "不可连接"}</span></div><h3 data-no-translate>${escapeHtml(endpoint.name)}</h3><p>${escapeHtml(endpoint.platform)} · ${ready ? "可远程控制" : "离线或被控端未就绪"}</p><div class="remote-device-actions"><button class="button button-primary" data-remote-host="${escapeHtml(endpoint.id)}" ${ready ? "" : "disabled"}>立即连接 <span aria-hidden="true">→</span></button><details class="remote-device-details"><summary class="button button-secondary">设备信息</summary><div><span>设备标识</span><code>${escapeHtml(endpoint.id)}</code><span>当前状态</span><strong>${endpoint.online ? "在线" : "离线"} · ${endpoint.local_enabled && endpoint.capabilities?.status === "ready" ? "远控已开启" : "远控尚未就绪"}</strong></div></details></div></article>`;
     }).join("") || `<article class="panel empty-state"><h2>还没有被控电脑</h2><p>在桌面客户端本机开启远程桌面后，设备会出现在这里。</p></article>`}</section><section class="remote-assist-preview"><div><h3>连接其他账号</h3><p>支持被控端批准、固定密码（可用于无人值守）和一次性临时密码。</p></div><button type="button" class="button button-secondary" data-remote-assist>输入设备 ID</button></section></div>`;
     viewContent.querySelector("[data-remote-browse]")?.addEventListener("click", () => viewContent.querySelector("#remote-device-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }));
     viewContent.querySelector("[data-remote-assist]")?.addEventListener("click", () => window.open("/admin?remoteAssist=1#remote", "ht-remote-assist", "width=1280,height=840,resizable=yes,scrollbars=yes,noopener"));
@@ -205,11 +205,11 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
         ${tool("data-clipboard", "clipboard", "开启文本剪贴板")}${tool("data-files", "files", "开启文件收发")}${tool("data-text-toggle", "text", "发送文字", 'aria-expanded="false"')}<span class="remote-tool-divider" aria-hidden="true"></span>
         ${tool("data-audio", "audio", "开启系统声音", host.capabilities.permissions?.includes("audio.system") ? "" : "disabled")}${tool("data-microphone", "microphone", "开启麦克风回传", microphonePermitted ? "" : "disabled hidden")}${tool("data-play", "play", "播放画面")}${tool("data-diagnostics-toggle", "diagnostics", "连接诊断", 'aria-expanded="false"')}
       </div><button type="button" class="remote-disconnect" data-disconnect title="断开连接">${toolIcon("disconnect")}<span>断开</span></button></div>
-      <div class="remote-video-stage"><video class="remote-video" autoplay muted playsinline aria-label="远端桌面"></video><div class="remote-media-mask" data-media-mask>等待身份、直连与画面验证</div>
+      <div class="remote-video-stage"><video class="remote-video" autoplay muted playsinline aria-label="远端桌面"></video><div class="remote-media-mask" data-media-mask>正在建立安全连接</div>
       <section class="remote-data" aria-label="连接工具面板"><div class="remote-panel" data-clipboard-panel hidden><h3>文本剪贴板</h3><p class="remote-panel-note">剪贴板仅绑定当前指定窗口；浏览器需要前台操作。远端文本收到后，点击“复制到本机”才写入本机剪贴板。</p><label>发送的文本<textarea data-clipboard-text rows="3" maxlength="65536"></textarea></label><div class="remote-panel-actions"><button type="button" class="button button-secondary" data-clipboard-read>读取本机剪贴板</button><button type="button" class="button button-primary" data-clipboard-send>发送文本剪贴板</button></div><label>远端文本<textarea data-clipboard-incoming readonly rows="3"></textarea></label><div class="remote-panel-actions"><button type="button" class="button button-secondary" data-clipboard-copy>复制到本机</button></div></div>
         <div class="remote-panel" data-file-panel hidden><h3>文件传输</h3><input type="file" data-file-input multiple aria-label="选择要发送的文件"><div class="remote-panel-actions"><button type="button" class="button button-primary" data-file-send>发送所选文件</button></div><p class="remote-panel-note" data-file-support></p><div class="remote-file-list" data-file-list aria-live="polite"></div></div>
         <form class="remote-panel remote-text" data-text-panel hidden><h3>发送文字</h3><label>发送文字（本地完成中文输入）<textarea name="text" rows="3" maxlength="4096"></textarea></label><div class="remote-panel-actions"><button class="button button-primary">发送文字</button></div></form>
-        <div class="remote-panel" data-diagnostics-panel hidden><h3>连接诊断</h3><pre data-diagnostics>等待身份与直连验证</pre></div></section></div></section>`;
+        <div class="remote-panel" data-diagnostics-panel hidden><h3>连接诊断</h3><pre data-diagnostics>正在建立安全连接</pre></div></section></div></section>`;
     const title = dialog.querySelector("h2"); title.id = `remote-title-${crypto.randomUUID()}`; title.dataset.noTranslate = "";
     dialog.setAttribute("aria-labelledby", title.id);
     for (const selector of ["[data-audio]", "[data-microphone]", "[data-clipboard]", "[data-files]"]) dialog.querySelector(selector).setAttribute("aria-pressed", "false");
@@ -393,7 +393,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       current.session = new RemoteSession({ api: current.api, signal: current.signal, session: snapshot, hostThumbprint: host.jkt, hostOwnerUserId: host.owner_user_id ?? current.api.userId, video,
         onState: (phase, failure) => {
           syncControls();
-          status.textContent = { connecting: "正在检查直连", waiting_for_frame: "身份和直连已验证，等待画面", viewing: "被控端已验证 UDP 直连 · 只看画面", switching_display: "正在切换显示器，等待新画面", closed: "会话已结束", failed: "会话失败", playback_gesture_required: "请点击播放画面" }[phase] ?? phase;
+          status.textContent = { connecting: "正在连接", waiting_for_frame: "已连接，等待画面", viewing: "已连接 · 仅查看", switching_display: "正在切换显示器，等待新画面", closed: "会话已结束", failed: "会话失败", playback_gesture_required: "请点击播放画面" }[phase] ?? phase;
           if (phase === "viewing") {
             current.retries = 0;
             resumeInput();
@@ -438,7 +438,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
                   if (input === current.input) { current.textSending = false; syncControls(); }
                 }
               })();
-            } else { video.focus(); status.textContent = "被控端已验证 UDP 直连 · 允许输入"; }
+            } else { video.focus(); status.textContent = "已连接 · 可控制"; }
           }
           if (frame.type === TYPES.DISPLAY_LAYOUT) {
             const select = dialog.querySelector("[data-display]"); select.replaceChildren();
@@ -482,7 +482,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       current.inputRequested = false; current.clipboardRequested = false;
       current.pendingText = undefined; clearTimeout(current.textRequestTimer);
       syncControls();
-      status.textContent = reason === "display_changed" ? "正在切换显示器，等待本机批准和新画面" : "正在恢复直连，输入和麦克风已暂停";
+      status.textContent = reason === "display_changed" ? "正在切换显示器，等待本机批准和新画面" : "网络波动，正在重新连接";
       dialog.querySelector("[data-media-mask]").textContent = status.textContent;
       try {
         current.snapshot = await current.api.request(`/api/v1/rd/sessions/${previous.id}/reconnect`, { method: "POST", idempotencyKey: crypto.randomUUID(), body: { expected_epoch: previous.epoch, reason, ...(displayId !== undefined ? { display_id: displayId } : {}) } });
