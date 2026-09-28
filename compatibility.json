@@ -3,14 +3,15 @@
   "stage": "public-release",
   "api_major": 1,
   "contract_ref": "api-v1.4.0",
-  "contract_status": "proposed",
-  "support_policy": "9.0.0 release. RD remains disabled by default. Three access modes require matching clients and signed grants; existing 7.0 tunnels remain supported. Back up and test restore before deployment. Windows secure desktop, audio and Android arm64 runtime are not verified by this release. FRP follows its separate upstream version.",
-  "version": "9.0.0",
+  "contract_status": "frozen",
+  "frozen_tag": "api-v1.4.0",
+  "support_policy": "10.0.0 release with the frozen api-v1.4.0 contract on /api/v1. RD remains disabled by default; remote control payloads use direct UDP P2P only, with no relay or TURN fallback. New capabilities require matching 10.0.0 clients and signed host reports; existing 7.0 tunnels remain supported. Back up and test restore before deployment. Capabilities not covered by the attached acceptance evidence are unverified. FRP follows its separate upstream version.",
+  "version": "10.0.0",
   "minimum_server": "7.0.0",
   "tested_combination": {
-    "server": "9.0.0",
-    "client": "9.0.0",
-    "android": "9.0.0",
-    "agent": "9.0.0"
+    "server": "10.0.0",
+    "client": "10.0.0",
+    "android": "10.0.0",
+    "agent": "10.0.0"
   }
 }

@@ -164,12 +164,12 @@ test("remote desktop opens a separate viewer window", async ({ page, context }) 
 
 test("updates page displays only official server release metadata", async ({ page }) => {
   await page.route("**/api/v1/public/capabilities", (route) =>
-    route.fulfill({ json: { server_version: "9.0.0" } }),
+    route.fulfill({ json: { server_version: "10.0.0" } }),
   );
   await page.route("**/api/v1/public/updates/server", (route) =>
     route.fulfill({
       json: {
-        current_version: "9.0.0",
+        current_version: "10.0.0",
         latest: {
           version: "8.0.0",
           url: "https://github.com/ZHanry/home-tunnel-server/releases/tag/v8.0.0",

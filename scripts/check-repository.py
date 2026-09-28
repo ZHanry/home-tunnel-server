@@ -24,6 +24,15 @@ if component == "server":
     assert compose_defaults == [version, version], "Root Compose must select the current control and gateway versions"
     local_images = re.findall(r"image: home-tunnel/(?:control-center|traffic-gateway):([^\s]+)", (root / "deploy/compose.yaml").read_text())
     assert local_images == [version + "-arm64", version + "-arm64"], "Local ARM64 deployment version drift"
+    assert compat["version"] == version, "compatibility.json version differs from service packages"
+    assert set(compat["tested_combination"].values()) == {version}, "Tested combination must name the current version"
+    status = compat.get("contract_status")
+    assert status in ("proposed", "frozen"), "Unknown contract status"
+    assert compat.get("frozen_tag") == (compat["contract_ref"] if status == "frozen" else None), "frozen_tag must match a frozen contract_ref"
+    for name in ("contracts/openapi.v1.json", "control-center/public/openapi.json"):
+        openapi = json.loads((root / name).read_text(encoding="utf-8"))
+        assert openapi.get("x-contract-ref") == compat["contract_ref"], f"Contract ref drift: {name}"
+        assert openapi.get("x-contract-status") == status, f"Contract status drift: {name}"
     assert not (root / "control-center/browser-tests/desktop.spec.mjs").exists()
     assert not (root / "go.mod").exists()
 else:

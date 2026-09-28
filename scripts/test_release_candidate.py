@@ -320,7 +320,7 @@ class CandidatePolicyTests(unittest.TestCase):
         acceptance["fixture"] = True
         self.assertTrue(any("fixture" in item for item in release_candidate.acceptance_errors(acceptance, **context)))
 
-    def test_publication_refuses_replacement_and_the_current_unfrozen_tree(self):
+    def test_publication_refuses_replacement_and_accepts_the_frozen_tree(self):
         self.assertEqual(release_candidate.publication_tag("10.0.0"), "v10.0.0")
         with self.assertRaisesRegex(SystemExit, "non-final"):
             release_candidate.publication_tag("9.0.0")
@@ -349,7 +349,10 @@ class CandidatePolicyTests(unittest.TestCase):
         package = json.loads((ROOT / "control-center/package.json").read_text(encoding="utf-8"))
         compatibility = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
         current = dict(ready, version=package["version"], contract_status=compatibility["contract_status"], contract_ref=compatibility["contract_ref"])
-        blockers = release_candidate.promotion_blockers(current)
+        # The checked-in source is the final 10.0.0 version with api-v1.4.0 frozen.
+        self.assertEqual(release_candidate.promotion_blockers(current), [])
+        stale = dict(ready, version="9.0.0", contract_status="proposed")
+        blockers = release_candidate.promotion_blockers(stale)
         self.assertTrue(any("10.0.0" in item for item in blockers))
         self.assertTrue(any("frozen" in item for item in blockers))
 

@@ -3,7 +3,7 @@
   "info": {
     "title": "Home Tunnel API",
     "version": "1.4.0",
-    "description": "Proposed Home Tunnel API 1.4.0 contract. It is not an immutable tag yet. Adds discovered native capabilities, display DPI, four access modes, actionable connection failures, and agent-reported tunnel diagnostics. Direct UDP media is never relayed. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md.",
+    "description": "Home Tunnel 10.0.0 API 1.4.0 contract, frozen as api-v1.4.0. Adds discovered native capabilities, display DPI, four access modes, actionable connection failures, and agent-reported tunnel diagnostics. Direct UDP media is never relayed. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md.",
     "license": {
       "name": "Apache-2.0"
     }
@@ -24282,5 +24282,5 @@
     }
   },
   "x-contract-ref": "api-v1.4.0",
-  "x-contract-status": "proposed"
+  "x-contract-status": "frozen"
 }
