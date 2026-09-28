@@ -7,9 +7,9 @@ import { RemoteInput } from "./input.js";
 import { RemoteTransfers } from "./transfer.js";
 
 const labels = {
-  view: "观看画面", "input.keyboard": "键盘", "input.pointer": "鼠标", "input.text": "中文与文字",
-  "audio.system": "系统声音", "audio.microphone": "回传麦克风", "clipboard.read": "读取远端文本剪贴板",
-  "clipboard.write": "写入远端文本剪贴板", "files.send": "发送文件", "files.receive": "接收文件",
+  view: "观看画面", "input.keyboard": "键盘", "input.pointer": "鼠标", "input.text": "文字输入（含中文）",
+  "audio.system": "系统声音", "audio.microphone": "麦克风", "clipboard.read": "复制远端文字",
+  "clipboard.write": "粘贴到远端", "files.send": "发送文件", "files.receive": "接收文件",
 };
 const errors = {
   RD_DISABLED: "服务器未启用远程桌面。", RD_NO_DIRECT_PATH: "无法连接到对方设备。请确认对方在线后重试，或切换网络。",
@@ -195,7 +195,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     const microphonePermitted = !!host.capabilities.permissions?.includes("audio.microphone");
     dialog.innerHTML = `${popoutWindow ? "" : `<button type="button" class="remote-close" data-close aria-label="关闭远程桌面" title="关闭远程桌面">${toolIcon("close")}</button>`}<div class="remote-card"><header class="remote-header"><span class="remote-badge" aria-hidden="true">${toolIcon("display")}</span><div class="remote-identity"><h2>${escapeHtml(host.name)}</h2><p class="remote-status" role="status">正在准备安全连接</p></div></header>
       <p class="remote-error" role="alert"></p>
-      <form class="remote-auth" hidden><div class="field"><label>账号密码<input name="password" type="password" autocomplete="current-password" required maxlength="256"></label></div><div class="field remote-mfa-field" hidden><label>动态码或恢复码<input name="mfa" autocomplete="one-time-code" maxlength="128"></label></div>
+      <form class="remote-auth" hidden><div class="field"><label>当前账号的登录密码<input name="password" placeholder="用于确认是你本人" type="password" autocomplete="current-password" required maxlength="256"></label></div><div class="field remote-mfa-field" hidden><label>动态码或恢复码<input name="mfa" autocomplete="one-time-code" maxlength="128"></label></div>
       <fieldset><legend>${assistInviteId ? "画面、键鼠与文本剪贴板随本次连接授权" : mode === "persistent" ? "绑定可信设备需本机管理员批准；持续授权最长 30 天" : "本次请求权限，仍需被控端同意"}</legend>${Object.entries(labels).filter(([permission]) => host.capabilities.permissions?.includes(permission)).map(([permission, label]) => `<label class="remote-permission"><input type="checkbox" name="permission" value="${permission}" ${["view", "input.keyboard", "input.pointer", "input.text", "clipboard.read", "clipboard.write"].includes(permission) ? "checked" : ""} ${permission === "view" ? "disabled" : ""}>${label}</label>`).join("")}</fieldset>
       <button class="button button-primary" type="submit">${mode === "persistent" ? "验证并绑定可信设备" : "验证并请求连接"}</button></form>
       <section class="remote-pairing" hidden><p>${assistInviteId ? "正在验证设备身份与本次连接。" : mode === "persistent" ? "请让被控电脑的管理员确认设备身份并批准持续授权。配对码：" : "请在被控电脑上批准本次连接。配对码用于核对设备身份："}</p><strong class="remote-code" data-no-translate></strong></section>
@@ -206,9 +206,9 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
         ${tool("data-audio", "audio", "开启系统声音", host.capabilities.permissions?.includes("audio.system") ? "" : "disabled")}${tool("data-microphone", "microphone", "开启麦克风回传", microphonePermitted ? "" : "disabled hidden")}${tool("data-play", "play", "播放画面")}${tool("data-diagnostics-toggle", "diagnostics", "连接诊断", 'aria-expanded="false"')}
       </div><button type="button" class="remote-disconnect" data-disconnect title="断开连接">${toolIcon("disconnect")}<span>断开</span></button></div>
       <div class="remote-video-stage"><video class="remote-video" autoplay muted playsinline aria-label="远端桌面"></video><div class="remote-media-mask" data-media-mask>正在建立安全连接</div>
-      <section class="remote-data" aria-label="连接工具面板"><div class="remote-panel" data-clipboard-panel hidden><h3>文本剪贴板</h3><p class="remote-panel-note">剪贴板仅绑定当前指定窗口；浏览器需要前台操作。远端文本收到后，点击“复制到本机”才写入本机剪贴板。</p><label>发送的文本<textarea data-clipboard-text rows="3" maxlength="65536"></textarea></label><div class="remote-panel-actions"><button type="button" class="button button-secondary" data-clipboard-read>读取本机剪贴板</button><button type="button" class="button button-primary" data-clipboard-send>发送文本剪贴板</button></div><label>远端文本<textarea data-clipboard-incoming readonly rows="3"></textarea></label><div class="remote-panel-actions"><button type="button" class="button button-secondary" data-clipboard-copy>复制到本机</button></div></div>
+      <section class="remote-data" aria-label="连接工具面板"><div class="remote-panel" data-clipboard-panel hidden><h3>文本剪贴板</h3><p class="remote-panel-note">远端复制的文字会出现在下方，点“复制到本机”后生效。</p><label>发给远端<textarea data-clipboard-text rows="2" placeholder="输入或粘贴要发给远端的文字" maxlength="65536"></textarea></label><div class="remote-panel-actions"><button type="button" class="button button-secondary" data-clipboard-read>粘贴本机内容</button><button type="button" class="button button-primary" data-clipboard-send>发送</button></div><label>来自远端<textarea data-clipboard-incoming readonly rows="2" placeholder="远端复制文字后会显示在这里"></textarea></label><div class="remote-panel-actions"><button type="button" class="button button-primary" data-clipboard-copy>复制到本机</button></div></div>
         <div class="remote-panel" data-file-panel hidden><h3>文件传输</h3><input type="file" data-file-input multiple aria-label="选择要发送的文件"><div class="remote-panel-actions"><button type="button" class="button button-primary" data-file-send>发送所选文件</button></div><p class="remote-panel-note" data-file-support></p><div class="remote-file-list" data-file-list aria-live="polite"></div></div>
-        <form class="remote-panel remote-text" data-text-panel hidden><h3>发送文字</h3><label>发送文字（本地完成中文输入）<textarea name="text" rows="3" maxlength="4096"></textarea></label><div class="remote-panel-actions"><button class="button button-primary">发送文字</button></div></form>
+        <form class="remote-panel remote-text" data-text-panel hidden><h3>发送文字</h3><label>在这里输入，完成后发送到远端光标处<textarea name="text" rows="3" maxlength="4096"></textarea></label><div class="remote-panel-actions"><button class="button button-primary">发送文字</button></div></form>
         <div class="remote-panel" data-diagnostics-panel hidden><h3>连接诊断</h3><pre data-diagnostics>正在建立安全连接</pre></div></section></div></section>`;
     const title = dialog.querySelector("h2"); title.id = `remote-title-${crypto.randomUUID()}`; title.dataset.noTranslate = "";
     dialog.setAttribute("aria-labelledby", title.id);
