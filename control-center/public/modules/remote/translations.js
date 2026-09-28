@@ -62,7 +62,7 @@ export const remoteTranslations = {
   "正在准备安全连接": "Preparing a secure connection",
   "当前账号的登录密码": "Your account password",
   "用于确认是你本人": "Confirms it is you",
-  "画面、键鼠与文本剪贴板随本次连接授权": "Screen, keyboard, mouse and text clipboard permissions apply to this connection",
+  "画面、键鼠、剪贴板、文件与声音随本次连接授权": "Screen, keyboard, mouse, clipboard, files and audio permissions apply to this connection",
   "绑定可信设备需本机管理员批准；持续授权最长 30 天": "Trusted device binding requires local administrator approval; authorization lasts up to 30 days",
   "本次请求权限，仍需被控端同意": "Requested permissions require host approval",
   "验证并绑定可信设备": "Verify and bind trusted device",

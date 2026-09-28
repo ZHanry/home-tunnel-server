@@ -95,7 +95,8 @@ test("a matching persistent grant connects without another pairing request", asy
   await expect.poll(() => requests.some((request) => request.path === "/api/v1/rd/sessions")).toBe(true);
   const creation = requests.find((request) => request.path === "/api/v1/rd/sessions");
   expect(creation.body.grant_id).toBe("fixture-grant");
-  expect(creation.body.permissions).toEqual(["view", "input.keyboard"]);
+  // Only defaults the grant covers: files.receive yes, input.pointer (not granted) no.
+  expect(creation.body.permissions).toEqual(["view", "input.keyboard", "files.receive"]);
   expect(requests.some((request) => request.path === "/api/v1/rd/pairings")).toBe(false);
   await popup.close();
 });
@@ -135,7 +136,7 @@ test("temporary assistance redeems in a separate window without putting the pass
   await popup.locator('[data-assist-form] [name="password"]').fill("OneTimeCode12");
   await popup.locator("[data-assist-form] button").click();
   await expect(popup.locator(".remote-dialog")).toBeVisible();
-  await expect(popup.locator(".remote-auth legend")).toContainText("画面、键鼠与文本剪贴板");
+  await expect(popup.locator(".remote-auth legend")).toContainText("画面、键鼠、剪贴板、文件与声音");
   await expect(popup.locator(".remote-pairing")).toContainText("正在验证设备身份");
   await expect(popup.locator("[data-assist-form]")).toHaveCount(0);
   await expect.poll(() => requests.some((request) => request.path.endsWith("/pairings") && request.body?.assist_invite_id === "30000000-0000-4000-8000-000000000001")).toBe(true);

@@ -202,6 +202,9 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       else viewContent.innerHTML = `<section class="panel empty-state"><h2>设备暂不可用</h2><p>请关闭此窗口，在控制台刷新远控设备列表后重试。</p></section>`;
     }
   }
+  // Like mainstream remote tools, a connection asks for files and system audio too; the host
+  // still sees the full list before approving. The microphone stays opt-in.
+  const defaultPermissions = ["view", "input.keyboard", "input.pointer", "input.text", "clipboard.read", "clipboard.write", "files.send", "files.receive", "audio.system"];
   function open(host, capabilities, assistInviteId = null, mode = "one_session") {
     if (active.has(host.id)) { raise(active.get(host.id)); return; }
     if (active.size >= 4) return;
@@ -212,7 +215,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     dialog.innerHTML = `${popoutWindow ? "" : `<button type="button" class="remote-close" data-close aria-label="关闭远程桌面" title="关闭远程桌面">${toolIcon("close")}</button>`}<div class="remote-card"><header class="remote-header"><span class="remote-badge" aria-hidden="true">${toolIcon("display")}</span><div class="remote-identity"><h2>${escapeHtml(host.name)}</h2><p class="remote-status" role="status">正在准备安全连接</p></div><span class="remote-latency" data-no-translate hidden></span></header>
       <p class="remote-error" role="alert"></p>
       <form class="remote-auth" hidden><div class="field"><label>当前账号的登录密码<input name="password" placeholder="用于确认是你本人" type="password" autocomplete="current-password" required maxlength="256"></label></div><div class="field remote-mfa-field" hidden><label>动态码或恢复码<input name="mfa" autocomplete="one-time-code" maxlength="128"></label></div>
-      <fieldset><legend>${assistInviteId ? "画面、键鼠与文本剪贴板随本次连接授权" : mode === "persistent" ? "绑定可信设备需本机管理员批准；持续授权最长 30 天" : "本次请求权限，仍需被控端同意"}</legend>${Object.entries(labels).filter(([permission]) => host.capabilities.permissions?.includes(permission)).map(([permission, label]) => `<label class="remote-permission"><input type="checkbox" name="permission" value="${permission}" ${["view", "input.keyboard", "input.pointer", "input.text", "clipboard.read", "clipboard.write"].includes(permission) ? "checked" : ""} ${permission === "view" ? "disabled" : ""}>${label}</label>`).join("")}</fieldset>
+      <fieldset><legend>${assistInviteId ? "画面、键鼠、剪贴板、文件与声音随本次连接授权" : mode === "persistent" ? "绑定可信设备需本机管理员批准；持续授权最长 30 天" : "本次请求权限，仍需被控端同意"}</legend>${Object.entries(labels).filter(([permission]) => host.capabilities.permissions?.includes(permission)).map(([permission, label]) => `<label class="remote-permission"><input type="checkbox" name="permission" value="${permission}" ${defaultPermissions.includes(permission) ? "checked" : ""} ${permission === "view" ? "disabled" : ""}>${label}</label>`).join("")}</fieldset>
       <button class="button button-primary" type="submit">${mode === "persistent" ? "验证并绑定可信设备" : "验证并请求连接"}</button></form>
       <section class="remote-pairing" hidden><p>${assistInviteId ? "正在验证设备身份与本次连接。" : mode === "persistent" ? "请让被控电脑的管理员确认设备身份并批准持续授权。配对码：" : "请在被控电脑上批准本次连接。配对码用于核对设备身份："}</p><strong class="remote-code" data-no-translate></strong></section>
       <div class="remote-card-actions"><button type="button" class="button button-secondary" data-cancel>取消</button></div></div>
@@ -379,7 +382,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
           const grants = await current.api.request("/api/v1/rd/grants?limit=100&offset=0");
           const trusted = grants.items?.find((grant) => grant.status === "active" && grant.mode === "persistent" && grant.host_endpoint_id === host.id && grant.controller_endpoint_id === current.api.identity.endpointId && Date.parse(grant.expires_at) > Date.now() && Array.isArray(grant.permissions) && grant.permissions.includes("view"));
           if (trusted) {
-            current.permissions = ["view", ...["input.keyboard", "input.pointer", "input.text", "clipboard.read", "clipboard.write"].filter((permission) => trusted.permissions.includes(permission) && host.capabilities.permissions?.includes(permission))];
+            current.permissions = ["view", ...defaultPermissions.filter((permission) => permission !== "view" && trusted.permissions.includes(permission) && host.capabilities.permissions?.includes(permission))];
             current.snapshot = await current.api.request("/api/v1/rd/sessions", { method: "POST", idempotencyKey: current.requestId, body: { host_endpoint_id: host.id, grant_id: trusted.id, permissions: current.permissions, display_id: host.capabilities.displays[0].id, protocol: { major: 1, minor: 0 }, quality: "balanced" } });
             if (current.disposed) { await current.api.request(`/api/v1/rd/sessions/${current.snapshot.session_id}/close`, { method: "POST", body: {} }); return; }
             status.textContent = "正在连接可信设备";
