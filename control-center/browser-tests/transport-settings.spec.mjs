@@ -104,8 +104,14 @@ test("port controls fit mobile widths and translate with the rest of the console
     true,
   );
   await page.locator(".mobile-preferences [data-locale-toggle]").click();
+  const currentTheme = await page.locator("html").getAttribute("data-theme");
   await expect(page.getByRole("heading", { name: "Ports and protocols" })).toBeVisible();
   await expect(page.getByLabel("Enable TCP connections")).toBeVisible();
-  await page.locator(".mobile-preferences [data-theme-select]").selectOption("dark");
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  const toggle = page.locator(".mobile-preferences [data-theme-toggle]");
+  await toggle.click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", currentTheme === "dark" ? "light" : "dark");
+  await expect(toggle).toHaveAccessibleName(currentTheme === "dark" ? "Switch to dark theme" : "Switch to light theme");
+  const box = await toggle.boundingBox();
+  expect(box.width).toBeGreaterThanOrEqual(44);
+  expect(box.height).toBeGreaterThanOrEqual(44);
 });

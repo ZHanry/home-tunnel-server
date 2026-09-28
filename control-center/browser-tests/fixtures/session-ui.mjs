@@ -9,8 +9,12 @@ export async function installSessionUiFixtures(context, item) {
     export class RemoteApi {
       constructor() { this.userId = 'review-owner'; this.identity = { endpointId: 'review-controller', jkt: 'review-controller-jkt', rememberHost: async () => {} }; this.keys = { server_instance_id: 'ui-fixture' }; }
       assertCurrent() {}
-      async initialize() { this.identity.privateKey = (await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify'])).privateKey; }
+      async initialize() {
+        // Like a fresh sign-in: the first attempt asks for the account password.
+        if (!window.__reviewReauthed) { window.__reviewReauthed = true; throw new RemoteError('RD_RECENT_AUTH_REQUIRED'); }
+        this.identity.privateKey = (await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify'])).privateKey; }
       async request(path, options = {}) {
+        if (path.startsWith('/api/v1/rd/grants?')) return { items: [] };
         if (path === '/api/v1/rd/pairings' && options.method === 'POST') {
           const body = options.body;
           this.transcript = { pairing_id: 'review-pairing', server_instance_id: 'ui-fixture', host_endpoint_id: body.host_endpoint_id,

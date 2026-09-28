@@ -211,10 +211,16 @@ test("theme and locale preferences persist without translating resource names", 
     data.items[0].name = "在线";
     await route.fulfill({ json: data });
   });
+  await page.emulateMedia({ colorScheme: "light" });
   await ready(page);
-  await page.locator(".sidebar [data-theme-select]").selectOption("dark");
+  const toggle = page.locator(".sidebar [data-theme-toggle]");
+  await expect(toggle).toHaveAccessibleName("切换至深色主题");
+  await toggle.click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme-preference", "dark");
+  await expect(toggle).toHaveAccessibleName("切换至浅色主题");
   await page.locator(".sidebar [data-locale-toggle]").click();
+  await expect(toggle).toHaveAccessibleName("Switch to light theme");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator(".connection-identity h3").first()).toHaveText("在线");
   await page.reload();
@@ -224,14 +230,15 @@ test("theme and locale preferences persist without translating resource names", 
 
 test("system theme follows OS changes and can be restored after an explicit choice", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
-  await ready(page);
-  const theme = page.locator(".sidebar [data-theme-select]");
+  await ready(page, "/admin#account");
+  const theme = page.locator("#account-theme");
   await expect(theme).toHaveValue("system");
   await page.emulateMedia({ colorScheme: "dark" });
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.locator(".sidebar [data-locale-toggle]").click();
   await expect(theme).toHaveValue("system");
-  await expect(theme).toHaveAccessibleName("Theme");
+  await expect(theme).toHaveAccessibleName("Appearance");
+  await expect(theme.locator("option")).toHaveText(["System", "Light", "Dark"]);
   await theme.selectOption("light");
   await page.emulateMedia({ colorScheme: "light" });
   await page.emulateMedia({ colorScheme: "dark" });
@@ -250,12 +257,16 @@ test("theme choices and clearing preferences synchronize across open tabs", asyn
   const second = await context.newPage();
   await second.emulateMedia({ colorScheme: "dark" });
   await ready(second, "/admin#account");
-  await page.locator(".sidebar [data-theme-select]").selectOption("light");
+  await page.locator(".sidebar [data-theme-toggle]").click();
   await expect(second.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(second.locator(".sidebar [data-theme-select]")).toHaveValue("light");
+  await expect(second.locator("#account-theme")).toHaveValue("light");
+  await expect(second.locator(".sidebar [data-theme-toggle]")).toHaveAccessibleName("切换至深色主题");
   await page.evaluate(() => localStorage.removeItem("ht_theme"));
   await expect(second.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(second.locator(".sidebar [data-theme-select]")).toHaveValue("system");
+  await expect(second.locator("#account-theme")).toHaveValue("system");
+  await second.locator("#account-theme").selectOption("light");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("html")).toHaveAttribute("data-theme-preference", "light");
   await second.close();
 });
 
@@ -571,11 +582,13 @@ test("remote access choices translate in both directions", async ({ page }) => {
   await page.route("**/api/v1/rd/endpoints?**", (route) => route.fulfill({ json: { items: [] } }));
   await ready(page, "/admin#remote");
   await page.locator(".sidebar [data-locale-toggle]").click();
-  await expect(page.locator(".remote-unattended-preview").first()).toContainText("Connect to another account");
-  await expect(page.locator(".remote-unattended-preview").last()).toContainText("Unattended access");
+  const assist = page.locator(".remote-assist-preview");
+  await expect(assist).toHaveCount(1);
+  await expect(assist).toContainText("Connect to another account");
+  await expect(assist).toContainText("Supports host approval, a permanent password (usable for unattended access), and a one-time temporary password.");
   expect(await page.locator(".remote-dashboard").innerText()).not.toMatch(/[\u3400-\u9fff]/);
   await page.locator(".sidebar [data-locale-toggle]").click();
-  await expect(page.locator(".remote-unattended-preview").last()).toContainText("无人值守");
+  await expect(assist).toContainText("支持被控端批准、固定密码（可用于无人值守）和一次性临时密码。");
 });
 
 test("realtime startup preserves foreground loading failures and an explicit retry", async ({ page }) => {

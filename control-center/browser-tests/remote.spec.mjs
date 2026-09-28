@@ -51,16 +51,21 @@ test("remote dashboard presents real devices and expandable details", async ({ p
   await expect(page.locator(".remote-dashboard-heading")).toContainText("3 available online");
 });
 
-test("trusted-device binding appears only when the host advertises unattended support", async ({ page }) => {
+test("the web controller offers no unattended card or trusted-device binding", async ({ page }) => {
   const host = { ...hosts[0], capabilities: { ...hosts[0].capabilities, unattended_enabled: true } };
   await ready(page, [host, hosts[1]]);
-  await expect(page.locator("[data-remote-trust]")).toHaveCount(1);
-  const popupPromise = page.waitForEvent("popup");
-  await page.locator(`[data-remote-trust="${host.id}"]`).click();
-  const popup = await popupPromise;
-  await expect(popup.locator(".remote-auth")).toBeVisible();
-  await expect(popup.locator(".remote-auth legend")).toContainText("管理员批准");
-  await expect(popup.locator(".remote-status")).toContainText("先验证账号");
+  await expect(page.locator(".remote-device-card")).toHaveCount(2);
+  await expect(page.locator("[data-remote-trust]")).toHaveCount(0);
+  await expect(page.locator(".remote-unattended-preview")).toHaveCount(0);
+  await expect(page.locator(".remote-dashboard h3", { hasText: /^无人值守$/ })).toHaveCount(0);
+  await expect(page.locator(".remote-dashboard")).not.toContainText("绑定可信设备");
+  await expect(page.locator(".remote-assist-preview")).toContainText("支持被控端批准、固定密码（可用于无人值守）和一次性临时密码。");
+  // An old bookmarked trust link now opens the ordinary one-session request.
+  const popup = await page.context().newPage();
+  await popup.goto(`/admin?remoteHost=${host.id}&remoteTrust=1#remote`);
+  await expect(popup.locator(".remote-dialog")).toBeVisible();
+  await expect(popup.locator(".remote-auth legend")).toContainText("本次请求权限");
+  await expect(popup.locator(".remote-auth button[type=submit]")).toHaveText("验证并请求连接");
   await popup.close();
 });
 

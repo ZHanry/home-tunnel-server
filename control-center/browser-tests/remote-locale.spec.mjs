@@ -122,7 +122,7 @@ test("remote MFA focuses its field and follows account language changes without 
   await prepare(page, "light", false);
   await page.context().route("**/api/v1/rd/reauth", route => route.fulfill({ status: 401, json: { error_code: "MFA_REQUIRED", message: "请输入动态码或恢复码" } }));
   const opening = page.waitForEvent("popup");
-  await page.locator("[data-remote-trust]").click();
+  await page.locator("[data-remote-host]").click();
   const popup = await opening;
   const dialog = popup.locator(".remote-dialog");
   await dialog.locator('[name="password"]').fill("Fixture-Password!1234");

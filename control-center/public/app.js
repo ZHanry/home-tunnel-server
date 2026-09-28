@@ -22,7 +22,7 @@ import {
   formatDate,
   statusBadge,
 } from "./modules/format.js?v=10.0.0";
-import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=10.0.0";
+import { localeTag, updateDocumentMetadata, t, currentThemePreference } from "./modules/locale.js?v=10.0.0";
 import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=10.0.0";
 import { state } from "./modules/state.js?v=10.0.0";
 
@@ -902,7 +902,7 @@ async function renderAccount(renderId) {
   const me = await api("/api/v1/auth/me");
   if (renderId !== state.renderId) return;
   state.me = me;
-  viewContent.innerHTML = `<section class="panel account-panel"><div class="panel-header"><div><h3 data-no-translate>${escapeHtml(me.display_name)}</h3><p class="panel-subtle">我的账号与使用额度</p></div><button class="button button-secondary" data-action="change-password">修改密码</button></div><div class="account-metrics"><div><span>本月 Web 流量</span><strong>${formatBytes(me.month_to_date_bytes)}</strong></div><div><span>月度配额</span><strong>${me.monthly_quota_bytes == null ? "不限额" : formatBytes(me.monthly_quota_bytes)}</strong></div><div><span>账号共享带宽</span><strong>${formatBps(me.bandwidth_limit_bps)}</strong></div></div><p class="helper">每月按 UTC 自然月重置。下次重置：${formatDate(me.quota_resets_at)}。TCP/UDP 不经过 Web 网关，不包含在这里的流量与配额统计中。</p><div class="actions account-signout"><button class="button button-danger" data-action="logout">退出登录</button></div></section>`;
+  viewContent.innerHTML = `<section class="panel account-panel"><div class="panel-header"><div><h3 data-no-translate>${escapeHtml(me.display_name)}</h3><p class="panel-subtle">我的账号与使用额度</p></div><button class="button button-secondary" data-action="change-password">修改密码</button></div><div class="account-metrics"><div><span>本月 Web 流量</span><strong>${formatBytes(me.month_to_date_bytes)}</strong></div><div><span>月度配额</span><strong>${me.monthly_quota_bytes == null ? "不限额" : formatBytes(me.monthly_quota_bytes)}</strong></div><div><span>账号共享带宽</span><strong>${formatBps(me.bandwidth_limit_bps)}</strong></div></div><p class="helper">每月按 UTC 自然月重置。下次重置：${formatDate(me.quota_resets_at)}。TCP/UDP 不经过 Web 网关，不包含在这里的流量与配额统计中。</p><div class="account-appearance"><div><strong id="account-theme-label">外观</strong><p class="helper">界面主题跟随系统，或固定为浅色、深色。</p></div><select id="account-theme" class="theme-select" data-theme-select data-no-translate aria-labelledby="account-theme-label">${["system", "light", "dark"].map((value) => `<option value="${value}" ${currentThemePreference() === value ? "selected" : ""}>${{ system: t("跟随系统", "System"), light: t("浅色", "Light"), dark: t("深色", "Dark") }[value]}</option>`).join("")}</select></div><div class="actions account-signout"><button class="button button-danger" data-action="logout">退出登录</button></div></section>`;
   await renderSecurity(renderId);
 }
 
@@ -946,7 +946,9 @@ function showConnectionDetails(id) {
 viewContent.addEventListener("input", () => {
   viewContent.dataset.dirty = "true";
 });
-viewContent.addEventListener("change", () => {
+viewContent.addEventListener("change", (event) => {
+  // The appearance select applies instantly and is not an unsaved draft.
+  if (event.target.closest?.("[data-theme-select]")) return;
   viewContent.dataset.dirty = "true";
 });
 window.addEventListener("session-expired", () => {

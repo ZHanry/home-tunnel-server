@@ -20,7 +20,7 @@ for (const theme of ["light", "dark"]) for (const width of [390, 1440]) {
     await installSessionUiFixtures(context, { state: "files" });
     await page.goto("/admin#remote");
     const opening = context.waitForEvent("page");
-    await page.locator("[data-remote-trust]").click();
+    await page.locator("[data-remote-host]").click();
     const popup = await opening;
     await popup.setViewportSize({ width, height: 844 });
     await exerciseSessionUi(popup, "files");

@@ -9,29 +9,32 @@
 .remote-dashboard-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 1px; }
 .remote-dashboard-heading h2 { margin: 0; font-size: 17px; }
 .remote-dashboard-heading span { color: var(--muted); font-size: 12px; }
-.remote-device-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
-.remote-device-card { display: flex; flex-direction: column; min-width: 0; min-height: 210px; padding: 22px; border: 1px solid var(--border); background: var(--surface); }
+.remote-device-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(100%,300px),1fr)); gap: 18px; }
+.remote-device-card { display: flex; flex-direction: column; min-width: 0; min-height: 200px; padding: 20px 22px; border: 1px solid var(--border); background: var(--surface); }
 .remote-device-top { display: flex; align-items: flex-start; justify-content: space-between; }
 .remote-device-icon { display: grid; place-items: center; width: 37px; height: 37px; border-radius: 10px; background: var(--accent-soft); color: var(--primary); }
 .remote-device-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .remote-device-state { padding: 5px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
-.remote-device-state.ready { background: #e9f8f3; color: #148260; }
+.remote-device-state.ready { background: #e9f8f3; color: #127657; }
+html[data-theme="dark"] .remote-device-state.ready { background: #1d3b35; color: #7fe0bf; }
 .remote-device-state.offline { background: var(--surface-muted); color: var(--muted); }
 .remote-device-card h3 { margin: 20px 0 5px; font-size: 15px; }
 .remote-device-card > p { margin: 0; color: var(--muted); font-size: 12px; }
-.remote-device-actions { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 17px; border-top: 1px solid var(--border); }
-.remote-device-actions .button { min-height: 34px; padding: 7px 11px; font-size: 11px; }
+.remote-device-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+.remote-device-actions .button { min-height: 40px; padding: 8px 14px; font-size: 13px; }
+.remote-device-actions [data-remote-host] { flex: 1 1 auto; }
+.remote-device-actions [data-remote-host]:disabled { opacity: 1; background: var(--surface-muted); border-color: var(--border); color: var(--muted); box-shadow: none; }
+.remote-device-details { margin-left: auto; }
 .remote-device-details { position: relative; }
 .remote-device-details summary { display: inline-flex; align-items: center; cursor: pointer; list-style: none; }
 .remote-device-details summary::-webkit-details-marker { display: none; }
 .remote-device-details > div { position: absolute; top: calc(100% + 7px); right: 0; z-index: 4; display: grid; gap: 5px; width: min(290px,80vw); padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); box-shadow: 0 12px 30px #1d21401f; font-size: 11px; }
 .remote-device-details code { overflow-wrap: anywhere; }
 .remote-device-details span { color: var(--muted); }
-.remote-unattended-preview { display: flex; justify-content: space-between; gap: 20px; padding: 20px 22px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); }
-.remote-unattended-preview h3 { margin: 0 0 7px; font-size: 14px; }
-.remote-unattended-preview h3 span { margin-left: 5px; padding: 4px 6px; border-radius: 5px; background: #fff3e6; color: #ad6e25; font-size: 10px; }
-.remote-unattended-preview p { margin: 0; color: var(--muted); font-size: 12px; }
-.remote-unattended-preview .button { align-self: center; white-space: nowrap; }
+.remote-assist-preview { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 20px 22px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); }
+.remote-assist-preview h3 { margin: 0 0 7px; font-size: 14px; }
+.remote-assist-preview p { margin: 0; color: var(--muted); font-size: 12px; }
+.remote-assist-preview .button { align-self: center; white-space: nowrap; }
 .remote-assist-entry { width: min(540px, calc(100% - 32px)); margin: 10vh auto; padding: 30px; }
 .remote-assist-entry h2 { margin: 0 0 8px; }
 .remote-assist-entry p { color: var(--muted); font-size: 13px; }
@@ -40,8 +43,7 @@
 .remote-assist-entry input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; font: inherit; }
 .remote-assist-entry [data-assist-error] { color: var(--danger); }
 .remote-assist-entry [hidden] { display: none !important; }
-@media (max-width: 1080px) { .remote-device-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
-@media (max-width: 680px) { .remote-dashboard-hero { display: block; min-height: 180px; padding: 24px; } .remote-dashboard-hero .button { margin-top: 20px; } .remote-device-grid { grid-template-columns: 1fr; } }
+@media (max-width: 680px) { .remote-dashboard-hero { display: block; min-height: 180px; padding: 24px; } .remote-dashboard-hero .button { margin-top: 20px; } .remote-device-actions .button { min-height: 44px; } }
 .remote-dialog { position: fixed; top: 3vh; width: min(1200px, 96vw); max-height: 87vh; overflow: auto; padding: 24px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--text); font: inherit; box-shadow: 0 12px 64px #09110d55; }
 .remote-dialog::backdrop { background: #0b251cbb; }
 .remote-header { display: flex; gap: 24px; justify-content: space-between; align-items: start; }

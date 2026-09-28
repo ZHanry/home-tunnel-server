@@ -155,6 +155,10 @@ const zhToEn = {
   "支持被控端批准、固定密码和一次性临时密码。": "Connect with host approval, a permanent password, or a one-time password.",
   "输入设备 ID": "Enter device ID",
   无人值守: "Unattended access",
+  "支持被控端批准、固定密码（可用于无人值守）和一次性临时密码。": "Supports host approval, a permanent password (usable for unattended access), and a one-time temporary password.",
+  显示偏好: "Display preferences",
+  外观: "Appearance",
+  "界面主题跟随系统，或固定为浅色、深色。": "Follow the system theme, or always use light or dark.",
   绑定可信设备: "Trust this device",
   "可在设备卡片发起可信设备绑定。管理员批准后，在授权有效期内快捷连接。": "Request trust from a device card. After approval, connect during the authorization period.",
   "当前没有支持高权限服务的在线设备，可信设备绑定暂不可用。": "No online device currently supports the privileged host service. Trusted-device pairing is unavailable.",
@@ -1040,10 +1044,17 @@ export function applyTheme(theme, persist = true) {
   const labels = { system: t("跟随系统", "System"), light: t("浅色", "Light"), dark: t("深色", "Dark") };
   document.querySelectorAll("[data-theme-select]").forEach((select) => {
     select.value = preference;
-    select.setAttribute("aria-label", t("主题", "Theme"));
+    if (!select.hasAttribute("aria-labelledby")) select.setAttribute("aria-label", t("主题", "Theme"));
     for (const option of select.options) {
       if (option.textContent !== labels[option.value]) option.textContent = labels[option.value];
     }
+  });
+  // Desktop-style toggle: one button that flips light/dark, labelled with the next theme.
+  const toggleLabel = normalized === "dark" ? t("切换至浅色主题", "Switch to light theme") : t("切换至深色主题", "Switch to dark theme");
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.setAttribute("aria-label", toggleLabel);
+    button.setAttribute("title", toggleLabel);
+    button.setAttribute("aria-pressed", String(normalized === "dark"));
   });
   if (persist) {
     try {
@@ -1052,8 +1063,13 @@ export function applyTheme(theme, persist = true) {
   }
 }
 
-document.querySelectorAll("[data-theme-select]").forEach((select) => {
-  select.addEventListener("change", () => applyTheme(select.value));
+// Delegated so controls rendered later (the account page appearance select) work too.
+document.addEventListener("change", (event) => {
+  const select = event.target.closest?.("[data-theme-select]");
+  if (select) applyTheme(select.value);
+});
+document.addEventListener("click", (event) => {
+  if (event.target.closest?.("[data-theme-toggle]")) applyTheme(currentTheme() === "dark" ? "light" : "dark");
 });
 
 systemTheme.addEventListener("change", () => {
