@@ -514,7 +514,20 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     dialog.querySelector("[data-microphone]").addEventListener("click", safe(() => navigator.locks.request(`rd-microphone:${location.origin}`, async () => { if (current.disposed || !current.session?.ready) throw new RemoteError("RD_MEDIA_FAILED"); if (current.session.microphone) { await current.session.stopMicrophone(); await current.session.setFeature("audio.microphone", false); } else { for (const other of active.values()) if (other !== current && other.session?.microphone) { await other.session.stopMicrophone(); await other.session.setFeature("audio.microphone", false); setToolLabel(other.dialog, "[data-microphone]", "开启麦克风回传"); } await current.session.startMicrophone(); } setToolLabel(dialog, "[data-microphone]", current.session.microphone ? "关闭麦克风回传" : "开启麦克风回传", !!current.session.microphone); })));
     dialog.querySelector(".remote-text").addEventListener("submit", safe(() => {
       if (current.pendingText !== undefined || current.textSending) throw new RemoteError("RD_TEXT_PENDING");
-      current.pendingText = dialog.querySelector(".remote-text textarea").value;
+      const field = dialog.querySelector(".remote-text textarea");
+      if (current.session.inputEnabled) {
+        // Already in control: send directly and keep control afterwards.
+        const text = field.value, input = current.input;
+        current.textSending = true; syncControls();
+        void input.submitText(text).then(() => {
+          if (current.disposed || input !== current.input) return;
+          if (field.value === text) field.value = "";
+          status.textContent = "被控端已确认文字输入";
+        }, (failure) => { if (!current.disposed && input === current.input) showError(failure); })
+          .finally(() => { if (input === current.input) { current.textSending = false; syncControls(); } });
+        return;
+      }
+      current.pendingText = field.value;
       try {
         current.session.requestInput(); syncControls();
         current.textRequestTimer = setTimeout(() => {

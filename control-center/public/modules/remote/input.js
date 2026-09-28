@@ -40,7 +40,9 @@ export class RemoteInput {
     on("pointermove", (event) => this.pointer(event));
     on("pointerdown", (event) => this.button(event, true)); on("pointerup", (event) => this.button(event, false));
     on("wheel", (event) => this.wheel(event)); on("contextmenu", (event) => { if (session.inputEnabled) event.preventDefault(); });
-    on("blur", () => this.release()); on("pointercancel", () => this.release());
+    // Focus moving to the toolbar or text box keeps control, like other remote desktop tools;
+    // only keys held at that moment are lifted so nothing stays stuck on the host.
+    on("blur", () => this.liftHeld()); on("pointercancel", () => this.release());
     on("lostpointercapture", () => { if (this.buttons) this.release(); });
   }
   allowed(permission) { return this.session.inputEnabled && this.session.permissions.has(permission) && document.activeElement === this.video && !document.hidden; }
@@ -129,6 +131,15 @@ export class RemoteInput {
   cancelText() {
     for (const pending of this.pendingText.values()) { clearTimeout(pending.timer); pending.reject(new RemoteError("RD_TEXT_UNCONFIRMED")); }
     this.pendingText.clear();
+  }
+  liftHeld() {
+    if (this.buttons) { this.release(); return; }
+    for (const usage of this.keys) {
+      const payload = new Uint8Array(8), view = new DataView(payload.buffer);
+      view.setUint16(0, 7); view.setUint16(2, usage);
+      try { this.session.send(TYPES.KEY, payload); } catch { this.release(); return; }
+    }
+    this.keys.clear();
   }
   release() { this.session.releaseInput(); this.keys.clear(); this.buttons = 0; }
   close() { this.release(); this.abort.abort(); this.session.inputState = undefined; this.session.clearInputState = undefined; this.session.onTextAck = undefined; }

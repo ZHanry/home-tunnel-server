@@ -158,6 +158,10 @@ test("public landing page stays available while Windows release metadata is abse
     assert.match(localeModule.body.toString("utf8"), /record\.type === "characterData"/);
     assert.equal(localeModule.headers["cache-control"], "public, max-age=31536000, immutable");
 
+    const unversionedModule = await request(origin + "/modules/remote/session.js");
+    assert.equal(unversionedModule.status, 200);
+    assert.equal(unversionedModule.headers["cache-control"], "no-cache");
+
     const realtimeModule = await request(origin + "/modules/realtime.js?v=7.0.0");
     assert.equal(realtimeModule.status, 200);
     assert.match(realtimeModule.body.toString("utf8"), /config\.version\.changed/);

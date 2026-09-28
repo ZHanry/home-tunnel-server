@@ -278,10 +278,8 @@ export class RemoteSession {
   async inspectPath() {
     const pair = selectedUdpPair(await this.pc.getStats(), this.relay);
     if (this.closed) return;
-    if (pair && this.selectedPair && pair.id !== this.selectedPair.id) {
-      this.releaseInput(); this.pathVerified = false; this.video.pause(); await this.stopMicrophone();
-      throw new RemoteError("RD_PATH_CHANGED");
-    }
+    // selectedUdpPair throws for any pair outside the candidate policy, so a switch
+    // between allowed pairs (ICE may move a relayed call after connecting) keeps the session.
     if (pair) this.selectedPair = pair;
   }
   attachVerifiedTracks() {
