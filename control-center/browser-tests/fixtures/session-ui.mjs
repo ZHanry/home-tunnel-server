@@ -130,7 +130,7 @@ export async function exerciseSessionUi(popup, state) {
     await popup.locator('.remote-file-row button').first().click();
     await popup.evaluate(() => window.reviewTransfers.onOffer({ id: 'review-incoming', name: 'Incoming fixture.txt', size: 1024 }));
   }
-  if (state === 'diagnostics') await popup.locator('.remote-data details summary').click();
+  if (state === 'diagnostics') await popup.locator('[data-diagnostics-toggle]').click();
   if (state === 'fullscreen') {
     await popup.locator('[data-fullscreen]').click();
     await popup.waitForFunction(() => document.fullscreenElement?.classList.contains('remote-viewer'));

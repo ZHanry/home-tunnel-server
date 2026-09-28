@@ -60,20 +60,23 @@ for (const [preference, systemDark, expectedTheme] of [["light", true, "light"],
     await expect(dialog.locator(".remote-auth")).toBeVisible();
     await expect(dialog.locator(".remote-status")).toHaveText("Verify your account before the first connection");
     await expect(dialog.locator("h2")).toHaveText(host.name);
-    await expect(dialog.locator("[data-close]")).toHaveText("Close window");
+    // The OS window has its own close button; the card offers Cancel instead.
+    await expect(dialog.locator("[data-close]")).toHaveCount(0);
+    await expect(dialog.locator("[data-cancel]")).toHaveText("Cancel");
     await expect(popup.locator("html")).toHaveAttribute("data-theme", expectedTheme);
     await expect.poll(() => untranslated(dialog)).toEqual([]);
     const layout = await dialog.evaluate(element => {
-      const close = element.querySelector("[data-close]").getBoundingClientRect();
-      return { background: getComputedStyle(element).backgroundColor,
-        pageBackground: getComputedStyle(document.documentElement).backgroundColor,
-        width: element.clientWidth, scrollWidth: element.scrollWidth, closeRight: close.right,
-        closeLeft: close.left, height: close.height };
+      const card = element.querySelector(".remote-card"), cancel = element.querySelector("[data-cancel]").getBoundingClientRect();
+      return { cardBackground: getComputedStyle(card).backgroundColor,
+        surface: getComputedStyle(document.documentElement).getPropertyValue("--surface").trim(),
+        width: element.clientWidth, scrollWidth: element.scrollWidth, cancelRight: cancel.right,
+        cancelLeft: cancel.left, height: cancel.height };
     });
-    expect(layout.background).toBe(layout.pageBackground);
+    const rgb = hex => `rgb(${hex.replace("#", "").padEnd(6, hex.slice(-1)).match(/../g).map(pair => parseInt(pair, 16)).join(", ")})`;
+    expect(layout.cardBackground).toBe(layout.surface.length === 4 ? rgb(`#${[...layout.surface.slice(1)].map(c => c + c).join("")}`) : rgb(layout.surface));
     expect(layout.scrollWidth).toBeLessThanOrEqual(layout.width);
-    expect(layout.closeRight).toBeLessThanOrEqual(layout.width + 1);
-    expect(layout.closeLeft).toBeGreaterThanOrEqual(0);
+    expect(layout.cancelRight).toBeLessThanOrEqual(layout.width + 1);
+    expect(layout.cancelLeft).toBeGreaterThanOrEqual(0);
     expect(layout.height).toBeGreaterThanOrEqual(44);
     await popup.close();
   });
@@ -101,17 +104,19 @@ test("remote account failures remain visible while narrow and short windows scro
       const form = dialog.querySelector(".remote-auth");
       const bounds = form.getBoundingClientRect();
       return { headerBottom: header.bottom, messageTop: message.top, messageBottom: message.bottom,
-        formTop: bounds.top, formBottom: bounds.bottom, scrollTop: form.scrollTop,
+        formTop: bounds.top, formBottom: bounds.bottom, scrollTop: form.scrollTop, fits: form.scrollHeight <= form.clientHeight,
         dialogScroll: dialog.scrollTop, height: innerHeight };
     });
     expect(layout.messageTop).toBeGreaterThanOrEqual(layout.headerBottom);
     expect(layout.messageBottom).toBeLessThanOrEqual(layout.formTop);
     expect(layout.formBottom).toBeLessThanOrEqual(layout.height + 1);
-    expect(layout.scrollTop).toBeGreaterThan(0);
+    // The form scrolls inside the card when it cannot fit; the window never scrolls.
+    expect(layout.scrollTop > 0 || layout.fits).toBe(true);
     expect(layout.dialogScroll).toBe(0);
-    await expect(popup.locator("[data-close]")).toBeInViewport();
-    await popup.locator("[data-close]").focus();
-    await popup.keyboard.press("Tab");
+    await expect(popup.locator("[data-cancel]")).toBeInViewport();
+    // A fresh focus (not a no-op re-focus) must scroll the field into view inside the card.
+    await form.locator('[name="password"]').evaluate(field => field.blur());
+    await form.locator('[name="password"]').focus();
     await expect(form.locator('[name="password"]')).toBeFocused();
     await expect(form.locator('[name="password"]')).toBeInViewport();
   }
@@ -131,10 +136,10 @@ test("remote MFA focuses its field and follows account language changes without 
   await expect(dialog.locator(".remote-status")).toHaveText("Enter your authenticator or recovery code");
   await expect.poll(() => untranslated(dialog)).toEqual([]);
   await page.locator("#app-shell [data-locale-toggle]:visible").first().click();
-  await expect(dialog.locator("[data-close]")).toHaveText("关闭窗口");
+  await expect(dialog.locator("[data-cancel]")).toHaveText("取消");
   await expect(dialog.locator("h2")).toHaveText(host.name);
   await page.locator("#app-shell [data-locale-toggle]:visible").first().click();
-  await expect(dialog.locator("[data-close]")).toHaveText("Close window");
+  await expect(dialog.locator("[data-cancel]")).toHaveText("Cancel");
   await expect(dialog.locator("h2")).toHaveText(host.name);
   await popup.close();
 });

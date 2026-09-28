@@ -28,18 +28,25 @@ const errors = {
   RD_ACCESS_EXPIRED: "连接请求已超时，请重试。",
 };
 const message = (error) => errors[error?.code ?? error?.message] ?? error?.message ?? "远程桌面操作失败。";
+// One stroke icon set (24px grid, currentColor) for the whole viewer.
 const toolPaths = {
-  keyboard: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 13h.01M11 13h.01M15 13h.01M8 16h8"/>',
-  release: '<path d="M12 3v8m-5-5a9 9 0 1 0 10 0"/>',
-  fullscreen: '<path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/>',
-  play: '<path d="m8 4 12 8-12 8z"/>',
-  audio: '<path d="M4 9h4l5-4v14l-5-4H4zM17 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/>',
-  microphone: '<rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8"/>',
-  display: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>',
-  clipboard: '<rect x="5" y="5" width="14" height="17" rx="2"/><path d="M9 5V3h6v2M8 11h8M8 15h8"/>',
-  files: '<path d="M5 3h9l5 5v13H5zM14 3v5h5M8 13h8M8 17h6"/>',
+  input: '<path d="M5.5 3.5 18.5 10l-5.8 1.9-2.3 6.1z"/><path d="m12.8 12.1 4.7 4.7"/>',
+  release: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.5"/>',
+  fullscreen: '<path d="M8.5 4H4v4.5M15.5 4H20v4.5M4 15.5V20h4.5M20 15.5V20h-4.5"/>',
+  play: '<circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5z"/>',
+  audio: '<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/>',
+  microphone: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',
+  display: '<rect x="3" y="4" width="18" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/>',
+  clipboard: '<rect x="5" y="4.5" width="14" height="16.5" rx="2"/><path d="M9 4.5V3h6v1.5M8.5 10.5h7M8.5 14.5h5"/>',
+  files: '<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/><path d="M12 11v5m-2.5-2.5L12 16l2.5-2.5"/>',
+  text: '<path d="M5 7V5h14v2M12 5v14m-3 0h6"/>',
+  diagnostics: '<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>',
+  disconnect: '<path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>',
 };
-const toolIcon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${toolPaths[name]}</svg>`;
+const toolIcon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${toolPaths[name]}</svg>`;
+// Icon-only tool: the hidden span carries the (translatable) label that setToolLabel updates.
+const tool = (hook, icon, label, extra = "") => `<button type="button" class="remote-tool" ${hook} ${extra} aria-label="${label}" title="${label}">${toolIcon(icon)}<span class="visually-hidden">${label}</span></button>`;
 export const setToolLabel = (root, selector, label, pressed = false) => { const button = root.querySelector(selector); button.querySelector("span").textContent = label; button.setAttribute("aria-pressed", String(pressed)); };
 
 export function createRemoteView({ api, state, viewContent, escapeHtml }) {
@@ -183,24 +190,32 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     if (active.has(host.id)) { raise(active.get(host.id)); return; }
     if (active.size >= 4) return;
     const dialog = document.createElement("dialog"); dialog.className = "remote-dialog";
-    dialog.innerHTML = `<header class="remote-header"><div><h2>${escapeHtml(host.name)}</h2><p class="remote-status" role="status">正在准备安全连接</p></div><button type="button" class="button button-secondary" data-close>关闭</button></header>
+    // The desktop client and console open the viewer in its own window, which has an OS close button.
+    const popoutWindow = document.body.classList.contains("remote-popout");
+    const microphonePermitted = !!host.capabilities.permissions?.includes("audio.microphone");
+    dialog.innerHTML = `${popoutWindow ? "" : `<button type="button" class="remote-close" data-close aria-label="关闭远程桌面" title="关闭远程桌面">${toolIcon("close")}</button>`}<div class="remote-card"><header class="remote-header"><span class="remote-badge" aria-hidden="true">${toolIcon("display")}</span><div class="remote-identity"><h2>${escapeHtml(host.name)}</h2><p class="remote-status" role="status">正在准备安全连接</p></div></header>
       <p class="remote-error" role="alert"></p>
       <form class="remote-auth" hidden><div class="field"><label>账号密码<input name="password" type="password" autocomplete="current-password" required maxlength="256"></label></div><div class="field remote-mfa-field" hidden><label>动态码或恢复码<input name="mfa" autocomplete="one-time-code" maxlength="128"></label></div>
       <fieldset><legend>${assistInviteId ? "画面、键鼠与文本剪贴板随本次连接授权" : mode === "persistent" ? "绑定可信设备需本机管理员批准；持续授权最长 30 天" : "本次请求权限，仍需被控端同意"}</legend>${Object.entries(labels).filter(([permission]) => host.capabilities.permissions?.includes(permission)).map(([permission, label]) => `<label class="remote-permission"><input type="checkbox" name="permission" value="${permission}" ${["view", "input.keyboard", "input.pointer", "input.text", "clipboard.read", "clipboard.write"].includes(permission) ? "checked" : ""} ${permission === "view" ? "disabled" : ""}>${label}</label>`).join("")}</fieldset>
       <button class="button button-primary" type="submit">${mode === "persistent" ? "验证并绑定可信设备" : "验证并请求连接"}</button></form>
       <section class="remote-pairing" hidden><p>${assistInviteId ? "正在验证设备身份与本次连接。" : mode === "persistent" ? "请让被控电脑的管理员确认设备身份并批准持续授权。配对码：" : "请在被控电脑上批准本次连接。配对码用于核对设备身份："}</p><strong class="remote-code" data-no-translate></strong></section>
-      <section class="remote-viewer" hidden><div class="remote-toolbar"><button class="button button-secondary" data-input>${toolIcon("keyboard")}<span>允许输入</span></button><button class="button button-secondary" data-release>${toolIcon("release")}<span>释放输入</span></button><button class="button button-secondary" data-fullscreen>${toolIcon("fullscreen")}<span>全屏</span></button><button class="button button-secondary" data-play>${toolIcon("play")}<span>播放画面</span></button><button class="button button-secondary" data-audio ${host.capabilities.permissions?.includes("audio.system") ? "" : "disabled"}>${toolIcon("audio")}<span>开启系统声音</span></button><button class="button button-secondary" data-microphone ${host.capabilities.permissions?.includes("audio.microphone") ? "" : "disabled"}>${toolIcon("microphone")}<span>开启麦克风回传</span></button></div><div class="remote-video-stage"><video class="remote-video" autoplay muted playsinline aria-label="远端桌面"></video><div class="remote-media-mask" data-media-mask>等待身份、直连与画面验证</div></div><form class="remote-text"><label>发送文字（本地完成中文输入）<textarea name="text" rows="2" maxlength="4096"></textarea></label><button class="button button-secondary">发送文字</button></form><details class="remote-viewer-hint"><summary>使用说明</summary><p>退出窗口、失焦或切换页面会释放按键。剪贴板与文件仅在双方启用对应能力后传输。</p></details></section>`;
+      <div class="remote-card-actions"><button type="button" class="button button-secondary" data-cancel>取消</button></div></div>
+      <section class="remote-viewer" hidden><div class="remote-toolbar"><div class="remote-tools" role="group" aria-label="远程控制工具">
+        ${tool("data-input", "input", "允许输入")}${tool("data-release", "release", "释放输入")}<label class="remote-display-picker" title="显示器">${toolIcon("display")}<span class="visually-hidden">显示器</span><select data-display aria-label="远端显示器" disabled></select></label>${tool("data-fullscreen", "fullscreen", "全屏")}<span class="remote-tool-divider" aria-hidden="true"></span>
+        ${tool("data-clipboard", "clipboard", "开启文本剪贴板")}${tool("data-files", "files", "开启文件收发")}${tool("data-text-toggle", "text", "发送文字", 'aria-expanded="false"')}<span class="remote-tool-divider" aria-hidden="true"></span>
+        ${tool("data-audio", "audio", "开启系统声音", host.capabilities.permissions?.includes("audio.system") ? "" : "disabled")}${tool("data-microphone", "microphone", "开启麦克风回传", microphonePermitted ? "" : "disabled hidden")}${tool("data-play", "play", "播放画面")}${tool("data-diagnostics-toggle", "diagnostics", "连接诊断", 'aria-expanded="false"')}
+      </div><button type="button" class="remote-disconnect" data-disconnect title="断开连接">${toolIcon("disconnect")}<span>断开</span></button></div>
+      <div class="remote-video-stage"><video class="remote-video" autoplay muted playsinline aria-label="远端桌面"></video><div class="remote-media-mask" data-media-mask>等待身份、直连与画面验证</div>
+      <section class="remote-data" aria-label="连接工具面板"><div class="remote-panel" data-clipboard-panel hidden><h3>文本剪贴板</h3><p class="remote-panel-note">剪贴板仅绑定当前指定窗口；浏览器需要前台操作。远端文本收到后，点击“复制到本机”才写入本机剪贴板。</p><label>发送的文本<textarea data-clipboard-text rows="3" maxlength="65536"></textarea></label><div class="remote-panel-actions"><button type="button" class="button button-secondary" data-clipboard-read>读取本机剪贴板</button><button type="button" class="button button-primary" data-clipboard-send>发送文本剪贴板</button></div><label>远端文本<textarea data-clipboard-incoming readonly rows="3"></textarea></label><div class="remote-panel-actions"><button type="button" class="button button-secondary" data-clipboard-copy>复制到本机</button></div></div>
+        <div class="remote-panel" data-file-panel hidden><h3>文件传输</h3><input type="file" data-file-input multiple aria-label="选择要发送的文件"><div class="remote-panel-actions"><button type="button" class="button button-primary" data-file-send>发送所选文件</button></div><p class="remote-panel-note" data-file-support></p><div class="remote-file-list" data-file-list aria-live="polite"></div></div>
+        <form class="remote-panel remote-text" data-text-panel hidden><h3>发送文字</h3><label>发送文字（本地完成中文输入）<textarea name="text" rows="3" maxlength="4096"></textarea></label><div class="remote-panel-actions"><button class="button button-primary">发送文字</button></div></form>
+        <div class="remote-panel" data-diagnostics-panel hidden><h3>连接诊断</h3><pre data-diagnostics>等待身份与直连验证</pre></div></section></div></section>`;
     const title = dialog.querySelector("h2"); title.id = `remote-title-${crypto.randomUUID()}`; title.dataset.noTranslate = "";
     dialog.setAttribute("aria-labelledby", title.id);
-    dialog.querySelector("[data-close]").textContent = "关闭窗口";
-    const extras = document.createElement("section"); extras.className = "remote-data";
-    extras.innerHTML = `<div class="remote-toolbar"><label>${toolIcon("display")}显示器 <select data-display aria-label="远端显示器" disabled></select></label><button class="button button-secondary" data-clipboard>${toolIcon("clipboard")}<span>开启文本剪贴板</span></button><button class="button button-secondary" data-files>${toolIcon("files")}<span>开启文件收发</span></button></div><div data-clipboard-panel hidden><p>剪贴板仅绑定当前指定窗口；浏览器需要前台操作。远端文本收到后，点击“复制到本机”才写入本机剪贴板。</p><label>发送的文本<textarea data-clipboard-text rows="2" maxlength="65536"></textarea></label><button class="button button-secondary" data-clipboard-read>读取本机剪贴板</button><button class="button button-secondary" data-clipboard-send>发送文本剪贴板</button><label>远端文本<textarea data-clipboard-incoming readonly rows="2"></textarea></label><button class="button button-secondary" data-clipboard-copy>复制到本机</button></div><div data-file-panel hidden><input type="file" data-file-input multiple aria-label="选择要发送的文件"><button class="button button-secondary" data-file-send>发送所选文件</button><p data-file-support></p><div data-file-list aria-live="polite"></div></div><details><summary>连接诊断</summary><pre data-diagnostics>等待身份与直连验证</pre></details>`;
-    dialog.querySelector(".remote-viewer").append(extras);
     for (const selector of ["[data-audio]", "[data-microphone]", "[data-clipboard]", "[data-files]"]) dialog.querySelector(selector).setAttribute("aria-pressed", "false");
-    const primaryToolbar = dialog.querySelector(".remote-viewer > .remote-toolbar");
-    const dataToolbar = extras.querySelector(".remote-toolbar");
-    primaryToolbar.append(...dataToolbar.children);
-    dataToolbar.remove();
+    // Icon-only tools expose their (translated) hidden label as aria-label and tooltip.
+    const mirrorToolLabels = () => { for (const button of dialog.querySelectorAll(".remote-tool")) { const label = button.querySelector("span").textContent; if (button.getAttribute("aria-label") !== label) { button.setAttribute("aria-label", label); button.title = label; } } };
+    new MutationObserver(mirrorToolLabels).observe(dialog.querySelector(".remote-tools"), { subtree: true, childList: true, characterData: true });
     document.body.append(dialog); dialog.show();
     const current = { dialog, mode, disposed: false, pollTimer: null, pairing: null, api: null, signal: null, session: null, input: null, abort: new AbortController(), rows: new Map(), pending: new Set() };
     const track = (promise) => {
@@ -212,6 +227,16 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       const session = current.session;
       const visible = !!session?.ready && session.pathVerified && session.firstFrameSeen;
       const allowed = (...permissions) => visible && permissions.some((permission) => session.permissions.has(permission));
+      // Once the viewer is shown, the host name/status joins the top bar and errors float over the screen.
+      const viewer = dialog.querySelector(".remote-viewer");
+      if (!viewer.hidden && !dialog.classList.contains("remote-connected")) {
+        dialog.classList.add("remote-connected");
+        viewer.querySelector(".remote-toolbar").prepend(dialog.querySelector(".remote-header"));
+        viewer.querySelector(".remote-video-stage").append(dialog.querySelector(".remote-error"));
+        const closeButton = dialog.querySelector("[data-close]");
+        if (closeButton) viewer.querySelector(".remote-toolbar").append(closeButton);
+      }
+      dialog.dataset.live = String(!!visible);
       dialog.querySelector("[data-media-mask]").hidden = !!visible;
       dialog.querySelector("[data-display]").disabled = !visible || session.layout?.displays.length < 2;
       const input = allowed("input.keyboard", "input.pointer", "input.text");
@@ -221,7 +246,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
         ["[data-clipboard]", ["clipboard.read", "clipboard.write"]], ["[data-files]", ["files.send", "files.receive"]],
         ["[data-file-send]", ["files.send"]], ["[data-file-input]", ["files.send"]],
         ["[data-clipboard-send]", ["clipboard.write"]], ["[data-clipboard-read]", ["clipboard.write"]],
-        ["[data-clipboard-copy]", ["clipboard.read"]], [".remote-text button", ["input.text"]], [".remote-text textarea", ["input.text"]],
+        ["[data-clipboard-copy]", ["clipboard.read"]], [".remote-text button", ["input.text"]], [".remote-text textarea", ["input.text"]], ["[data-text-toggle]", ["input.text"]],
       ]) dialog.querySelector(selector).disabled = !allowed(...permissions);
       if (current.pendingText !== undefined || current.textSending) {
         dialog.querySelector(".remote-text button").disabled = true;
@@ -273,7 +298,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       dialog.close(); dialog.remove();
     };
     current.close = close;
-    dialog.querySelector("[data-close]").addEventListener("click", close);
+    for (const selector of ["[data-close]", "[data-cancel]", "[data-disconnect]"]) dialog.querySelector(selector)?.addEventListener("click", close);
     dialog.addEventListener("cancel", (event) => { event.preventDefault(); close(); });
     const safe = (callback) => (event) => { event?.preventDefault(); Promise.resolve().then(() => callback(event)).catch(showError); };
     const form = dialog.querySelector(".remote-auth");
@@ -469,7 +494,21 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     }
     dialog.querySelector("[data-input]").addEventListener("click", safe(() => { current.manualInputRelease = false; current.session?.requestInput(); }));
     dialog.querySelector("[data-release]").addEventListener("click", () => { current.manualInputRelease = true; current.pendingText = undefined; clearTimeout(current.textRequestTimer); current.input?.release(); syncControls(); status.textContent = "只看画面 · 输入已释放"; });
-    dialog.querySelector("[data-fullscreen]").addEventListener("click", safe(() => dialog.querySelector(".remote-viewer").requestFullscreen()));
+    dialog.querySelector("[data-fullscreen]").addEventListener("click", safe(() => document.fullscreenElement === dialog.querySelector(".remote-viewer") ? document.exitFullscreen() : dialog.querySelector(".remote-viewer").requestFullscreen()));
+    // Full screen shows the toolbar briefly, then collapses it to a small handle (hover or focus reveals it).
+    document.addEventListener("fullscreenchange", () => {
+      const viewer = dialog.querySelector(".remote-viewer"), entered = document.fullscreenElement === viewer;
+      setToolLabel(dialog, "[data-fullscreen]", entered ? "退出全屏" : "全屏", entered);
+      clearTimeout(current.peekTimer);
+      if (entered) { viewer.dataset.peek = ""; current.peekTimer = setTimeout(() => delete viewer.dataset.peek, 2500); } else delete viewer.dataset.peek;
+    }, { signal: current.abort.signal });
+    const togglePanel = (buttonSelector, panelSelector, focusSelector) => dialog.querySelector(buttonSelector).addEventListener("click", () => {
+      const panel = dialog.querySelector(panelSelector), open = panel.hidden;
+      panel.hidden = !open; dialog.querySelector(buttonSelector).setAttribute("aria-expanded", String(open));
+      if (open && focusSelector) panel.querySelector(focusSelector)?.focus();
+    });
+    togglePanel("[data-text-toggle]", "[data-text-panel]", "textarea");
+    togglePanel("[data-diagnostics-toggle]", "[data-diagnostics-panel]");
     dialog.querySelector("[data-play]").addEventListener("click", safe(() => current.session?.resumePlayback()));
     dialog.querySelector("[data-audio]").addEventListener("click", safe(async () => { const enabled = !current.session.featureState.has("audio.system"); await current.session.setSystemAudio(enabled); setToolLabel(dialog, "[data-audio]", enabled ? "关闭系统声音" : "开启系统声音", enabled); }));
     dialog.querySelector("[data-microphone]").addEventListener("click", safe(() => navigator.locks.request(`rd-microphone:${location.origin}`, async () => { if (current.disposed || !current.session?.ready) throw new RemoteError("RD_MEDIA_FAILED"); if (current.session.microphone) { await current.session.stopMicrophone(); await current.session.setFeature("audio.microphone", false); } else { for (const other of active.values()) if (other !== current && other.session?.microphone) { await other.session.stopMicrophone(); await other.session.setFeature("audio.microphone", false); setToolLabel(other.dialog, "[data-microphone]", "开启麦克风回传"); } await current.session.startMicrophone(); } setToolLabel(dialog, "[data-microphone]", current.session.microphone ? "关闭麦克风回传" : "开启麦克风回传", !!current.session.microphone); })));

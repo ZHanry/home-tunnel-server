@@ -231,7 +231,7 @@ test("separate viewer windows retain independent drafts", async ({ page }) => {
   const first = await openViewer(page, hosts[0]);
   const second = await openViewer(page, hosts[1]);
   await first.locator('.remote-dialog [name="password"]').fill("draft");
-  await second.locator(".remote-dialog [data-close]").click();
+  await second.locator(".remote-dialog [data-cancel]").click();
   await expect.poll(() => second.isClosed()).toBe(true);
   await expect(first.locator('.remote-dialog [name="password"]')).toHaveValue("draft");
   await expect(page.locator(".remote-dialog")).toHaveCount(0);
@@ -286,7 +286,7 @@ test("closing during pairing creation waits and revokes the late invitation", as
   await ready(page, [hosts[0]]);
   const popup = await openViewer(page);
   await expect.poll(() => popup.evaluate(() => !!window.rdCloseTest.resolvePair)).toBe(true);
-  await popup.locator(".remote-dialog [data-close]").click();
+  await popup.locator(".remote-dialog [data-cancel]").click();
   expect(await popup.isClosed()).toBe(false);
   await popup.evaluate(() => window.rdCloseTest.resolvePair({ id: "30000000-0000-4000-8000-000000000001" }));
   await expect.poll(() => requests.some((request) => request.path.endsWith("/reject"))).toBe(true);
@@ -336,7 +336,7 @@ test("closing during session creation revokes the grant and closes the late sess
   await ready(page, [{ ...hosts[0], jkt: "host-jkt" }]);
   const popup = await openViewer(page);
   await expect.poll(() => popup.evaluate(() => !!window.rdCloseTest.resolveSession)).toBe(true);
-  await popup.locator(".remote-dialog [data-close]").click();
+  await popup.locator(".remote-dialog [data-cancel]").click();
   expect(await popup.isClosed()).toBe(false);
   await popup.evaluate(() => window.rdCloseTest.resolveSession({ session_id: "40000000-0000-4000-8000-000000000001" }));
   await expect.poll(() => requests.some((request) => request.path === "/api/v1/rd/sessions/40000000-0000-4000-8000-000000000001/close")).toBe(true);
@@ -344,16 +344,25 @@ test("closing during session creation revokes the grant and closes the late sess
   await expect.poll(() => popup.isClosed()).toBe(true);
 });
 
-test("the separate viewer remains scrollable at 720px with file and clipboard panels", async ({ page }) => {
+test("the separate viewer keeps file and clipboard drawers reachable at 720px without scrolling the window", async ({ page }) => {
   await ready(page, [hosts[0]]);
   const popup = await openViewer(page);
   await popup.setViewportSize({ width: 1280, height: 720 });
   await popup.locator(".remote-dialog").evaluate((dialog) => {
-    dialog.querySelector(".remote-auth").hidden = true; dialog.querySelector(".remote-viewer").hidden = false;
+    dialog.querySelector(".remote-viewer").hidden = false;
     dialog.querySelector("[data-clipboard-panel]").hidden = false; dialog.querySelector("[data-file-panel]").hidden = false;
+    dialog.querySelector("[data-text-panel]").hidden = false;
   });
+  await expect(popup.locator(".remote-auth")).toBeHidden();
   const button = popup.locator("[data-file-send]"); await button.scrollIntoViewIfNeeded();
   await expect(button).toBeInViewport();
-  expect(await popup.locator(".remote-dialog").evaluate((dialog) => dialog.scrollTop)).toBeGreaterThan(0);
+  const layout = await popup.locator(".remote-dialog").evaluate((dialog) => {
+    const drawer = dialog.querySelector(".remote-data").getBoundingClientRect(), stage = dialog.querySelector(".remote-video-stage").getBoundingClientRect();
+    return { dialogScroll: dialog.scrollTop, pageOverflow: document.documentElement.scrollHeight - innerHeight, drawerTop: drawer.top, drawerBottom: drawer.bottom, stageTop: stage.top, stageBottom: stage.bottom };
+  });
+  expect(layout.dialogScroll).toBe(0);
+  expect(layout.pageOverflow).toBeLessThanOrEqual(0);
+  expect(layout.drawerTop).toBeGreaterThanOrEqual(layout.stageTop);
+  expect(layout.drawerBottom).toBeLessThanOrEqual(layout.stageBottom + 1);
   await popup.close();
 });
