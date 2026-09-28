@@ -185,14 +185,16 @@ export const RD = Object.freeze({
             "enum": [
               "host",
               "srflx",
-              "prflx"
+              "prflx",
+              "relay"
             ]
           },
           "remote_candidate_type": {
             "enum": [
               "host",
               "srflx",
-              "prflx"
+              "prflx",
+              "relay"
             ]
           }
         },
@@ -213,7 +215,7 @@ export const RD = Object.freeze({
           "remote_candidate_type": "srflx"
         }
       ],
-      "profile_note": "The current interoperable body has no proof-summary or verification-version fields; the host independently checks actual selected UDP stats before emitting it.",
+      "profile_note": "The current interoperable body has no proof-summary or verification-version fields; the host independently checks actual selected UDP stats before emitting it. relay appears only when the session negotiated the UDP TURN relay.",
       "permission_rule": {
         "session_permission": "view",
         "input_control": "Input messages additionally require negotiated input permission and matching local request/epochs."

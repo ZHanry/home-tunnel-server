@@ -383,7 +383,7 @@ test("body validation rejects stale-field shapes, scope widening, ambiguous ACKs
   });
   reject("SESSION_HELLO", { ...example("SESSION_HELLO"), nonce: "A".repeat(42) + "B" });
   reject("SESSION_PROOF", { ...example("SESSION_PROOF"), signature: "A".repeat(85) + "B" });
-  reject("PATH_VERIFIED", { ...example("PATH_VERIFIED"), local_candidate_type: "relay" });
+  reject("PATH_VERIFIED", { ...example("PATH_VERIFIED"), local_candidate_type: "turn" });
   reject("PATH_VERIFIED", { ...example("PATH_VERIFIED"), protocol: "tcp" });
   reject("DISPLAY_SELECT", { display_id: "0", expected_layout_epoch: 1 });
   const layout = example("DISPLAY_LAYOUT");
@@ -926,6 +926,32 @@ test("selected candidate pair rejects TCP and relay while exposing incomplete br
   stats.delete("local");
   assert.equal(selectedUdpPair(stats).verified, false);
   assert.equal(selectedUdpPair(new Map()), null);
+});
+
+test("a renamed pair on the same UDP 5-tuple is the same path; a new address is not", () => {
+  const stats = (pairId, remoteType, remotePort = 1700) =>
+    new Map([
+      ["transport", { type: "transport", selectedCandidatePairId: pairId }],
+      [
+        pairId,
+        {
+          type: "candidate-pair",
+          id: pairId,
+          localCandidateId: "l",
+          remoteCandidateId: "r" + pairId,
+        },
+      ],
+      ["l", { protocol: "udp", candidateType: "srflx", address: "203.0.113.5", port: 1700 }],
+      [
+        "r" + pairId,
+        { protocol: "udp", candidateType: remoteType, address: "198.51.100.7", port: remotePort },
+      ],
+    ]);
+  const learned = selectedUdpPair(stats("pair-a", "prflx"), true);
+  const signaled = selectedUdpPair(stats("pair-b", "relay"), true);
+  assert.equal(learned.id, signaled.id);
+  assert.equal(signaled.relayed, true);
+  assert.notEqual(selectedUdpPair(stats("pair-c", "relay", 1701), true).id, learned.id);
 });
 
 test("pointer mapping ignores letterboxes and HID identities do not depend on keyboard language", () => {
@@ -1812,4 +1838,43 @@ a=${relay}
       true,
     ),
   );
+});
+
+test("a relayed path.verified is accepted only when the session negotiated relay", async () => {
+  const session = Object.create(RemoteSession.prototype);
+  let attached = 0;
+  Object.assign(session, {
+    lease: { valid: () => true },
+    epoch: 1,
+    received: new Map(),
+    peerVerified: true,
+    pathVerified: false,
+    closed: false,
+    relay: false,
+    inspectPath: async () => {},
+    attachVerifiedTracks: () => attached++,
+  });
+  let sequence = 0;
+  const verified = (local, remote) =>
+    session.onFrame(
+      {
+        type: TYPES.PATH_VERIFIED,
+        epoch: 1,
+        sequence: ++sequence,
+        payload: {
+          epoch: 1,
+          protocol: "udp",
+          local_candidate_type: local,
+          remote_candidate_type: remote,
+        },
+      },
+      "control",
+    );
+  await assert.rejects(verified("relay", "srflx"), /RD_PATH_REJECTED/);
+  await assert.rejects(verified("host", "relay"), /RD_PATH_REJECTED/);
+  assert.equal(session.pathVerified, false);
+  session.relay = true;
+  await verified("relay", "srflx");
+  assert.equal(session.pathVerified, true);
+  assert.equal(attached, 1);
 });

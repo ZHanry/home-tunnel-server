@@ -37,7 +37,11 @@ export function selectedUdpPair(stats, relay = false) {
     if ((candidate.protocol && candidate.protocol.toLowerCase() !== "udp") || (candidate.candidateType && !types.includes(candidate.candidateType)) || (candidate.relayProtocol && (!relay || candidate.relayProtocol.toLowerCase() !== "udp")) || candidate.tcpType) throw new RemoteError("RD_PATH_REJECTED");
   }
   const types = ["host", "srflx", "prflx", ...(relay ? ["relay"] : [])];
-  return { id: pair.id, relayed: [local, remote].some((candidate) => candidate?.candidateType === "relay"), verified: [local, remote].every((candidate) => candidate?.protocol?.toLowerCase() === "udp" && types.includes(candidate.candidateType)) };
+  // Identify the path by its UDP 5-tuple: a peer-reflexive candidate replaced by its
+  // signaled candidate (common for relay) renames the pair without changing the path.
+  const endpoint = (candidate) => (candidate?.address && candidate?.port ? `${candidate.address}|${candidate.port}` : "");
+  const id = endpoint(local) && endpoint(remote) ? `udp|${endpoint(local)}|${endpoint(remote)}` : pair.id;
+  return { id, relayed: [local, remote].some((candidate) => candidate?.candidateType === "relay"), verified: [local, remote].every((candidate) => candidate?.protocol?.toLowerCase() === "udp" && types.includes(candidate.candidateType)) };
 }
 
 export class RemoteSession {
@@ -222,7 +226,8 @@ export class RemoteSession {
     }
     if (!this.peerVerified) throw new RemoteError("RD_PEER_IDENTITY_MISMATCH");
     if (frame.type === TYPES.PATH_VERIFIED) {
-      if (body.epoch !== this.epoch || body.protocol !== "udp" || !["host", "srflx", "prflx"].includes(body.local_candidate_type) || !["host", "srflx", "prflx"].includes(body.remote_candidate_type)) throw new RemoteError("RD_PATH_REJECTED");
+      const pathTypes = ["host", "srflx", "prflx", ...(this.relay ? ["relay"] : [])];
+      if (body.epoch !== this.epoch || body.protocol !== "udp" || !pathTypes.includes(body.local_candidate_type) || !pathTypes.includes(body.remote_candidate_type)) throw new RemoteError("RD_PATH_REJECTED");
       await this.inspectPath();
       this.pathVerified = true; clearTimeout(this.iceTimer); this.attachVerifiedTracks();
       return;

@@ -197,7 +197,7 @@ Reserved messages:
 
 Current profile and binary implementation limits:
 
-- `PATH_VERIFIED`: The current interoperable body has no proof-summary or verification-version fields; the host independently checks actual selected UDP stats before emitting it.
+- `PATH_VERIFIED`: The current interoperable body has no proof-summary or verification-version fields; the host independently checks actual selected UDP stats before emitting it. relay appears only when the session negotiated the UDP TURN relay.
 - `CAPABILITIES`: Current view profile: permissions/codecs only; full platform/display/input capability negotiation is not implemented.
 - `DISPLAY_LAYOUT`: Optional dpi_x, dpi_y, scale_percent, origin_x and origin_y reuse this display object. Omitted fields remain valid for existing layouts.
 - `CONTROL_RELEASED`: A denied initial request has reason only; new_input_epoch is optional for a release that invalidates an issued epoch.
