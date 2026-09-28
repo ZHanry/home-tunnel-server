@@ -1793,15 +1793,23 @@ test("ES256 uses raw signatures and pins type, algorithm, public key and key id"
 
 test("relay candidates require an explicitly negotiated UDP relay session", async () => {
   const { directCandidate, validateSdp } = await import("../public/modules/remote/protocol.js");
-  const relay = "candidate:1 1 udp 41885439 158.180.81.141 49170 typ relay raddr 203.0.113.9 rport 50000";
+  const relay =
+    "candidate:1 1 udp 41885439 158.180.81.141 49170 typ relay raddr 203.0.113.9 rport 50000";
   assert.throws(() => directCandidate(relay));
   assert.equal(directCandidate(relay, true), relay);
   assert.throws(() => directCandidate(relay.replace(" udp ", " tcp "), true));
   assert.throws(() => directCandidate("candidate:1 1 udp 1 abc.local 5000 typ relay", true));
-  assert.throws(() => validateSdp(`v=0
+  assert.throws(() =>
+    validateSdp(`v=0
 a=${relay}
-`));
-  assert.doesNotThrow(() => validateSdp(`v=0
+`),
+  );
+  assert.doesNotThrow(() =>
+    validateSdp(
+      `v=0
 a=${relay}
-`, true));
+`,
+      true,
+    ),
+  );
 });
