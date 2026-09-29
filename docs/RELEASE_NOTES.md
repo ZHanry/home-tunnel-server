@@ -14,14 +14,43 @@ independent 0.70.1 version. The REST API stays on `/api/v1` and freezes contract
   mobile navigation and accessibility fixes.
 - Migrations 020 and 021 are additive: a nullable tunnel diagnostic column and
   stored display metrics. 9.0 rows remain readable.
+- The browser viewer is rebuilt around a floating toolbar with one start/stop
+  control, background clipboard sync, shortcut and More menus and a latency badge.
+  Each connection requests screen, input, clipboard, files and system audio; the
+  microphone stays opt-in. 9.x hosts keep the narrower screen/input/clipboard scope.
+- A one-time temporary password now uses the host's fixed device ID. Creating a
+  new one revokes the host's previous active password.
+- Optional UDP TURN relay (`deploy/compose.turn.yaml`, coturn). When direct UDP
+  fails, a browser viewer can reach a 10.0.0 host through the relay. Payloads stay
+  end-to-end DTLS encrypted, so the relay cannot read them. There is no TCP
+  fallback. Android controllers and 9.x hosts stay direct-only.
 - Stable publication promotes the accepted, sealed candidate bytes and image
   digests; it does not rebuild images.
 
-Remote desktop remains disabled by default. Remote control payloads use direct
-UDP P2P only; no media relay or TURN fallback is provided. Capabilities that the
-attached acceptance evidence does not cover remain unverified. Before deploying,
-verify an encrypted backup can be restored and use the release's
-`compose.release.yaml` to pin both image digests. See [upgrading](UPGRADING.md).
+Remote desktop remains disabled by default. Before deploying, verify an encrypted
+backup can be restored and use the release's `compose.release.yaml` to pin both
+image digests. See [upgrading](UPGRADING.md).
+
+**Verification scope.** The release candidate was deployed to a production server
+upgraded from 9.0.0, then tested there with a Web viewer controlling a Windows
+10.0.0 host. These worked over both direct UDP and the TURN relay:
+
+- screen, keyboard, mouse and Chinese text
+- clipboard in both directions
+- file transfer from viewer to host, with the SHA-256 checked
+- system audio
+- the temporary-password mode
+
+The following were not verified and are recorded as owner waivers in the attached
+acceptance record:
+
+- file transfer from host to viewer
+- fixed-password mode on the final build
+- Android controlling a Windows host
+- the 2-hour and 24-hour soaks and the 30-connection repeat
+- the IPv6, blocked-UDP and network-recovery matrix
+- backup restore
+- a full Gemini review of the final UI
 
 ## Previous release: 9.0.0
 

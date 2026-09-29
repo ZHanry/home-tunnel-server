@@ -555,8 +555,11 @@ def publish_accepted():
         )
         summary = (ROOT / "docs/RELEASE_NOTES.md").read_text(encoding="utf-8")
         run_url = f"https://github.com/{REPO}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+        # Owner-waived gates were not verified; disclose each one in the public notes.
+        waivers = release_candidate.waiver_notes(acceptance)
         notes.write_text(
-            summary + "\n\n## Downloads\n\n" + downloads + "\n\n```text\n" + checksums + "```\n"
+            summary + ("\n\n" + waivers.rstrip("\n") if waivers else "")
+            + "\n\n## Downloads\n\n" + downloads + "\n\n```text\n" + checksums + "```\n"
             + f"\n\nSource: `{bound['candidate_sha']}`. Candidate run `{bound['candidate_run_id']}`.\n\n"
             + "Original package bytes remain covered by SHA256SUMS.txt and its candidate Sigstore bundle. "
             + "server-acceptance.SHA256SUMS.txt is a separate acceptance seal.\n"

@@ -43,6 +43,27 @@ def gate(name, source_sha, **extra):
     return finish(value)
 
 
+def owner_waiver(**extra):
+    value = {
+        "approved_by": "owner",
+        "approved_at": "2026-09-29T00:40:00Z",
+        "reason": "owner shipped without this run",
+        "disclosed_in": "release notes: Not verified (owner waivers)",
+    }
+    value.update(extra)
+    return value
+
+
+def waived_gate(name, reason="owner shipped without this run", approved_at="2026-09-29T00:40:00Z", **extra):
+    value = {
+        "status": "waived",
+        "waiver": owner_waiver(reason=reason, approved_at=approved_at),
+        "evidence_path": name + ".json",
+    }
+    value.update(extra)
+    return finish(value)
+
+
 def acceptance_bundle():
     version = "9.0.0"
     repository = "ZHanry/home-tunnel-test"
@@ -319,6 +340,123 @@ class CandidatePolicyTests(unittest.TestCase):
         acceptance, context = acceptance_bundle()
         acceptance["fixture"] = True
         self.assertTrue(any("fixture" in item for item in release_candidate.acceptance_errors(acceptance, **context)))
+
+    def test_owner_waiver_is_accepted_only_as_a_disclosed_non_pass(self):
+        acceptance, context = acceptance_bundle()
+        acceptance["server_gates"]["server_stability"] = waived_gate("server_stability", reason="24h soak not run")
+        acceptance["batch"]["gates"]["online_24h"] = waived_gate("online_24h", reason="24h soak not run")
+        acceptance["status"] = release_candidate.WAIVED_STATUS
+        self.assertEqual(release_candidate.acceptance_errors(acceptance, **context), [])
+        # Waived migration/backup skip the backup digest cross-check.
+        acceptance["server_gates"]["server_backup"] = waived_gate("server_backup")
+        self.assertEqual(release_candidate.acceptance_errors(acceptance, **context), [])
+        # The waived record is still sealed into the acceptance bundle.
+        import tempfile
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "acceptance"
+            release_candidate.write_acceptance_bundle(target, json.dumps(acceptance), acceptance)
+            written = json.loads((target / "server_stability.json").read_text(encoding="utf-8"))
+            self.assertEqual(written["status"], "waived")
+            self.assertNotIn("measured_result", written)
+
+    def test_server_gate_cannot_be_waived(self):
+        acceptance, context = acceptance_bundle()
+        acceptance["server_gates"]["server"] = waived_gate("server")
+        acceptance["status"] = release_candidate.WAIVED_STATUS
+        errors = release_candidate.acceptance_errors(acceptance, **context)
+        self.assertIn("server cannot be waived", errors)
+        self.assertTrue(any("amd64 and arm64" in item for item in errors))
+
+    def test_incomplete_or_future_waiver_is_rejected(self):
+        now = release_candidate.parse_time("2026-09-29T01:00:00Z")
+        self.assertEqual(release_candidate.waiver_errors("x", owner_waiver(), now), [])
+        self.assertTrue(release_candidate.waiver_errors("x", None, now))
+        for field, value, expected in (
+            ("reason", "", "reason"),
+            ("reason", None, "reason"),
+            ("disclosed_in", "  ", "disclosed_in"),
+            ("approved_by", "maintainer", "owner"),
+            ("approved_at", "2026-09-29T00:40:00", "invalid"),
+            ("approved_at", "2026-09-29T02:00:00Z", "future"),
+        ):
+            waiver = owner_waiver()
+            waiver[field] = value
+            errors = release_candidate.waiver_errors("x", waiver, now)
+            self.assertTrue(any(expected in item for item in errors), (field, value, errors))
+        acceptance, context = acceptance_bundle()
+        acceptance["server_gates"]["server_network"] = waived_gate("server_network", reason="")
+        acceptance["status"] = release_candidate.WAIVED_STATUS
+        self.assertTrue(any("reason" in item for item in release_candidate.acceptance_errors(acceptance, **context)))
+        acceptance, context = acceptance_bundle()
+        acceptance["server_gates"]["server_network"] = waived_gate("server_network", approved_at="2999-01-01T00:00:00Z")
+        acceptance["status"] = release_candidate.WAIVED_STATUS
+        self.assertTrue(any("future" in item for item in release_candidate.acceptance_errors(acceptance, **context)))
+
+    def test_waived_gate_cannot_carry_a_measured_result(self):
+        for extra in ({"measured_result": "measured"}, {"observed_at": "2026-09-27T01:00:00Z"}, {"result": "passed"}):
+            acceptance, context = acceptance_bundle()
+            acceptance["batch"]["gates"]["active_2h"] = waived_gate("active_2h", **extra)
+            acceptance["status"] = release_candidate.WAIVED_STATUS
+            errors = release_candidate.acceptance_errors(acceptance, **context)
+            self.assertIn("active_2h is waived and cannot carry a measured result", errors, extra)
+        acceptance, context = acceptance_bundle()
+        tampered = waived_gate("active_2h")
+        tampered["waiver"]["reason"] = "edited after sealing"
+        acceptance["batch"]["gates"]["active_2h"] = tampered
+        acceptance["status"] = release_candidate.WAIVED_STATUS
+        self.assertIn("active_2h evidence digest does not match", release_candidate.acceptance_errors(acceptance, **context))
+
+    def test_summary_status_must_match_the_waivers(self):
+        acceptance, context = acceptance_bundle()
+        acceptance["server_gates"]["server_ui"] = waived_gate("server_ui")
+        acceptance["status"] = "passed"
+        errors = release_candidate.acceptance_errors(acceptance, **context)
+        self.assertTrue(any("must be accepted_with_waivers" in item for item in errors))
+        acceptance, context = acceptance_bundle()
+        acceptance["status"] = release_candidate.WAIVED_STATUS
+        errors = release_candidate.acceptance_errors(acceptance, **context)
+        self.assertTrue(any("requires at least one waived gate" in item for item in errors))
+        acceptance, context = acceptance_bundle()
+        acceptance["server_gates"]["server_ui"] = waived_gate("server_ui")
+        acceptance["status"] = "waived"
+        self.assertIn("acceptance status must be accepted_with_waivers when a gate is waived", release_candidate.acceptance_errors(acceptance, **context))
+        # A waiver does not excuse another gate that simply was not run.
+        acceptance, context = acceptance_bundle()
+        acceptance["server_gates"]["server_ui"] = waived_gate("server_ui")
+        acceptance["server_gates"]["server_network"]["status"] = "not_run"
+        acceptance["status"] = release_candidate.WAIVED_STATUS
+        self.assertTrue(any("summary status cannot replace" in item for item in release_candidate.acceptance_errors(acceptance, **context)))
+
+    def test_ui_coverage_waiver_is_bound_to_the_hub_source(self):
+        acceptance, context = acceptance_bundle()
+        hub_sha = acceptance["batch"]["sources"]["hub"]["sha"]
+        acceptance["batch"]["ui_coverage"] = {"status": "waived", "waiver": owner_waiver(reason="Gemini review not run"), "source_sha": hub_sha}
+        acceptance["status"] = release_candidate.WAIVED_STATUS
+        self.assertEqual(release_candidate.acceptance_errors(acceptance, **context), [])
+        acceptance["batch"]["ui_coverage"]["source_sha"] = sha40("other-hub")
+        self.assertTrue(any("hub source" in item for item in release_candidate.acceptance_errors(acceptance, **context)))
+        acceptance["batch"]["ui_coverage"] = {"status": "waived", "source_sha": hub_sha}
+        self.assertIn("ui_coverage waiver is missing", release_candidate.acceptance_errors(acceptance, **context))
+
+    def test_waived_items_lists_every_waiver_for_release_notes(self):
+        acceptance, _context = acceptance_bundle()
+        self.assertEqual(release_candidate.waived_items(acceptance), [])
+        self.assertEqual(release_candidate.waiver_notes(acceptance), "")
+        acceptance["server_gates"]["server_network"] = waived_gate("server_network", reason="network matrix\nnot run")
+        acceptance["batch"]["gates"]["vm_windows_pair"] = waived_gate("vm_windows_pair", reason="VM matrix not run")
+        acceptance["batch"]["ui_coverage"] = {"status": "waived", "waiver": owner_waiver(reason="UI review not run"), "source_sha": sha40("hub")}
+        self.assertEqual(
+            release_candidate.waived_items(acceptance),
+            [("server_network", "network matrix\nnot run"), ("vm_windows_pair", "VM matrix not run"), ("ui_coverage", "UI review not run")],
+        )
+        self.assertEqual(
+            release_candidate.waiver_notes(acceptance),
+            "## Not verified (owner waivers)\n\n"
+            "- `server_network`: network matrix not run\n"
+            "- `vm_windows_pair`: VM matrix not run\n"
+            "- `ui_coverage`: UI review not run\n",
+        )
+        self.assertEqual(release_candidate.waived_items(None), [])
 
     def test_publication_refuses_replacement_and_accepts_the_frozen_tree(self):
         self.assertEqual(release_candidate.publication_tag("10.0.0"), "v10.0.0")

@@ -46,6 +46,18 @@ BATCH_GATES = (
     "active_2h",
     "online_24h",
 )
+# Owner-approved waivers record a gate as deliberately not verified. A waiver is
+# never a pass: it carries no measured result and is disclosed in release notes.
+# "server" (the image/arch build gate) must always be a real pass.
+SERVER_WAIVABLE = frozenset({
+    "server_ui",
+    "server_migration",
+    "server_backup",
+    "server_network",
+    "server_stability",
+})
+BATCH_WAIVABLE = frozenset(BATCH_GATES)
+WAIVED_STATUS = "accepted_with_waivers"
 COMPONENTS = ("hub", "server", "client", "android")
 REPOSITORIES = {
     "hub": "ZHanry/home-tunnel",
@@ -287,6 +299,81 @@ def parse_time(value):
     return parsed.astimezone(timezone.utc)
 
 
+def waiver_errors(name, waiver, now=None):
+    """Validate an owner waiver record. A valid waiver is disclosure, not a pass."""
+    if not isinstance(waiver, dict):
+        return [f"{name} waiver is missing"]
+    errors = []
+    if waiver.get("approved_by") != "owner":
+        errors.append(f"{name} waiver must be approved by the owner")
+    approved = parse_time(waiver.get("approved_at"))
+    current = now if now is not None else datetime.now(timezone.utc)
+    if approved is None:
+        errors.append(f"{name} waiver approval time is invalid")
+    elif approved > current:
+        errors.append(f"{name} waiver approval time is in the future")
+    for field in ("reason", "disclosed_in"):
+        value = waiver.get(field)
+        if not isinstance(value, str) or not value.strip():
+            errors.append(f"{name} waiver {field} is missing")
+    return errors
+
+
+def _waived_gate_errors(name, gate, waivable, now):
+    """Checks for a gate recorded as waived instead of passed."""
+    if name not in waivable:
+        return [f"{name} cannot be waived"]
+    errors = waiver_errors(name, gate.get("waiver"), now)
+    if "measured_result" in gate or "observed_at" in gate or gate.get("result") == "passed":
+        errors.append(f"{name} is waived and cannot carry a measured result")
+    # write_acceptance_bundle still writes and seals the waiver record itself.
+    if gate.get("evidence_path") != f"{name}.json":
+        errors.append(f"{name} evidence path is invalid")
+    if gate.get("evidence_sha256") != evidence_digest(gate) or bad_digest(gate.get("evidence_sha256")):
+        errors.append(f"{name} evidence digest does not match")
+    return errors
+
+
+def _is_waived(record):
+    return isinstance(record, dict) and record.get("status") == "waived"
+
+
+def waived_items(acceptance):
+    """Return (name, reason) for every waived server gate, batch gate and ui_coverage."""
+    items = []
+    if not isinstance(acceptance, dict):
+        return items
+
+    def reason_of(record):
+        waiver = record.get("waiver") if isinstance(record.get("waiver"), dict) else {}
+        reason = waiver.get("reason")
+        return reason if isinstance(reason, str) else ""
+
+    server_gates = acceptance.get("server_gates") if isinstance(acceptance.get("server_gates"), dict) else {}
+    for name in SERVER_GATES:
+        if _is_waived(server_gates.get(name)):
+            items.append((name, reason_of(server_gates[name])))
+    batch = acceptance.get("batch") if isinstance(acceptance.get("batch"), dict) else {}
+    batch_gates = batch.get("gates") if isinstance(batch.get("gates"), dict) else {}
+    for name in BATCH_GATES:
+        if _is_waived(batch_gates.get(name)):
+            items.append((name, reason_of(batch_gates[name])))
+    if _is_waived(batch.get("ui_coverage")):
+        items.append(("ui_coverage", reason_of(batch["ui_coverage"])))
+    return items
+
+
+def waiver_notes(acceptance):
+    """Release-notes section disclosing owner waivers, or "" when nothing is waived."""
+    items = waived_items(acceptance)
+    if not items:
+        return ""
+    lines = ["## Not verified (owner waivers)", ""]
+    for name, reason in items:
+        lines.append(f"- `{name}`: {' '.join(reason.split())}")
+    return "\n".join(lines) + "\n"
+
+
 def bad_digest(value):
     return (
         not isinstance(value, str)
@@ -317,7 +404,9 @@ def _measured_ok(value):
     return bool(text) and not any(token in lowered for token in BANNED_TEXT)
 
 
-def _common_gate_errors(name, gate, source_sha, frozen_at):
+def _common_gate_errors(name, gate, source_sha, frozen_at, waivable=frozenset(), now=None):
+    if _is_waived(gate):
+        return _waived_gate_errors(name, gate, waivable, now)
     if not isinstance(gate, dict) or gate.get("status") in UNRUN or gate.get("status") is None:
         return [f"{name} was not run"]
     if gate.get("status") == "stale":
@@ -339,7 +428,7 @@ def _common_gate_errors(name, gate, source_sha, frozen_at):
     return errors
 
 
-def _batch_errors(batch, source_sha, version):
+def _batch_errors(batch, source_sha, version, now=None):
     errors = []
     if not isinstance(batch, dict):
         return ["acceptance batch is missing"], None
@@ -400,28 +489,34 @@ def _batch_errors(batch, source_sha, version):
             else:
                 artifacts[(name, filename)] = item["sha256"]
     ui = batch.get("ui_coverage") if isinstance(batch.get("ui_coverage"), dict) else {}
-    if ui.get("status") != "passed" or ui.get("reviewer") != "gemini" or ui.get("blocking_findings") != 0:
-        errors.append("full UI coverage requires a passed Gemini review and zero blocking findings")
-    applicable = ui.get("applicable_cases")
-    cases = ui.get("cases")
     hub_sha = (sources.get("hub") or {}).get("sha") if isinstance(sources.get("hub"), dict) else None
-    if type(applicable) is not int or applicable <= 0 or ui.get("reviewed_cases") != applicable or not isinstance(cases, list) or len(cases) != applicable:
-        errors.append("UI coverage is incomplete")
-    elif isinstance(cases, list):
-        seen_cases = set()
-        for case in cases:
-            if (
-                not isinstance(case, dict)
-                or not str(case.get("id", "")).strip()
-                or case.get("result") != "passed"
-                or case.get("id") in seen_cases
-                or bad_digest(case.get("screenshot_sha256"))
-            ):
-                errors.append("every applicable UI case must pass with its own screenshot digest")
-                break
-            seen_cases.add(case["id"])
-    if ui.get("source_sha") != hub_sha or bad_digest(ui.get("screenshot_manifest_sha256")):
-        errors.append("UI coverage is not bound to the hub source and a manifest digest")
+    if _is_waived(ui):
+        # A waived UI review has no reviewer, cases, or screenshot manifest to check.
+        errors.extend(waiver_errors("ui_coverage", ui.get("waiver"), now))
+        if hub_sha is None or ui.get("source_sha") != hub_sha:
+            errors.append("UI coverage is not bound to the hub source")
+    else:
+        if ui.get("status") != "passed" or ui.get("reviewer") != "gemini" or ui.get("blocking_findings") != 0:
+            errors.append("full UI coverage requires a passed Gemini review and zero blocking findings")
+        applicable = ui.get("applicable_cases")
+        cases = ui.get("cases")
+        if type(applicable) is not int or applicable <= 0 or ui.get("reviewed_cases") != applicable or not isinstance(cases, list) or len(cases) != applicable:
+            errors.append("UI coverage is incomplete")
+        elif isinstance(cases, list):
+            seen_cases = set()
+            for case in cases:
+                if (
+                    not isinstance(case, dict)
+                    or not str(case.get("id", "")).strip()
+                    or case.get("result") != "passed"
+                    or case.get("id") in seen_cases
+                    or bad_digest(case.get("screenshot_sha256"))
+                ):
+                    errors.append("every applicable UI case must pass with its own screenshot digest")
+                    break
+                seen_cases.add(case["id"])
+        if ui.get("source_sha") != hub_sha or bad_digest(ui.get("screenshot_manifest_sha256")):
+            errors.append("UI coverage is not bound to the hub source and a manifest digest")
     gates = batch.get("gates") if isinstance(batch.get("gates"), dict) else {}
     missing = [name for name in BATCH_GATES if name not in gates]
     extra = [name for name in gates if name not in BATCH_GATES]
@@ -431,9 +526,12 @@ def _batch_errors(batch, source_sha, version):
         errors.append("unknown batch gates are present: " + ", ".join(extra))
     for name in BATCH_GATES:
         gate = gates.get(name)
-        gate_errors = _common_gate_errors(name, gate, (gate or {}).get("source_sha") if isinstance(gate, dict) else None, frozen_at)
+        gate_errors = _common_gate_errors(
+            name, gate, (gate or {}).get("source_sha") if isinstance(gate, dict) else None, frozen_at, BATCH_WAIVABLE, now
+        )
         # Batch gates bind to their own component SHA, then the common helper checks that claim.
-        if isinstance(gate, dict):
+        # A waived gate has no measured artifact or metric, so only the waiver checks apply.
+        if isinstance(gate, dict) and not _is_waived(gate):
             component = gate.get("source_component")
             component_sha = (sources.get(component) or {}).get("sha") if isinstance(sources.get(component), dict) else None
             if component not in COMPONENTS or gate.get("source_sha") != component_sha:
@@ -468,7 +566,7 @@ def source_version_ok(version):
     return None
 
 
-def _server_gate_errors(gates, source_sha, version, images, frozen_at):
+def _server_gate_errors(gates, source_sha, version, images, frozen_at, now=None):
     errors = []
     if not isinstance(gates, dict):
         return ["required server gates are missing: " + ", ".join(SERVER_GATES)]
@@ -479,10 +577,14 @@ def _server_gate_errors(gates, source_sha, version, images, frozen_at):
     if extra:
         errors.append("unknown server gates are present: " + ", ".join(extra))
     parsed = {}
+    waived = set()
     for name in SERVER_GATES:
         gate = gates.get(name)
         parsed[name] = gate if isinstance(gate, dict) else {}
-        errors.extend(_common_gate_errors(name, gate, source_sha, frozen_at))
+        if _is_waived(gate):
+            waived.add(name)
+        errors.extend(_common_gate_errors(name, gate, source_sha, frozen_at, SERVER_WAIVABLE, now))
+    # "server" is never waivable; its image/arch checks always apply.
     server = parsed["server"]
     if server.get("arches") != ["amd64", "arm64"]:
         errors.append("server evidence must include amd64 and arm64")
@@ -492,50 +594,55 @@ def _server_gate_errors(gates, source_sha, version, images, frozen_at):
             errors.append(f"server gate digest does not match {name}")
     migration = parsed["server_migration"]
     backup = parsed["server_backup"]
-    if migration.get("from_version") != "9.0.0" or migration.get("to_version") != version:
-        errors.append("server_migration must bind 9.0.0 to this source version")
-    if bad_digest(migration.get("backup_sha256")) or migration.get("backup_sha256") != backup.get("backup_sha256"):
-        errors.append("server_migration backup digest does not match server_backup")
-    if backup.get("restore_verified") is not True:
+    if "server_migration" not in waived:
+        if migration.get("from_version") != "9.0.0" or migration.get("to_version") != version:
+            errors.append("server_migration must bind 9.0.0 to this source version")
+    if not {"server_migration", "server_backup"} & waived:
+        if bad_digest(migration.get("backup_sha256")) or migration.get("backup_sha256") != backup.get("backup_sha256"):
+            errors.append("server_migration backup digest does not match server_backup")
+    if "server_backup" not in waived and backup.get("restore_verified") is not True:
         errors.append("server_backup did not verify restore")
     network = parsed["server_network"]
-    if network.get("direct_udp") != "passed" or network.get("payload_fallback") is not False or network.get("ipv6") != "passed":
-        errors.append("server_network did not pass direct, blocked-UDP, and IPv6 checks")
+    if "server_network" not in waived:
+        if network.get("direct_udp") != "passed" or network.get("payload_fallback") is not False or network.get("ipv6") != "passed":
+            errors.append("server_network did not pass direct, blocked-UDP, and IPv6 checks")
     stability = parsed["server_stability"]
-    if type(stability.get("active_duration_seconds")) is not int or stability.get("active_duration_seconds", 0) < 7200:
-        errors.append("server_stability duration was not met")
-    if type(stability.get("online_duration_seconds")) is not int or stability.get("online_duration_seconds", 0) < 86400:
-        errors.append("server_stability duration was not met")
-    if stability.get("successes") != 30 or stability.get("attempts") != 30:
-        errors.append("server_stability requires 30 successes in 30 attempts")
-    if type(stability.get("release_ms")) is not int or not 0 <= stability.get("release_ms", -1) <= 2000:
-        errors.append("server_stability input release was not measured within 2 seconds")
-    if type(stability.get("restore_seconds")) is not int or not 0 <= stability.get("restore_seconds", -1) <= 30:
-        errors.append("server_stability network restore was not measured within 30 seconds")
+    if "server_stability" not in waived:
+        if type(stability.get("active_duration_seconds")) is not int or stability.get("active_duration_seconds", 0) < 7200:
+            errors.append("server_stability duration was not met")
+        if type(stability.get("online_duration_seconds")) is not int or stability.get("online_duration_seconds", 0) < 86400:
+            errors.append("server_stability duration was not met")
+        if stability.get("successes") != 30 or stability.get("attempts") != 30:
+            errors.append("server_stability requires 30 successes in 30 attempts")
+        if type(stability.get("release_ms")) is not int or not 0 <= stability.get("release_ms", -1) <= 2000:
+            errors.append("server_stability input release was not measured within 2 seconds")
+        if type(stability.get("restore_seconds")) is not int or not 0 <= stability.get("restore_seconds", -1) <= 30:
+            errors.append("server_stability network restore was not measured within 30 seconds")
     ui = parsed["server_ui"]
-    if ui.get("reviewer") != "gemini" or ui.get("blocking_findings") != 0:
-        errors.append("server_ui coverage is incomplete")
-    applicable = ui.get("applicable_cases")
-    cases = ui.get("cases")
-    if type(applicable) is not int or applicable <= 0 or ui.get("reviewed_cases") != applicable or not isinstance(cases, list) or len(cases) != applicable:
-        errors.append("server_ui coverage is incomplete")
-    elif isinstance(cases, list):
-        seen = set()
-        for case in cases:
-            if (
-                not isinstance(case, dict)
-                or not str(case.get("id", "")).strip()
-                or case.get("result") != "passed"
-                or case.get("id") in seen
-                or bad_digest(case.get("screenshot_sha256"))
-            ):
-                errors.append("server_ui coverage is incomplete")
-                break
-            seen.add(case["id"])
+    if "server_ui" not in waived:
+        if ui.get("reviewer") != "gemini" or ui.get("blocking_findings") != 0:
+            errors.append("server_ui coverage is incomplete")
+        applicable = ui.get("applicable_cases")
+        cases = ui.get("cases")
+        if type(applicable) is not int or applicable <= 0 or ui.get("reviewed_cases") != applicable or not isinstance(cases, list) or len(cases) != applicable:
+            errors.append("server_ui coverage is incomplete")
+        elif isinstance(cases, list):
+            seen = set()
+            for case in cases:
+                if (
+                    not isinstance(case, dict)
+                    or not str(case.get("id", "")).strip()
+                    or case.get("result") != "passed"
+                    or case.get("id") in seen
+                    or bad_digest(case.get("screenshot_sha256"))
+                ):
+                    errors.append("server_ui coverage is incomplete")
+                    break
+                seen.add(case["id"])
     return errors
 
 
-def acceptance_errors(acceptance, *, source_sha, version, repository, images, deployment_hashes, run_id):
+def acceptance_errors(acceptance, *, source_sha, version, repository, images, deployment_hashes, run_id, now=None):
     if not isinstance(acceptance, dict):
         return ["acceptance record is missing"]
     errors = []
@@ -561,8 +668,15 @@ def acceptance_errors(acceptance, *, source_sha, version, repository, images, de
         or claim.get("event") != "workflow_dispatch"
     ):
         errors.append("acceptance run binding does not match the candidate run")
-    if acceptance.get("status") != "passed":
-        errors.append("acceptance status is not passed")
+    # A waived gate is disclosed, not passed, so the summary must say so.
+    expected_status = WAIVED_STATUS if waived_items(acceptance) else "passed"
+    if acceptance.get("status") != expected_status:
+        if expected_status == WAIVED_STATUS:
+            errors.append(f"acceptance status must be {WAIVED_STATUS} when a gate is waived")
+        elif acceptance.get("status") == WAIVED_STATUS:
+            errors.append(f"acceptance status {WAIVED_STATUS} requires at least one waived gate")
+        else:
+            errors.append("acceptance status is not passed")
     claimed_images = acceptance.get("images") if isinstance(acceptance.get("images"), dict) else {}
     for name, record in images.items():
         got = claimed_images.get(name) if isinstance(claimed_images.get(name), dict) else {}
@@ -572,10 +686,10 @@ def acceptance_errors(acceptance, *, source_sha, version, repository, images, de
     for name, digest in deployment_hashes.items():
         if claimed_files.get(name) != digest or bad_digest(digest):
             errors.append(f"acceptance deployment hash mismatch: {name}")
-    batch_problems, frozen_at = _batch_errors(acceptance.get("batch"), source_sha, version)
+    batch_problems, frozen_at = _batch_errors(acceptance.get("batch"), source_sha, version, now)
     errors.extend(batch_problems)
-    errors.extend(_server_gate_errors(acceptance.get("server_gates"), source_sha, version, images, frozen_at))
-    if acceptance.get("status") == "passed" and any("was not run" in item or "did not pass" in item or "missing" in item for item in errors):
+    errors.extend(_server_gate_errors(acceptance.get("server_gates"), source_sha, version, images, frozen_at, now))
+    if acceptance.get("status") in ("passed", WAIVED_STATUS) and any("was not run" in item or "did not pass" in item or "missing" in item for item in errors):
         errors.append("summary status cannot replace gate records")
     return errors
 
