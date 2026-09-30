@@ -555,7 +555,7 @@ def publish_accepted():
         )
         summary = (ROOT / "docs/RELEASE_NOTES.md").read_text(encoding="utf-8")
         run_url = f"https://github.com/{REPO}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
-        # Owner-waived gates were not verified; disclose each one in the public notes.
+        # List unverified coverage without altering the sealed acceptance records.
         waivers = release_candidate.waiver_notes(acceptance)
         notes.write_text(
             summary + ("\n\n" + waivers.rstrip("\n") if waivers else "")

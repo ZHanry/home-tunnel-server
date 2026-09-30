@@ -41,8 +41,8 @@ upgraded from 9.0.0, then tested there with a Web viewer controlling a Windows
 - system audio
 - the temporary-password mode
 
-The following were not verified and are recorded as owner waivers in the attached
-acceptance record:
+The following remain unverified for the final release build. The attached
+acceptance record preserves the detailed test status:
 
 - file transfer from host to viewer
 - fixed-password mode on the final build

@@ -364,13 +364,13 @@ def waived_items(acceptance):
 
 
 def waiver_notes(acceptance):
-    """Release-notes section disclosing owner waivers, or "" when nothing is waived."""
+    """Describe unverified coverage without rewriting its acceptance records."""
     items = waived_items(acceptance)
     if not items:
         return ""
-    lines = ["## Not verified (owner waivers)", ""]
-    for name, reason in items:
-        lines.append(f"- `{name}`: {' '.join(reason.split())}")
+    lines = ["## Not verified", ""]
+    for name, _reason in items:
+        lines.append(f"- `{name}`: not verified")
     return "\n".join(lines) + "\n"
 
 

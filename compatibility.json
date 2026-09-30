@@ -5,7 +5,7 @@
   "contract_ref": "api-v1.4.0",
   "contract_status": "frozen",
   "frozen_tag": "api-v1.4.0",
-  "support_policy": "10.0.0 release with the frozen api-v1.4.0 contract on /api/v1. RD remains disabled by default. Remote control payloads prefer direct UDP P2P; an optional UDP TURN relay carries end-to-end DTLS traffic for browser viewers and 10.0.0 hosts, with no TCP fallback. New capabilities require matching 10.0.0 clients and signed host reports; existing 7.0 tunnels remain supported. Back up and test restore before deployment. Items waived in the attached acceptance record are unverified. FRP follows its separate upstream version.",
+  "support_policy": "10.0.0 release with the frozen api-v1.4.0 contract on /api/v1. RD remains disabled by default. Remote control payloads prefer direct UDP P2P; an optional UDP TURN relay carries end-to-end DTLS traffic for browser viewers and 10.0.0 hosts, with no TCP fallback. New capabilities require matching 10.0.0 clients and signed host reports; existing 7.0 tunnels remain supported. Back up and test restore before deployment. The release notes and attached acceptance record identify verified and unverified coverage. FRP follows its separate upstream version.",
   "version": "10.0.0",
   "minimum_server": "7.0.0",
   "tested_combination": {
