@@ -1,5 +1,6 @@
 """Release-stage regressions; these tests do not contact GitHub or publish artifacts."""
 from pathlib import Path
+from fnmatch import fnmatchcase
 import hashlib
 import importlib.util
 import json
@@ -19,6 +20,32 @@ finally:
     os.chdir(previous_directory)
 
 class ReleasePolicyTests(unittest.TestCase):
+    def test_tag_build_workflow_only_listens_for_release_candidates(self):
+        workflow = (script.parent.parent / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        trigger = workflow.split("'on':\n", 1)[1].split("permissions:\n", 1)[0]
+        # Keep the complete trigger small and explicit: stable publication has a
+        # separate acceptance workflow and must not launch an image rebuild.
+        self.assertEqual(trigger, "  push:\n    tags:\n    - v*-rc.*\n")
+        pattern = trigger.split("    - ", 1)[1].strip()
+        for tag in ("v10.0.0-rc.1", "v11.2.3-rc.12"):
+            with self.subTest(tag=tag):
+                self.assertTrue(fnmatchcase(tag, pattern))
+        for tag in ("v10.0.0", "v11.2.3", "api-v1.4.0"):
+            with self.subTest(tag=tag):
+                self.assertFalse(fnmatchcase(tag, pattern))
+
+    def test_stable_metadata_still_refuses_an_image_rebuild(self):
+        with patch.object(module, "TAG", "v10.0.0"), \
+             patch.object(module, "COMPONENT", "server"), \
+             patch.object(module, "PROJECT", {"stage": "public-release"}), \
+             patch.object(module, "local_version", return_value="10.0.0"), \
+             patch.object(module, "run") as run, \
+             patch.object(module, "api") as api:
+            with self.assertRaisesRegex(SystemExit, "Stable server tags do not build images"):
+                module.metadata()
+        run.assert_not_called()
+        api.assert_not_called()
+
     def test_first_project_version_is_allowed_as_a_test_build(self):
         self.assertEqual(module.validate_release_tag("v0.1.0-rc.1", "0.1.0-rc.1", "internal-testing"), ("0.1.0", "1"))
 

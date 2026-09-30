@@ -451,12 +451,48 @@ class CandidatePolicyTests(unittest.TestCase):
         )
         self.assertEqual(
             release_candidate.waiver_notes(acceptance),
-            "## Not verified (owner waivers)\n\n"
-            "- `server_network`: network matrix not run\n"
-            "- `vm_windows_pair`: VM matrix not run\n"
-            "- `ui_coverage`: UI review not run\n",
+            "## Not verified\n\n"
+            "- `server_network`: not verified\n"
+            "- `vm_windows_pair`: not verified\n"
+            "- `ui_coverage`: not verified\n",
         )
         self.assertEqual(release_candidate.waived_items(None), [])
+
+    def test_public_verification_prose_preserves_records_and_gate_results(self):
+        acceptance, context = acceptance_bundle()
+        acceptance["server_gates"]["server_stability"] = waived_gate("server_stability")
+        acceptance["status"] = release_candidate.WAIVED_STATUS
+        original = json.dumps(acceptance, sort_keys=True)
+        errors_before = release_candidate.acceptance_errors(acceptance, **context)
+        self.assertEqual(errors_before, [])
+
+        notes = release_candidate.waiver_notes(acceptance)
+        self.assertEqual(notes, "## Not verified\n\n- `server_stability`: not verified\n")
+        self.assertEqual(json.dumps(acceptance, sort_keys=True), original)
+        self.assertEqual(release_candidate.acceptance_errors(acceptance, **context), errors_before)
+        self.assertNotIn("measured_result", acceptance["server_gates"]["server_stability"])
+
+    def test_current_public_prose_reports_verification_status(self):
+        paths = [ROOT / "README.md", ROOT / "README.en.md", *sorted((ROOT / "docs").rglob("*.md"))]
+        for path in paths:
+            text = path.read_text(encoding="utf-8").lower()
+            with self.subTest(path=str(path.relative_to(ROOT))):
+                for phrase in ("owner waiver", "负责人豁免", "waived"):
+                    self.assertNotIn(phrase, text)
+        compatibility = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
+        self.assertIn("verified and unverified coverage", compatibility["support_policy"])
+        current_notes = (ROOT / "docs/RELEASE_NOTES.md").read_text(encoding="utf-8").split("## Previous release:", 1)[0]
+        self.assertIn("remain unverified for the final release build", current_notes)
+        for coverage in (
+            "file transfer from host to viewer",
+            "fixed-password mode on the final build",
+            "Android controlling a Windows host",
+            "2-hour and 24-hour soaks and the 30-connection repeat",
+            "IPv6, blocked-UDP and network-recovery matrix",
+            "backup restore",
+            "full Gemini review of the final UI",
+        ):
+            self.assertIn(coverage, current_notes)
 
     def test_publication_refuses_replacement_and_accepts_the_frozen_tree(self):
         self.assertEqual(release_candidate.publication_tag("10.0.0"), "v10.0.0")
