@@ -3,6 +3,7 @@ import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
 import { config } from "../config.js";
 import { one, query, transaction, type DatabaseClient, type DatabaseRow } from "../db.js";
+import { nativeSessionLive } from "../native-session.js";
 import { HttpError } from "../http.js";
 import { hashPassword, tokenHash, verifyPassword } from "../security.js";
 import type { AuthenticatedActor } from "../types.js";
@@ -338,12 +339,42 @@ async function boundedChallenges(db: DatabaseClient) {
   const row = await first<{ count: number }>(db, "SELECT count(*) AS count FROM rd_challenges");
   if (Number(row?.count) >= 10000) fail(429, "RD_RATE_LIMITED", "挑战配额已满");
 }
+async function controllerEnrollmentAccount(actor: AuthenticatedActor, db: DatabaseClient) {
+  if (!actor.nativeRemote) return recentAccount(actor, db);
+  const live = await first(
+    db,
+    `SELECT s.id FROM sessions s WHERE s.id=? AND s.client_type='native_remote'
+    AND s.device_id=? AND s.revoked_at IS NULL AND s.access_expires_at>home_tunnel_now()
+    AND s.token_version=? AND ${nativeSessionLive}`,
+    [actor.sessionId, actor.deviceId, actor.tokenVersion],
+  );
+  if (!live || !actor.deviceId || actor.passwordState !== "normal")
+    fail(403, "RD_ACCOUNT_REQUIRED", "远程窗口授权已失效");
+}
+function assertNativeController(
+  actor: AuthenticatedActor,
+  kind: unknown,
+  role: unknown,
+  device: unknown,
+) {
+  if (
+    actor.nativeRemote &&
+    (kind !== "browser" || role !== "controller" || device !== actor.deviceId)
+  )
+    fail(403, "RD_SCOPE_DENIED", "远程窗口只能登记本机控制端");
+}
 export async function enrollmentChallenge(
   actor: AuthenticatedActor,
   body: { endpoint_kind: string; role: string; public_jwk: PublicJwk; linked_device_id?: string },
 ) {
   return transaction(async (db) => {
-    await recentAccount(actor, db);
+    await controllerEnrollmentAccount(actor, db);
+    if (actor.nativeRemote) {
+      if (body.linked_device_id && body.linked_device_id !== actor.deviceId)
+        fail(403, "RD_SCOPE_DENIED", "控制端设备不匹配");
+      body = { ...body, linked_device_id: actor.deviceId! };
+      assertNativeController(actor, body.endpoint_kind, body.role, body.linked_device_id);
+    }
     await boundedChallenges(db);
     if (body.endpoint_kind !== "desktop" && body.role !== "controller")
       fail(422, "RD_ROLE_INVALID", "移动端和浏览器只能作为控制端");
@@ -409,11 +440,12 @@ export async function enroll(
   body: { challenge_id: string; signed_proof: string; name: string; platform: string },
 ) {
   return transaction(async (db) => {
-    await recentAccount(actor, db);
+    await controllerEnrollmentAccount(actor, db);
     const challenge = await consumeChallenge(db, body.challenge_id, "enrollment");
     if (challenge.owner_user_id !== actor.userId || challenge.parent_session_id !== actor.sessionId)
       fail(401, "RD_CHALLENGE_INVALID", "挑战不属于当前会话");
     const context = JSON.parse(challenge.context_json) as Record<string, unknown>;
+    assertNativeController(actor, context.endpoint_kind, context.role, context.linked_device_id);
     const key = publicJwk(context.public_jwk),
       proof = verifyJws(body.signed_proof, key, "ht-rd-proof+jwt");
     if (canonical(proof) !== canonical(context))
@@ -486,7 +518,10 @@ export async function tokenChallenge(
       (purpose === "host_online"
         ? endpoint.role !== "controller"
         : actor &&
-          !actor.deviceId &&
+          (!actor.deviceId ||
+            (actor.nativeRemote &&
+              endpoint.linked_device_id === actor.deviceId &&
+              endpoint.role === "controller")) &&
           actor.userId === endpoint.owner_user_id &&
           endpoint.role !== "host");
     const challenge_id = randomUUID(),
@@ -543,7 +578,12 @@ export async function refreshToken(
     if (
       challenge.purpose === "controller_refresh" &&
       (!actor ||
-        actor.deviceId ||
+        (actor.deviceId &&
+          !(
+            actor.nativeRemote &&
+            endpoint.linked_device_id === actor.deviceId &&
+            endpoint.role === "controller"
+          )) ||
         actor.userId !== endpoint.owner_user_id ||
         actor.sessionId !== challenge.parent_session_id ||
         actor.tokenVersion !== user.token_version)
@@ -569,7 +609,7 @@ export async function tokenIdentity(token: string): Promise<RdIdentity> {
     expires_at: Date;
     nonce: string;
   }>(
-    `SELECT t.* FROM rd_tokens t JOIN rd_endpoints e ON e.id=t.endpoint_id JOIN users u ON u.id=t.owner_user_id WHERE t.token_hash=? AND t.revoked_at IS NULL AND t.expires_at>home_tunnel_now() AND e.status='active' AND u.status='active' AND u.token_version=t.parent_token_version AND (t.purpose='host_online' OR EXISTS(SELECT 1 FROM sessions s WHERE s.id=t.parent_session_id AND s.revoked_at IS NULL AND s.token_version=u.token_version AND s.refresh_expires_at>home_tunnel_now()))`,
+    `SELECT t.* FROM rd_tokens t JOIN rd_endpoints e ON e.id=t.endpoint_id JOIN users u ON u.id=t.owner_user_id WHERE t.token_hash=? AND t.revoked_at IS NULL AND t.expires_at>home_tunnel_now() AND e.status='active' AND u.status='active' AND u.token_version=t.parent_token_version AND (t.purpose='host_online' OR EXISTS(SELECT 1 FROM sessions s WHERE s.id=t.parent_session_id AND s.revoked_at IS NULL AND s.token_version=u.token_version AND s.refresh_expires_at>home_tunnel_now() AND ${nativeSessionLive}))`,
     [tokenHash(token)],
   );
   if (!row) fail(401, "RD_AUTH_REVOKED", "远程桌面凭据已失效");
@@ -589,13 +629,20 @@ export function requireController(identity: RdIdentity) {
   if (identity.purpose !== "controller_refresh" || identity.endpoint.role === "host")
     fail(403, "RD_CONTROLLER_REQUIRED", "需要控制端账号身份");
 }
+export function assertDifferentDevice(host: Endpoint, controller: Endpoint) {
+  if (
+    host.id === controller.id ||
+    (host.linked_device_id && host.linked_device_id === controller.linked_device_id)
+  )
+    fail(409, "RD_SELF_CONNECTION", "不能远程连接当前设备");
+}
 export function requireHost(identity: RdIdentity) {
   if (identity.endpoint.role === "controller") fail(403, "RD_HOST_REQUIRED", "需要被控端身份");
 }
 export async function assertLiveIdentity(db: DatabaseClient, identity: RdIdentity) {
   const valid = await first(
     db,
-    `SELECT t.id FROM rd_tokens t JOIN users u ON u.id=t.owner_user_id JOIN rd_endpoints e ON e.id=t.endpoint_id WHERE t.id=? AND t.revoked_at IS NULL AND t.expires_at>home_tunnel_now() AND u.status='active' AND t.parent_token_version=u.token_version AND e.status='active' AND (t.purpose='host_online' OR EXISTS(SELECT 1 FROM sessions s WHERE s.id=t.parent_session_id AND s.revoked_at IS NULL AND s.refresh_expires_at>home_tunnel_now() AND s.token_version=u.token_version))`,
+    `SELECT t.id FROM rd_tokens t JOIN users u ON u.id=t.owner_user_id JOIN rd_endpoints e ON e.id=t.endpoint_id WHERE t.id=? AND t.revoked_at IS NULL AND t.expires_at>home_tunnel_now() AND u.status='active' AND t.parent_token_version=u.token_version AND e.status='active' AND (t.purpose='host_online' OR EXISTS(SELECT 1 FROM sessions s WHERE s.id=t.parent_session_id AND s.revoked_at IS NULL AND s.refresh_expires_at>home_tunnel_now() AND s.token_version=u.token_version AND ${nativeSessionLive}))`,
     [identity.tokenId],
   );
   if (!valid) fail(401, "RD_AUTH_REVOKED", "远程桌面身份已撤销");
@@ -1059,6 +1106,7 @@ export async function redeemFixedPassword(
       return null;
     }
     const host = await endpointById(db, profile.host_endpoint_id, profile.host_owner_user_id);
+    assertDifferentDevice(host, identity.endpoint);
     const owner = await first(db, "SELECT id FROM users WHERE id=? AND status='active'", [
       profile.host_owner_user_id,
     ]);
@@ -1106,6 +1154,7 @@ export async function createAccessRequest(identity: RdIdentity, deviceCode: stri
     if (!profile || profile.host_owner_user_id === identity.endpoint.owner_user_id)
       fail(404, "RD_NOT_FOUND", "设备不可用");
     const host = await endpointById(db, profile.host_endpoint_id, profile.host_owner_user_id);
+    assertDifferentDevice(host, identity.endpoint);
     const owner = await first(db, "SELECT id FROM users WHERE id=? AND status='active'", [
       profile.host_owner_user_id,
     ]);
@@ -1376,6 +1425,7 @@ export async function redeemAssistInvite(
       return null;
     }
     const host = await endpointById(db, invite.host_endpoint_id, invite.host_owner_user_id);
+    assertDifferentDevice(host, identity.endpoint);
     if (
       host.status !== "active" ||
       !host.local_enabled ||
@@ -1464,6 +1514,7 @@ export async function createPairing(
       body.host_endpoint_id,
       body.assist_invite_id ? undefined : identity.endpoint.owner_user_id,
     );
+    assertDifferentDevice(host, identity.endpoint);
     if (host.owner_user_id !== identity.endpoint.owner_user_id) {
       if (!body.assist_invite_id || body.mode !== "one_session")
         fail(403, "RD_INVITE_REQUIRED", "跨账号协助需要一次性邀请");
@@ -1990,9 +2041,13 @@ async function sessionFor(db: DatabaseClient, identity: RdIdentity, id: string) 
   return row;
 }
 async function liveGrant(db: DatabaseClient, row: Session) {
+  assertDifferentDevice(
+    await endpointById(db, row.host_endpoint_id),
+    await endpointById(db, row.controller_endpoint_id),
+  );
   const grant = await first<Grant>(
     db,
-    `SELECT g.* FROM rd_grants g JOIN users h_owner ON h_owner.id=g.owner_user_id JOIN users c_owner ON c_owner.id=g.controller_owner_user_id JOIN rd_endpoints h ON h.id=g.host_endpoint_id JOIN rd_endpoints c ON c.id=g.controller_endpoint_id WHERE g.id=? AND g.status='active' AND (g.expires_at IS NULL OR g.expires_at>home_tunnel_now()) AND h_owner.status='active' AND c_owner.status='active' AND c_owner.token_version=? AND h.status='active' AND h.local_enabled=1 AND c.status='active' AND h.owner_user_id=g.owner_user_id AND c.owner_user_id=g.controller_owner_user_id AND EXISTS(SELECT 1 FROM sessions s WHERE s.id=? AND s.user_id=c_owner.id AND s.revoked_at IS NULL AND s.refresh_expires_at>home_tunnel_now() AND s.token_version=c_owner.token_version)`,
+    `SELECT g.* FROM rd_grants g JOIN users h_owner ON h_owner.id=g.owner_user_id JOIN users c_owner ON c_owner.id=g.controller_owner_user_id JOIN rd_endpoints h ON h.id=g.host_endpoint_id JOIN rd_endpoints c ON c.id=g.controller_endpoint_id WHERE g.id=? AND g.status='active' AND (g.expires_at IS NULL OR g.expires_at>home_tunnel_now()) AND h_owner.status='active' AND c_owner.status='active' AND c_owner.token_version=? AND h.status='active' AND h.local_enabled=1 AND c.status='active' AND h.owner_user_id=g.owner_user_id AND c.owner_user_id=g.controller_owner_user_id AND EXISTS(SELECT 1 FROM sessions s WHERE s.id=? AND s.user_id=c_owner.id AND s.revoked_at IS NULL AND s.refresh_expires_at>home_tunnel_now() AND s.token_version=c_owner.token_version AND ${nativeSessionLive})`,
     [row.grant_id, row.user_token_version, row.controller_parent_session_id],
   );
   if (
@@ -2120,6 +2175,7 @@ export async function createSession(
       );
       if (!grant) fail(403, "RD_PAIRING_REQUIRED", "请先完成双方配对");
       const host = await endpointById(db, body.host_endpoint_id, grant.owner_user_id);
+      assertDifferentDevice(host, identity.endpoint);
       if (grant.assist_invite_id) {
         if (grant.mode !== "one_session")
           fail(403, "RD_INVITE_INVALID", "跨账号授权必须为单次会话");
