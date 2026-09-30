@@ -2,7 +2,7 @@ name: Release server
 'on':
   push:
     tags:
-    - v*
+    - v*-rc.*
 permissions:
   contents: write
   checks: read

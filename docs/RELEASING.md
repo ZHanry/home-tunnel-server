@@ -16,7 +16,7 @@ Android 沿用原包名与已有发行签名，递增 `versionCode`，按 ABI �
 
 先冻结契约，按客户端/共享 SDK → Android 与服务端 → 入口仓库顺序发行。更新服务端 `tests/client-baseline.json` 时，必须先下载并验证真实客户端附件的 SHA-256；禁止填写预估摘要。通过 amd64/arm64 发行联调和本地虚拟机验收后发布服务端。契约标签和产品标签可以对应不同提交，但冻结的协议内容不可漂移。最后更新项目入口的 `releases.json`、网站副本和下载说明，使所有链接对应实际正式产物。
 
-服务端稳定版不通过推送 `vX.Y.Z` 标签来构建。`release.yml` 对稳定标签在 metadata 失败，镜像作业不会运行，因此不会在验收前重建最终镜像。候选构建使用源码里的稳定版本号，不把版本改写成 rc，也不创建公开标签。镜像引用是 `sha-<提交>-<run id>` 加上不可变 digest；`compose.release.yaml` 只记录 `image@digest`。
+服务端稳定版不通过推送 `vX.Y.Z` 标签来构建。`release.yml` 只监听 `v*-rc.*` 预发布标签，稳定标签不会触发这条构建流程；metadata 仍拒绝稳定标签，防止绕过入口后重建最终镜像。稳定版必须使用 `publish-stable.yml` 发布已验收的原始候选文件。候选构建使用源码里的稳定版本号，不把版本改写成 rc，也不创建公开标签。镜像引用是 `sha-<提交>-<run id>` 加上不可变 digest；`compose.release.yaml` 只记录 `image@digest`。
 
 候选入口是默认分支上已经登记的 `ci.yml` `workflow_dispatch`，输入 `build_candidate=true`。它先完成本次提交的 Quality Gate，并要求同一提交已有成功的 CodeQL 与 Secret scan。这两个安全工作流在 `main` 上已有 `workflow_dispatch`。候选作业单独持有 packages、id-token 与 attestations 权限；pull request 不满足 `workflow_dispatch` 条件，不会拿到这些权限。新的 `server-candidate.yml` 只有 `workflow_call`，本身不能被调度。`publish-stable.yml` 是新文件，在进入默认分支之前也不能被调度。在把这三份工作流文件送到 `main` 之前，不要把开发分支上的 `workflow_dispatch` 当成已经可用的入口。
 
