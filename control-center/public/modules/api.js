@@ -1,5 +1,5 @@
-import { localizedApiError, localizedText } from "./locale.js?v=10.0.0-1";
-import { state } from "./state.js?v=10.0.0-1";
+import { localizedApiError, localizedText } from "./locale.js?v=10.1.0";
+import { state } from "./state.js?v=10.1.0";
 
 let refreshInFlight = null;
 const sessionChannel = typeof window.BroadcastChannel === "function"
@@ -21,8 +21,11 @@ export class ApiError extends Error {
 async function request(path, options) {
   try {
     const timeout = AbortSignal.timeout(20_000);
+    const headers = new Headers(options.headers ?? {});
+    if (window.__htNativeRemoteWindowID) headers.set("x-native-window-id", window.__htNativeRemoteWindowID);
     return await fetch(path, {
       ...options,
+      headers,
       signal: options.signal ? AbortSignal.any([options.signal, timeout]) : timeout,
     });
   } catch (error) {

@@ -45,7 +45,7 @@ version_body=obj({"expected_version":V})
 user_props={"id":ID,"username":S,"display_name":S,"role":role,"status":enum("active","disabled"),"password_state":enum("normal","must_change"),"version":V}
 define("User",user_props,["id","username","display_name","role","password_state"])
 define("UserSummary",{**user_props,"device_count":I,"connection_count":I,"month_to_date_bytes":I,"bandwidth_limit_bps":nullable(I),"monthly_quota_bytes":nullable(I),"quota_suspended":B,"policy_version":V})
-define("Identity",{**user_props,"device_id":nullable(ID),"capabilities":array(S),"bandwidth_limit_bps":nullable(I),"monthly_quota_bytes":nullable(I),"month_to_date_bytes":I,"quota_resets_at":DATE},["id","username","role","password_state","device_id"])
+define("Identity",{**user_props,"device_id":nullable(ID),"native_remote":B,"capabilities":array(S),"bandwidth_limit_bps":nullable(I),"monthly_quota_bytes":nullable(I),"month_to_date_bytes":I,"quota_resets_at":DATE},["id","username","role","password_state","device_id"])
 session_props={"access_token":S,"refresh_token":S,"csrf_token":S,"access_expires_at":DATE,"refresh_expires_at":DATE}
 define("Session",{**session_props,"user":ref("User"),"password_change_required":B,"device_id":nullable(ID)},["user","csrf_token","access_expires_at","refresh_expires_at"])
 schemas["Session"]["description"]="Native clients receive bearer tokens. Web clients use HttpOnly cookies and receive no bearer tokens in JSON."
@@ -102,7 +102,7 @@ credentials=obj({"password":SECRET,"mfa_code":string(128)},["password"])
 def op(method,path,response=None,body=None,status=200,params=(),description=""):
     full=path if path.startswith('/internal/') else '/api/v1'+path
     path_parameters=[{"name":name,"in":"path","required":True,"schema":S} for name in re.findall(r'\{([^}]+)\}',full)]
-    public=path.startswith('/public/') or path in ('/auth/login','/auth/device','/auth/refresh','/auth/enroll')
+    public=path.startswith('/public/') or path in ('/auth/login','/auth/device','/auth/refresh','/auth/enroll','/auth/native-remote-handoff/redeem')
     internal=path.startswith('/internal/')
     security=[] if public or path in ('/internal/tls/allow','/internal/frps/plugin/{token}') else ([{"internalKey":[]}] if internal else [{"bearerAuth":[]},{"sessionCookie":[]}])
     responses={str(status):{"description":"Success"}}
@@ -128,8 +128,11 @@ op('post','/auth/refresh',ref('Refresh'),obj({"refresh_token":SECRET,"client_typ
 op('post','/auth/logout',status=204,description="Revokes current management session; for a device-bound session also revokes that device credential.")
 op('post','/auth/session/close',status=204,description="Closes only this session. Device credential remains valid; useful for diagnostic sessions.")
 op('post','/auth/password/change',body=obj({"current_password":SECRET,"new_password":{**SECRET,"minLength":12},"mfa_code":string(128)},['current_password','new_password']),status=204)
+op('post','/auth/native-remote-handoff',obj({"code":string(43,43),"window_id":ID,"expires_at":DATE},['code','window_id','expires_at']),obj({"origin":string(512,1)},['origin']),description="Native device bearer only. Issues a 30-second single-use code bound to this device, parent session and the configured origin. Never place code in a URL or logs.")
+op('post','/auth/native-remote-handoff/redeem',obj({"csrf_token":S,"device_id":ID,"expires_at":DATE},['csrf_token','device_id','expires_at']),obj({"code":string(43,43)},['code']),description="Same-origin JSON browser POST only (Origin and Sec-Fetch-Site required). Consumes code atomically and sets HttpOnly remote-controller-only cookies bound to the originating native device/session. Does not grant management authority.")
+op('patch','/devices/current/name',obj({"device_id":ID,"device_name":S},['device_id','device_name']),obj({"name":string(120,1)},['name']),description="Rename only the currently authenticated active device. Control characters are rejected; updates linked remote host names.")
 op('get','/auth/me',ref('Identity'))
-op('get','/auth/session',obj({"csrf_token":S,"session_id":ID},['csrf_token','session_id']))
+op('get','/auth/session',obj({"csrf_token":S,"session_id":ID,"native_window_id":nullable(ID)},['csrf_token','session_id']))
 op('get','/auth/sessions',obj({"items":array(ref('ManagementSession'),100),"has_more":B},['items','has_more']))
 op('delete','/auth/sessions/{id}',status=204)
 op('get','/auth/mfa',ref('MfaStatus'))
@@ -205,8 +208,8 @@ install_remote_api(globals())
 # add an explicit entry and extend this scanner; they must never silently vanish.
 source_routes=set()
 for source in (ROOT/'control-center/src/routes').rglob('*.ts'):
-    prefix='/admin' if source.parent.name=='admin' else {'auth.ts':'/auth','account-security.ts':'/auth','public.ts':'/public','internal.ts':'/internal'}.get(source.name,'')
-    for match in re.finditer(r'(router|publicRouter|admin)\.(get|post|put|patch|delete)\(\s*("[^"]+"|\[[^\]]+\])',source.read_text(encoding='utf-8')):
+    prefix='/admin' if source.parent.name=='admin' else {'auth.ts':'/auth','native-remote.ts':'/auth','account-security.ts':'/auth','public.ts':'/public','internal.ts':'/internal'}.get(source.name,'')
+    for match in re.finditer(r'(router|publicRouter|admin|nativeRemoteRouter|nativeRemotePublicRouter)\.(get|post|put|patch|delete)\(\s*("[^"]+"|\[[^\]]+\])',source.read_text(encoding='utf-8')):
         for path in re.findall(r'"([^"]+)"',match[3]):
             route_prefix = ('/admin/rd' if match[1] == 'admin' else '/rd') if source.name == 'remote-desktop.ts' else prefix
             path=re.sub(r':([a-zA-Z]+)',r'{\1}',route_prefix+path)
@@ -221,9 +224,9 @@ documented={(method,path) for path,methods in paths.items() for method in method
 assert source_routes==documented, f"Route drift: missing={source_routes-documented}, removed={documented-source_routes}"
 errors=sorted(set(re.findall(r'new HttpError\(\s*\d+,\s*"([A-Z0-9_]+)"', '\n'.join(p.read_text(encoding='utf-8') for p in (ROOT/'control-center/src').rglob('*.ts') if not p.name.endswith('.test.ts')))))
 schemas['Error']['properties']['error_code']['description']='Known codes (consumers must handle unknown codes): '+', '.join(errors)
-document={"openapi":"3.1.0","info":{"title":"Home Tunnel API","version":"1.4.0","description":"Home Tunnel 10.0.0 API 1.4.0 contract, frozen as api-v1.4.0. Adds discovered native capabilities, display DPI, four access modes, actionable connection failures, and agent-reported tunnel diagnostics. Media is UDP only: direct, or through the server's UDP TURN relay when both peers support it. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md.","license":{"name":"Apache-2.0"}},"servers":[{"url":"https://console.example.com"}],"security":[{"bearerAuth":[]},{"sessionCookie":[]}],"paths":paths,"components":{"securitySchemes":{"bearerAuth":{"type":"http","scheme":"bearer"},"sessionCookie":{"type":"apiKey","in":"cookie","name":"ht_access"},"internalKey":{"type":"apiKey","in":"header","name":"x-home-tunnel-key"},"dpopAuth":{"type":"http","scheme":"DPoP","description":"Short-lived endpoint token; requires a matching DPoP proof."},"dpopProof":{"type":"apiKey","in":"header","name":"DPoP","description":"ES256 proof binds token hash, nonce, HTTP method, canonical URL, timestamp and unique jti."}},"schemas":schemas},"x-contract-ref":"api-v1.4.0","x-contract-status":"frozen"}
+document={"openapi":"3.1.0","info":{"title":"Home Tunnel API","version":"1.5.0","description":"Home Tunnel 10.1.0 additive API 1.5.0 proposal. Adds one-time scoped native remote sign-in handoff, source-device self-remote safeguards and current-device rename; retains API 1.4 capabilities and tunnel compatibility. Media is UDP only: direct, or through the server's UDP TURN relay when both peers support it. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md.","license":{"name":"Apache-2.0"}},"servers":[{"url":"https://console.example.com"}],"security":[{"bearerAuth":[]},{"sessionCookie":[]}],"paths":paths,"components":{"securitySchemes":{"bearerAuth":{"type":"http","scheme":"bearer"},"sessionCookie":{"type":"apiKey","in":"cookie","name":"ht_access"},"internalKey":{"type":"apiKey","in":"header","name":"x-home-tunnel-key"},"dpopAuth":{"type":"http","scheme":"DPoP","description":"Short-lived endpoint token; requires a matching DPoP proof."},"dpopProof":{"type":"apiKey","in":"header","name":"DPoP","description":"ES256 proof binds token hash, nonce, HTTP method, canonical URL, timestamp and unique jti."}},"schemas":schemas},"x-contract-ref":"api-v1.5.0","x-contract-status":"proposed"}
 encoded=json.dumps(document,ensure_ascii=False,indent=2)+'\n'
-json_schema={"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://zhanry.github.io/home-tunnel/schemas/api-v1.4.0.json","$defs":schemas}
+json_schema={"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://zhanry.github.io/home-tunnel/schemas/api-v1.5.0.json","$defs":schemas}
 schema_encoded=json.dumps(json_schema,ensure_ascii=False,indent=2).replace('#/components/schemas/','#/$defs/')+'\n'
 outputs={'contracts/openapi.v1.json':encoded,'contracts/api.schema.json':schema_encoded,'control-center/public/openapi.json':encoded,'control-center/public/api-schema.json':schema_encoded}
 for name,content in outputs.items():

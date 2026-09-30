@@ -21,3 +21,10 @@ e91146c853290f1f8bc8981eda8b574d43ce4117:control-center/src/recovery-capacity.te
 # Historical password-generator alphabet, not a generated password or API key.
 # Exact reviewed finding only; future credentials in this source remain scanned.
 5dbb269027fb35d864aa47efd8d577ce0d73ce17:control-center/src/rd/service.ts:generic-api-key:787
+
+# Existing runtime-generated PEM template surfaced by CRLF-only import; no embedded key.
+4bc41748c878a01f3b668385e49493fed86f69d5:deploy/scripts/new-selfhost-config.ps1:private-key:95
+
+# The LF normalization of that same runtime-generated ExportPkcs8PrivateKey PEM template.
+# Exact historical finding only; no encoded private key is embedded in the source.
+ef072a5d88717b42e1e61d8d91d03a368d29b6d6:deploy/scripts/new-selfhost-config.ps1:private-key:95

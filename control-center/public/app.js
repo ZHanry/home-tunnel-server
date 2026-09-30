@@ -1,7 +1,7 @@
-import { createConnectionsView } from "./modules/connections.js?v=10.0.0-1";
-import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=10.0.0-1";
-import { tunnelVerification } from "./modules/tunnel-model.js?v=10.0.0-1";
-import { createAccountSecurityView } from "./modules/account-security.js?v=10.0.0-1";
+import { createConnectionsView } from "./modules/connections.js?v=10.1.0";
+import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=10.1.0";
+import { tunnelVerification } from "./modules/tunnel-model.js?v=10.1.0";
+import { createAccountSecurityView } from "./modules/account-security.js?v=10.1.0";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -9,10 +9,10 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=10.0.0-1";
-import { createDevicesView } from "./modules/devices.js?v=10.0.0-1";
-import { createRemoteView } from "./modules/remote/view.js?v=10.0.0-1";
-import { api, refreshSession, allPages } from "./modules/api.js?v=10.0.0-1";
+} from "./modules/forms.js?v=10.1.0";
+import { createDevicesView } from "./modules/devices.js?v=10.1.0";
+import { createRemoteView } from "./modules/remote/view.js?v=10.1.0";
+import { api, refreshSession, allPages } from "./modules/api.js?v=10.1.0";
 import {
   componentLabel,
   configState,
@@ -21,10 +21,10 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=10.0.0-1";
-import { localeTag, updateDocumentMetadata, t, currentThemePreference } from "./modules/locale.js?v=10.0.0-1";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=10.0.0-1";
-import { state } from "./modules/state.js?v=10.0.0-1";
+} from "./modules/format.js?v=10.1.0";
+import { localeTag, updateDocumentMetadata, t, currentThemePreference } from "./modules/locale.js?v=10.1.0";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=10.1.0";
+import { state } from "./modules/state.js?v=10.1.0";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -87,7 +87,7 @@ const userViewMeta = {
 };
 
 function isAdmin() {
-  return state.me?.role === "admin";
+  return state.me?.role === "admin" && !state.me?.native_remote;
 }
 
 function applyRoleChrome() {
@@ -101,6 +101,7 @@ function applyRoleChrome() {
 }
 
 function resolveView(view) {
+  if (state.me?.native_remote) return "remote";
   if (!isAdmin() && (view === "users" || view === "audit" || view === "settings"))
     return "dashboard";
   return viewMeta[view] ? view : "dashboard";
@@ -215,6 +216,7 @@ function setPendingCurrentPassword(password) {
 }
 
 function showLogin(message = "") {
+  if (window.__htNativeRemoteWindow || new URL(location.href).searchParams.get("nativeRemote") === "1") { showNativeRemoteFailure(); return; }
   closeRemote();
   document.body.classList.add("auth-active");
   if (modal.open) {
@@ -258,8 +260,8 @@ async function showApp() {
   document.querySelector("#user-avatar").textContent = state.me.display_name
     .slice(0, 1)
     .toUpperCase();
-  connectRealtime(() => renderView(state.currentView, { background: true }));
-  const requested = location.hash.replace("#", "");
+  if (!state.me.native_remote) connectRealtime(() => renderView(state.currentView, { background: true }));
+  const requested = state.me.native_remote ? "remote" : location.hash.replace("#", "");
   const view = resolveView(requested);
   if (location.hash !== `#${view}`) history.replaceState(null, "", `#${view}`);
   await renderView(view);
@@ -1892,7 +1894,7 @@ function confirmLogout() {
     async () => {
       closeRemote();
       try {
-        await api("/api/v1/auth/logout", { method: "POST", body: "{}" }, false);
+        await api(state.me?.native_remote ? "/api/v1/auth/session/close" : "/api/v1/auth/logout", { method: "POST", body: "{}" }, false);
       } catch {}
       modal.close("done");
       disconnectRealtime();
@@ -1905,6 +1907,19 @@ function confirmLogout() {
 
 document.querySelector("#logout-button").addEventListener("click", confirmLogout);
 
+function showNativeRemoteFailure() {
+  closeRemote();
+  disconnectRealtime();
+  state.me = null;
+  authScreen.classList.add("hidden");
+  landingScreen.classList.add("hidden");
+  appShell.classList.remove("hidden");
+  for (const control of appShell.querySelectorAll("nav, aside, #logout-button")) control.hidden = true;
+  pageTitle.textContent = "远程窗口授权已结束";
+  pageActions.replaceChildren();
+  viewContent.textContent = "请关闭此窗口并从客户端重新打开。若仍无法连接，请确认客户端和服务器均已升级至 10.1.0 或更高版本。";
+}
+
 (async () => {
   await loadPublicConfig();
   if (!location.pathname.startsWith("/admin")) {
@@ -1913,6 +1928,14 @@ document.querySelector("#logout-button").addEventListener("click", confirmLogout
   }
   landingScreen.classList.add("hidden");
   try {
+    if (new URL(location.href).searchParams.get("nativeRemote") === "1" && !window.__htNativeRemoteReady) { showNativeRemoteFailure(); return; }
+    if (window.__htNativeRemoteReady) {
+      const ready = await window.__htNativeRemoteReady;
+      if (!ready) {
+        showNativeRemoteFailure();
+        return;
+      }
+    }
     await refreshSession();
     await showApp();
   } catch {

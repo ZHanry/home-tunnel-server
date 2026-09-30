@@ -100,7 +100,11 @@ router.get(
         actor.sessionId,
       ]);
     response.setHeader("cache-control", "no-store");
-    response.json({ csrf_token: csrf, session_id: actor.sessionId });
+    response.json({
+      csrf_token: csrf,
+      session_id: actor.sessionId,
+      native_window_id: actor.nativeWindowId ?? null,
+    });
   }),
 );
 

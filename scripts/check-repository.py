@@ -25,7 +25,13 @@ if component == "server":
     local_images = re.findall(r"image: home-tunnel/(?:control-center|traffic-gateway):([^\s]+)", (root / "deploy/compose.yaml").read_text())
     assert local_images == [version + "-arm64", version + "-arm64"], "Local ARM64 deployment version drift"
     assert compat["version"] == version, "compatibility.json version differs from service packages"
-    assert set(compat["tested_combination"].values()) == {version}, "Tested combination must name the current version"
+    target = compat.get("target_combination", compat["tested_combination"])
+    assert target.get("server") == version, "Target server version must name the current source"
+    for combination in (target, compat["tested_combination"]):
+        assert set(combination) == {"server", "client", "android", "agent"}, "Incomplete component combination"
+        assert all(re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", value) for value in combination.values()), "Invalid component version"
+    if target != compat["tested_combination"]:
+        assert compat.get("tested_combination_scope"), "Historical test versions require an explicit scope; target versions are not proof of testing"
     status = compat.get("contract_status")
     assert status in ("proposed", "frozen"), "Unknown contract status"
     assert compat.get("frozen_tag") == (compat["contract_ref"] if status == "frozen" else None), "frozen_tag must match a frozen contract_ref"

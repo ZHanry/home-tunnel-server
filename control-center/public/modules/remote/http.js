@@ -24,8 +24,8 @@ export async function boundedResponse(response, maximum = 262144) {
 }
 
 export class RemoteApi {
-  constructor(accountApi, userId, isCurrent = () => true) {
-    this.accountApi = accountApi; this.userId = userId;
+  constructor(accountApi, userId, isCurrent = () => true, sourceDeviceId = null) {
+    this.accountApi = accountApi; this.userId = userId; this.sourceDeviceId = sourceDeviceId;
     this.isCurrent = isCurrent;
     this.token = null; this.nonce = null; this.refreshing = null;
     this.abort = new AbortController();
@@ -33,12 +33,12 @@ export class RemoteApi {
   assertCurrent() { if (this.abort.signal.aborted || !this.isCurrent()) throw new RemoteError("RD_SESSION_REVOKED"); }
   async account(path, options = {}) {
     this.assertCurrent();
-    const result = await this.accountApi(path, { ...options, signal: this.abort.signal }, false);
+    const result = await this.accountApi(path, { ...options, signal: this.abort.signal }, this.sourceDeviceId !== null);
     this.assertCurrent(); return result;
   }
   async initialize() {
     this.keys = await this.account("/api/v1/rd/server-keys");
-    this.identity = await browserIdentity(this.keys.server_instance_id, this.userId);
+    this.identity = await browserIdentity(this.keys.server_instance_id, this.userId, this.sourceDeviceId);
     this.assertCurrent();
     await this.identity.pinServer(this.keys);
     this.assertCurrent();

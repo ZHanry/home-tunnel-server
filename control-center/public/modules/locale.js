@@ -1,5 +1,5 @@
-import { state } from "./state.js?v=10.0.0-1";
-import { remoteTranslations } from "./remote/translations.js?v=10.0.0-1";
+import { state } from "./state.js?v=10.1.0";
+import { remoteTranslations } from "./remote/translations.js?v=10.1.0";
 
 const appShell = document.querySelector("#app-shell");
 

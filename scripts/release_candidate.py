@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 RELEASE_CONTRACT = "server-candidate/1"
-FINAL_PRODUCT_VERSION = "10.0.0"
+FINAL_PRODUCT_VERSION = "10.1.0"
 APPROVED_CANDIDATE_CALLER = ".github/workflows/ci.yml"
 APPROVED_CANDIDATE_SIGNER = ".github/workflows/server-candidate.yml"
 APPROVED_PUBLISH_WORKFLOW = ".github/workflows/publish-stable.yml"
@@ -462,8 +462,8 @@ def _batch_errors(batch, source_sha, version, now=None):
     if server.get("sha") != source_sha:
         errors.append("acceptance batch server SHA does not match this candidate")
     contract = batch.get("contract") if isinstance(batch.get("contract"), dict) else {}
-    if contract.get("ref") != "api-v1.4.0" or contract.get("immutable") is not True:
-        errors.append("immutable api-v1.4.0 contract identity is required")
+    if contract.get("ref") != "api-v1.5.0" or contract.get("immutable") is not True:
+        errors.append("immutable api-v1.5.0 contract identity is required")
     if SHA40.fullmatch(str(contract.get("revision", ""))) is None or bad_digest(contract.get("sha256")):
         errors.append("contract revision and digest are required")
     artifacts = {}
@@ -847,9 +847,9 @@ def promotion_blockers(facts):
     if facts.get("original_seal_changed"):
         blockers.append("original build seal changed")
     if facts.get("version") != FINAL_PRODUCT_VERSION:
-        blockers.append("source version is not the final 10.0.0 product version")
-    if facts.get("contract_status") != "frozen" or facts.get("contract_ref") != "api-v1.4.0":
-        blockers.append("api-v1.4.0 contract is not frozen")
+        blockers.append("source version is not the final 10.1.0 product version")
+    if facts.get("contract_status") != "frozen" or facts.get("contract_ref") != "api-v1.5.0":
+        blockers.append("api-v1.5.0 contract is not frozen")
     if not facts.get("on_main"):
         blockers.append("main does not contain the accepted SHA")
     if facts.get("tag_exists"):

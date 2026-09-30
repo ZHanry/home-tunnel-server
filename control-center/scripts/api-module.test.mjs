@@ -36,7 +36,7 @@ globalThis.MutationObserver = class {
 
 const [{ api }, { state }] = await Promise.all([
   import("../public/modules/api.js"),
-  import("../public/modules/state.js?v=10.0.0-1"),
+  import("../public/modules/state.js?v=10.1.0"),
 ]);
 
 function jsonResponse(status, body) {
@@ -105,4 +105,38 @@ test("concurrent 401 responses share one refresh-token rotation", async () => {
     "csrf-after-refresh",
   ]);
   assert.equal(state.csrf, "csrf-after-refresh");
+});
+
+test("native remote account renewal refreshes expired access and preserves window binding", async () => {
+  const { RemoteApi } = await import("../public/modules/remote/http.js");
+  window.__htNativeRemoteWindowID = "native-window-sample";
+  state.csrf = "native-csrf-before";
+  let attempts = 0,
+    refreshes = 0;
+  globalThis.fetch = async (path, options) => {
+    assert.equal(new Headers(options.headers).get("x-native-window-id"), "native-window-sample");
+    if (path === "/api/v1/auth/session")
+      return jsonResponse(401, { error_code: "SESSION_REVOKED" });
+    if (path === "/api/v1/auth/refresh") {
+      refreshes++;
+      return jsonResponse(200, { csrf_token: "native-csrf-after" });
+    }
+    assert.equal(path, "/api/v1/rd/token-challenges");
+    attempts++;
+    if (attempts === 1) return jsonResponse(401, { error_code: "SESSION_REVOKED" });
+    assert.equal(new Headers(options.headers).get("x-csrf-token"), "native-csrf-after");
+    return jsonResponse(201, { challenge_id: "renewed-native-challenge" });
+  };
+  try {
+    const remote = new RemoteApi(api, "sample-user", () => true, "sample-device");
+    const result = await remote.account("/api/v1/rd/token-challenges", {
+      method: "POST",
+      body: "{}",
+    });
+    assert.equal(result.challenge_id, "renewed-native-challenge");
+    assert.equal(refreshes, 1);
+    assert.equal(attempts, 2);
+  } finally {
+    delete window.__htNativeRemoteWindowID;
+  }
 });

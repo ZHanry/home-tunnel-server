@@ -76,7 +76,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     const generation = controllerGeneration, userId = state.me.id;
     const valid = () => generation === controllerGeneration && state.me?.id === userId;
     const operation = (async () => {
-      const context = { api: new RemoteApi(api, userId, valid) }; pendingController = context;
+      const context = { api: new RemoteApi(api, userId, valid, state.me.native_remote ? state.me.device_id : null) }; pendingController = context;
       const locked = await new Promise((resolve, reject) => {
         navigator.locks.request(`rd-controller:${location.origin}:${state.me.id}`, { ifAvailable: true }, async (lock) => {
           if (!lock) { resolve(false); return; }
@@ -179,7 +179,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     }
     const result = await api("/api/v1/rd/endpoints?limit=100&offset=0");
     if (renderId !== state.renderId) return;
-    const hosts = result.items.filter((endpoint) => endpoint.role !== "controller" && endpoint.status === "active");
+    const hosts = result.items.filter((endpoint) => endpoint.role !== "controller" && endpoint.status === "active" && (!state.me.native_remote || endpoint.linked_device_id !== state.me.device_id));
     const available = hosts.filter((endpoint) => endpoint.online && endpoint.local_enabled && endpoint.capabilities?.status === "ready" && endpoint.capabilities?.displays?.length);
     const monitor = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>';
     viewContent.innerHTML = `<div class="remote-dashboard"><section class="remote-dashboard-hero"><div><span class="eyebrow">REMOTE DESKTOP</span><h2>像坐在电脑前一样。</h2><p>选择已在线的设备，在独立窗口中查看远程画面。</p></div><button type="button" class="button button-primary" data-remote-browse>查看设备 <span aria-hidden="true">→</span></button></section><div class="remote-dashboard-heading"><h2>可连接设备</h2><span>${available.length} 台在线可连接</span></div><section class="remote-device-grid" id="remote-device-grid">${hosts.map((endpoint) => {

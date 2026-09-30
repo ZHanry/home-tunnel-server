@@ -9,10 +9,12 @@ import { authenticate, errorMiddleware, requestContext } from "./http.js";
 import { attachRealtime } from "./realtime.js";
 import { startDataMaintenance } from "./maintenance.js";
 import { adminRouter } from "./routes/admin.js";
+import { nativeRemoteRouter, nativeRemotePublicRouter } from "./routes/native-remote.js";
 import { authRouter } from "./routes/auth.js";
 import { accountSecurityRouter } from "./routes/account-security.js";
 import { platformRouter } from "./routes/platform.js";
 import { clientRouter } from "./routes/client.js";
+import { deviceNameRouter } from "./routes/device-name.js";
 import { internalRouter } from "./routes/internal.js";
 import { downloadRouter, publicRouter } from "./routes/public.js";
 import { APP_VERSION } from "./version.js";
@@ -88,11 +90,14 @@ export async function createApplication(
     response.sendFile("index.html", { root: publicDirectory });
   });
 
+  app.use("/api/v1/auth", nativeRemotePublicRouter);
   app.use(authenticate);
+  app.use("/api/v1/auth", nativeRemoteRouter);
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/auth", accountSecurityRouter);
   app.use("/api/v1/admin", adminRouter);
   app.use("/api/v1", platformRouter);
+  app.use("/api/v1", deviceNameRouter);
   app.use("/api/v1", clientRouter);
   app.use("/internal", internalRouter);
 

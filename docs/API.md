@@ -1,10 +1,10 @@
-# Home Tunnel API 1.4 / server 10.0.0
+# Home Tunnel API 1.5 proposal / server 10.1.0 candidate
 
 [OpenAPI 3.1](../contracts/openapi.v1.json) · [JSON Schema 2020-12](../contracts/api.schema.json) · [Capabilities](../control-center/src/api-capabilities.ts)
 
 `GET /api/v1/public/capabilities` returns the server version, contract version,
 minimum client versions, features and limits. The deployment serves the documents
-at `/openapi.json` and `/api-schema.json`. The spec covers 131 REST operations,
+at `/openapi.json` and `/api-schema.json`. The spec covers 135 REST operations,
 including readiness and private hooks. It does not model HTML/download redirects
 as JSON APIs. WebSocket and FRP sync envelopes remain in `home-tunnel.v1.json`.
 
@@ -32,9 +32,37 @@ or modify a peer device; `/client/devices` remains device-scoped. Internal
 hooks require private networking and, where specified, `x-home-tunnel-key`.
 Never publish the control-center, gateway, metrics or FRPS plugin ports directly.
 
-## 1.4 discovery
+## 1.5 native remote and current-device additions
 
-`contract_version` is `1.4.0`, frozen as `api-v1.4.0`. `api-v1.3.0` and earlier
+The 10.1.0 candidate proposes additive `api-v1.5.0`; its new API tag is not yet
+published. The existing `api-v1.4.0` tag and its historical bytes are unchanged.
+
+- `POST /auth/native-remote-handoff` requires a live device bearer session and the
+  exact configured HTTPS origin. It issues a single-use, 30-second opaque code
+  plus a non-secret window identity. Only the code hash is stored.
+- `POST /auth/native-remote-handoff/redeem` requires same-origin JSON browser
+  headers. Atomic redemption creates HttpOnly cookies limited to a source-bound
+  remote controller, with a hard lifetime of at most eight hours and revocation
+  tied to the native parent session. General account/admin/tunnel mutation and
+  ordinary account WebSocket access remain forbidden.
+- `GET /auth/session` optionally returns the non-secret `native_window_id` for
+  reload/refresh binding; `/auth/me` identifies `native_remote` sessions. Neither
+  response exposes a reusable bearer token to a browser.
+- `PATCH /devices/current/name` accepts only a name for the authenticated active
+  device, never another device ID. Names are trimmed, limited to 120 UTF-16 code
+  units, and reject control characters. Owned active remote-host display names
+  stay aligned. Native remote-window cookies cannot rename a device.
+
+Native windows do not put handoff codes or credentials in URLs or storage.
+Their source-bound controllers cannot pair with or create a session targeting
+the same linked device. Existing 1.4 remote capability and transport rules remain.
+These routes require Server 10.1.0; older servers return a clear upgrade requirement
+from the corresponding desktop operations.
+
+## 1.4 discovery (retained compatibility)
+
+The stable 10.0.0 `contract_version` is `1.4.0`, frozen as `api-v1.4.0`; the
+10.1.0 candidate advertises `1.5.0` while its contract is under review. `api-v1.3.0` and earlier
 contract tags are unchanged. A server `remote_desktop.enabled` flag only opens
 the control plane. Audio, files, displays, DPI, and secure desktop are available
 only when the signed endpoint capability says the device agent discovered them.

@@ -130,7 +130,7 @@ def acceptance_bundle():
         "frp": "0.70.1",
         "sources": sources,
         "contract": {
-            "ref": "api-v1.4.0",
+            "ref": "api-v1.5.0",
             "revision": sha40("contract"),
             "sha256": digest("contract"),
             "immutable": True,
@@ -260,13 +260,13 @@ def origin_record():
 class CandidatePolicyTests(unittest.TestCase):
     def test_branch_candidate_keeps_a_stable_version_without_main(self):
         branch = release_candidate.validate_candidate_request(
-            "workflow_dispatch", "refs/heads/codex/v10-overhaul", sha40("head"), "10.0.0"
+            "workflow_dispatch", "refs/heads/codex/v10-overhaul", sha40("head"), "10.1.0"
         )
         self.assertEqual(branch, "codex/v10-overhaul")
         with self.assertRaisesRegex(SystemExit, "pull_request"):
-            release_candidate.validate_candidate_request("pull_request", "refs/pull/1/merge", sha40("head"), "10.0.0")
+            release_candidate.validate_candidate_request("pull_request", "refs/pull/1/merge", sha40("head"), "10.1.0")
         with self.assertRaisesRegex(SystemExit, "not an rc"):
-            release_candidate.validate_candidate_request("workflow_dispatch", "refs/heads/codex/v10-overhaul", sha40("head"), "10.0.0-rc.1")
+            release_candidate.validate_candidate_request("workflow_dispatch", "refs/heads/codex/v10-overhaul", sha40("head"), "10.1.0-rc.1")
         with self.assertRaisesRegex(SystemExit, "do not build"):
             release_candidate.refuse_stable_server_rebuild("server", None)
         release_candidate.refuse_stable_server_rebuild("server", "1")
@@ -495,21 +495,21 @@ class CandidatePolicyTests(unittest.TestCase):
             self.assertIn(coverage, current_notes)
 
     def test_publication_refuses_replacement_and_accepts_the_frozen_tree(self):
-        self.assertEqual(release_candidate.publication_tag("10.0.0"), "v10.0.0")
+        self.assertEqual(release_candidate.publication_tag("10.1.0"), "v10.1.0")
         with self.assertRaisesRegex(SystemExit, "non-final"):
             release_candidate.publication_tag("9.0.0")
         with self.assertRaisesRegex(SystemExit, "existing tag"):
-            release_candidate.assert_tag_unpublished({"ref": "refs/tags/v10.0.0"})
+            release_candidate.assert_tag_unpublished({"ref": "refs/tags/v10.1.0"})
         with self.assertRaisesRegex(SystemExit, "published assets"):
-            release_candidate.assert_assets_unpublished(["home-tunnel-server-10.0.0.tar.gz"])
+            release_candidate.assert_assets_unpublished(["home-tunnel-server-10.1.0.tar.gz"])
         ready = {
             "rebuilt": False,
             "origin_verified": True,
             "acceptance_errors": [],
             "original_seal_changed": False,
-            "version": "10.0.0",
+            "version": "10.1.0",
             "contract_status": "frozen",
-            "contract_ref": "api-v1.4.0",
+            "contract_ref": "api-v1.5.0",
             "on_main": True,
             "tag_exists": False,
             "assets_exist": False,
@@ -523,12 +523,19 @@ class CandidatePolicyTests(unittest.TestCase):
         package = json.loads((ROOT / "control-center/package.json").read_text(encoding="utf-8"))
         compatibility = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
         current = dict(ready, version=package["version"], contract_status=compatibility["contract_status"], contract_ref=compatibility["contract_ref"])
-        # The checked-in source is the final 10.0.0 version with api-v1.4.0 frozen.
-        self.assertEqual(release_candidate.promotion_blockers(current), [])
+        # The next contract is proposed until its immutable publication is reviewed.
+        self.assertEqual(release_candidate.promotion_blockers(current), ["api-v1.5.0 contract is not frozen"])
         stale = dict(ready, version="9.0.0", contract_status="proposed")
         blockers = release_candidate.promotion_blockers(stale)
-        self.assertTrue(any("10.0.0" in item for item in blockers))
+        self.assertTrue(any("10.1.0" in item for item in blockers))
         self.assertTrue(any("frozen" in item for item in blockers))
+
+    def test_candidate_target_does_not_relabel_historical_coverage(self):
+        compatibility = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
+        self.assertEqual(compatibility["target_combination"]["server"], "10.1.0")
+        self.assertEqual(compatibility["target_combination"]["android"], "10.0.0")
+        self.assertEqual(set(compatibility["tested_combination"].values()), {"10.0.0"})
+        self.assertIn("acceptance pending", compatibility["tested_combination_scope"])
 
     def test_original_seal_and_artifact_paths_stay_intact(self):
         import tempfile

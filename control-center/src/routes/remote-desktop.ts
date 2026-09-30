@@ -127,10 +127,11 @@ const byteBudget: RequestHandler = asyncHandler(async (request: Request, respons
 });
 router.use(byteBudget);
 admin.use(byteBudget);
-function account(request: Request) {
+function account(request: Request, allowNativeController = false) {
   const actor = requirePasswordNormal(request);
   requireCsrf(request);
-  if (actor.deviceId) rd.fail(403, "RD_ACCOUNT_REQUIRED", "需要账号管理身份");
+  if (actor.deviceId && !(allowNativeController && actor.nativeRemote))
+    rd.fail(403, "RD_ACCOUNT_REQUIRED", "需要账号管理身份");
   if (
     actor.authSource === "cookie" &&
     !["GET", "HEAD"].includes(request.method) &&
@@ -145,7 +146,10 @@ function identity(request: Request) {
 }
 function viewer(request: Request) {
   const current = request.rdIdentity;
-  return { owner: current?.endpoint.owner_user_id ?? account(request).userId, identity: current };
+  return {
+    owner: current?.endpoint.owner_user_id ?? account(request, true).userId,
+    identity: current,
+  };
 }
 function page(request: Request) {
   return parseBody(
@@ -224,7 +228,7 @@ router.post(
       }),
       request.body,
     );
-    response.status(201).json(await rd.enrollmentChallenge(account(request), body));
+    response.status(201).json(await rd.enrollmentChallenge(account(request, true), body));
   }),
 );
 router.post(
@@ -239,7 +243,7 @@ router.post(
       }),
       request.body,
     );
-    response.status(201).json(await rd.enroll(account(request), body));
+    response.status(201).json(await rd.enroll(account(request, true), body));
   }),
 );
 router.post(
@@ -256,7 +260,7 @@ router.post(
         await rd.tokenChallenge(
           body.endpoint_id,
           body.purpose,
-          body.purpose === "controller_refresh" ? account(request) : undefined,
+          body.purpose === "controller_refresh" ? account(request, true) : undefined,
         ),
       );
   }),
@@ -269,7 +273,7 @@ router.post(
       z.strictObject({ endpoint_id: uuid, challenge_id: uuid, proof: signature }),
       request.body,
     );
-    const result = await rd.refreshToken(body, request.actor ? account(request) : undefined);
+    const result = await rd.refreshToken(body, request.actor ? account(request, true) : undefined);
     if (!request.actor && !(request as Request).rdIdentity) {
       const refreshed = await rd.tokenIdentity(result.token);
       await rd.accountSignalBytes(
