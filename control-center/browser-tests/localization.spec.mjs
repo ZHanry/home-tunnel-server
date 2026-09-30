@@ -81,10 +81,17 @@ test("confirmation dialogs localize their consequences and preserve the selected
   test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
+  // Exercise an initially idle container while session restoration is pending.
+  await page.route("**/api/v1/auth/session", async route => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await route.continue();
+  });
   for (const [view, action] of [["users", "reset-password"], ["users", "delete-user"], ["users", "toggle-user"], ["devices", "delete-device"], ["connections", "delete-connection"]]) {
     await page.goto(`/admin#${view}`);
     await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
     const button = page.locator(`[data-action="${action}"]`).first();
+    // count() does not wait: the initial aria-busy=false can precede rendering.
+    await expect(button).toBeAttached();
     const menu = button.locator("xpath=ancestor::details");
     if (await menu.count()) await menu.locator("summary").click();
     await button.click();
