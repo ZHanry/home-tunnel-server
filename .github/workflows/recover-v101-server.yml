@@ -1,0 +1,25 @@
+name: Recover exact v10.1 server source once
+on:
+  push:
+    branches: [codex/windows-v10-1]
+    paths: ['.github/workflows/recover-v101-server.yml']
+permissions:
+  contents: read
+concurrency:
+  group: recover-v101-server
+  cancel-in-progress: false
+jobs:
+  recover:
+    if: github.repository == 'ZHanry/home-tunnel-server' && github.ref == 'refs/heads/codex/windows-v10-1' && github.event_name == 'push' && github.event.before == 'ef072a5d88717b42e1e61d8d91d03a368d29b6d6'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: true
+      - name: Reconstruct only reviewed hashes and push this branch without force
+        run: python3 -I .recovery/v10.1-server/recover.py
