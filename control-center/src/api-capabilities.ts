@@ -3,7 +3,7 @@ import { rdConfig, relayEnabled } from "./rd/config.js";
 
 export const apiCapabilities = {
   api_major: 1,
-  contract_version: "1.4.0",
+  contract_version: "1.5.0",
   server_version: APP_VERSION,
   minimum_clients: { desktop: "7.0.0", android: "7.0.0", agent: "7.0.0" },
   openapi_url: "/openapi.json",
@@ -46,6 +46,7 @@ export const apiCapabilities = {
     "rd_discovered_capabilities",
     "tunnel_agent_diagnostics",
     "rd_udp_relay",
+    "native_remote_handoff",
   ],
   limits: {
     page_size: 100,

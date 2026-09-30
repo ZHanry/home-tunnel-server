@@ -1,5 +1,13 @@
 # Changelog
 
+## 10.1.0 — candidate (not yet released)
+
+- Add a short-lived, single-use native remote sign-in handoff, scoped child sessions, parent-session revocation, and source-device binding. The handoff does not grant account or administration access.
+- Reject remote authorization and sessions that target the controller's linked device.
+- Add an authenticated current-device rename endpoint, with validation, audit history, and account isolation.
+- Propose additive API 1.5.0 without modifying the published API 1.4.0 tag. Existing tunnels retain compatibility.
+- Deployment and final-artifact acceptance remain pending. This candidate does not change a running production console.
+
 ## 10.0.0
 
 - Freeze API 1.4.0 as `api-v1.4.0`; server/Web, desktop/CLI, Android and the managed Agent use 10.0.0.

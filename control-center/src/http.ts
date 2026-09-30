@@ -3,6 +3,7 @@ import type { NextFunction, Request, RequestHandler, Response } from "express";
 import type { DatabaseClient } from "./db.js";
 import { config } from "./config.js";
 import { one } from "./db.js";
+import { nativeRemoteRouteAllowed, nativeSessionLive } from "./native-session.js";
 import { sessionCsrf } from "./protected-secrets.js";
 import {
   constantTimeStringEqual,
@@ -155,6 +156,8 @@ export function clearSessionCookies(response: Response): void {
 
 type SessionRow = {
   session_id: string;
+  client_type: string;
+  native_parent_session_id: string | null;
   user_id: string;
   device_id: string | null;
   username: string;
@@ -186,13 +189,13 @@ export const authenticate: RequestHandler = asyncHandler(async (request, _respon
     return;
   }
   const session = await one<SessionRow>(
-    `SELECT s.id AS session_id, s.user_id, s.device_id,
+    `SELECT s.id AS session_id, s.user_id, s.device_id, s.client_type, s.native_parent_session_id,
             u.username, u.display_name, u.role, u.status, u.password_state,
             u.token_version, s.token_version AS session_token_version,
             s.csrf_token_hash
        FROM sessions s JOIN users u ON u.id=s.user_id
       WHERE s.access_token_hash=? AND s.revoked_at IS NULL
-        AND s.access_expires_at > home_tunnel_now()`,
+        AND s.access_expires_at > home_tunnel_now() AND ${nativeSessionLive}`,
     [tokenHash(token)],
   );
   if (!session) {
@@ -213,7 +216,15 @@ export const authenticate: RequestHandler = asyncHandler(async (request, _respon
   if (session.token_version !== session.session_token_version) {
     throw new HttpError(401, "SESSION_REVOKED", "会话版本已失效");
   }
+  const expectedWindow = request.header("x-native-window-id");
+  if (expectedWindow && expectedWindow !== session.native_parent_session_id)
+    throw new HttpError(403, "NATIVE_REMOTE_SCOPE", "远程窗口身份已更改，请重新打开");
+  const nativeRemote = session.client_type === "native_remote";
+  if (nativeRemote && !nativeRemoteRouteAllowed(request.method, request.originalUrl.split("?")[0]!))
+    throw new HttpError(403, "NATIVE_REMOTE_SCOPE", "远程窗口仅允许远程控制操作");
   request.actor = {
+    nativeRemote,
+    nativeWindowId: session.native_parent_session_id,
     sessionId: session.session_id,
     userId: session.user_id,
     deviceId: session.device_id,

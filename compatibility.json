@@ -2,16 +2,24 @@
   "component": "server",
   "stage": "public-release",
   "api_major": 1,
-  "contract_ref": "api-v1.4.0",
-  "contract_status": "frozen",
-  "frozen_tag": "api-v1.4.0",
-  "support_policy": "10.0.0 release with the frozen api-v1.4.0 contract on /api/v1. RD remains disabled by default. Remote control payloads prefer direct UDP P2P; an optional UDP TURN relay carries end-to-end DTLS traffic for browser viewers and 10.0.0 hosts, with no TCP fallback. New capabilities require matching 10.0.0 clients and signed host reports; existing 7.0 tunnels remain supported. Back up and test restore before deployment. The release notes and attached acceptance record identify verified and unverified coverage. FRP follows its separate upstream version.",
-  "version": "10.0.0",
+  "contract_ref": "api-v1.5.0",
+  "contract_status": "proposed",
+  "frozen_tag": null,
+  "support_policy": "10.1.0 candidate with the proposed additive api-v1.5.0 contract on /api/v1. Adds scoped one-time native remote sign-in handoff, self-remote safeguards and current-device rename. RD remains disabled by default; signed grants and discovered capabilities still apply. Existing 7.0+ tunnels remain supported. Back up and test restore before deployment. The release notes identify verified and unverified coverage; final-artifact acceptance is pending. FRP follows its separate upstream version.",
+  "version": "10.1.0",
   "minimum_server": "7.0.0",
   "tested_combination": {
     "server": "10.0.0",
     "client": "10.0.0",
     "android": "10.0.0",
     "agent": "10.0.0"
+  },
+  "tested_combination_scope": "historical 10.0.0 candidate only; 10.1.0 final-artifact acceptance pending",
+  "previous_immutable_tag": "api-v1.4.0",
+  "target_combination": {
+    "server": "10.1.0",
+    "client": "10.1.0",
+    "android": "10.0.0",
+    "agent": "10.1.0"
   }
 }

@@ -98,9 +98,9 @@ async function stored(key, replacement) {
     });
   } finally { db.close(); }
 }
-export async function browserIdentity(serverId, userId) {
+export async function browserIdentity(serverId, userId, sourceDeviceId = null) {
   if (!serverId || !userId) throw new Error("RD_AUTH_REQUIRED");
-  const key = JSON.stringify([location.origin, serverId, userId]);
+  const key = JSON.stringify([location.origin, serverId, userId, ...(sourceDeviceId ? ["native", sourceDeviceId] : [])]);
   async function obtain() {
     let identity = await stored(key);
     if (!identity) {

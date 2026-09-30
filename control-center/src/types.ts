@@ -2,6 +2,8 @@ import type { Request } from "express";
 
 export type AuthenticatedActor = {
   sessionId: string;
+  nativeRemote?: boolean;
+  nativeWindowId?: string | null;
   userId: string;
   deviceId: string | null;
   username: string;

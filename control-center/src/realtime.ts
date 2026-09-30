@@ -58,7 +58,8 @@ async function authenticateUpgrade(credential: UpgradeCredential): Promise<Socke
     `SELECT s.user_id AS "userId",s.device_id AS "deviceId",u.role
        FROM sessions s JOIN users u ON u.id=s.user_id
       WHERE s.access_token_hash=? AND s.revoked_at IS NULL AND s.access_expires_at>home_tunnel_now()
-        AND s.token_version=u.token_version AND u.status='active'`,
+        AND s.token_version=u.token_version AND u.status='active'
+        AND s.client_type<>'native_remote' AND s.native_parent_session_id IS NULL`,
     [tokenHash(credential.token)],
   );
 }

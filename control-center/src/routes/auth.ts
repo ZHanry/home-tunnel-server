@@ -26,6 +26,7 @@ import {
 } from "../security.js";
 import { parseBody } from "../validation.js";
 import { derivedToken, sessionCsrf } from "../protected-secrets.js";
+import { nativeSessionLive } from "../native-session.js";
 import { verifyMfa } from "../mfa.js";
 
 type UserRow = {
@@ -245,6 +246,8 @@ router.post(
     const rotation = await transaction(async (client) => {
       const selected = await client.query<{
         id: string;
+        native_live: number;
+        native_parent_session_id: string | null;
         user_id: string;
         token_family: string;
         token_version: string;
@@ -260,17 +263,22 @@ router.post(
         refresh_retry_until_at: Date | null;
         refresh_fingerprint: string | null;
       }>(
-        `SELECT s.id,s.user_id,s.token_family,s.token_version,
+        `SELECT s.id,s.user_id,s.token_family,s.token_version,s.native_parent_session_id,
                 u.token_version AS user_token_version,s.refresh_token_hash,
                 s.previous_refresh_token_hash,s.refresh_expires_at,s.revoked_at,u.status,
-                s.client_type,s.access_token_hash,s.access_expires_at,s.refresh_retry_until_at,s.refresh_fingerprint
+                s.client_type,s.access_token_hash,s.access_expires_at,s.refresh_retry_until_at,s.refresh_fingerprint,
+                ${nativeSessionLive} AS native_live
            FROM sessions s JOIN users u ON u.id=s.user_id
           WHERE s.refresh_token_hash=? OR s.previous_refresh_token_hash=?`,
         [presentedHash, presentedHash],
       );
       const session = selected.rows[0];
       if (!session) throw new HttpError(401, "SESSION_REVOKED", "刷新令牌无效");
+      const expectedWindow = request.header("x-native-window-id");
+      if (expectedWindow && expectedWindow !== session.native_parent_session_id)
+        throw new HttpError(403, "NATIVE_REMOTE_SCOPE", "远程窗口身份已更改，请重新打开");
       if (
+        !session.native_live ||
         session.revoked_at ||
         session.refresh_expires_at.getTime() <= Date.now() ||
         session.status !== "active" ||
@@ -278,12 +286,17 @@ router.post(
       ) {
         throw new HttpError(401, "SESSION_REVOKED", "会话已过期或被撤销");
       }
+      if (
+        session.client_type === "native_remote" &&
+        (body.client_type !== "web" || body.refresh_token !== undefined)
+      )
+        throw new HttpError(403, "NATIVE_REMOTE_SCOPE", "远程窗口必须使用安全 Cookie 会话");
       if (session.previous_refresh_token_hash === presentedHash) {
         // Browsers share cookies across tabs. A short, fingerprint-bound retry
         // returns the SAME rotation after a race/lost response; it never extends
         // the retry window. Native sessions and later replays remain fail-closed.
         if (
-          session.client_type === "web" &&
+          ["web", "native_remote"].includes(session.client_type) &&
           body.client_type === "web" &&
           parseCookies(request).ht_refresh === presented &&
           session.refresh_retry_until_at &&
@@ -520,8 +533,10 @@ router.get(
       status: actor.status,
       password_state: actor.passwordState,
       device_id: actor.deviceId,
-      capabilities:
-        actor.role === "admin"
+      native_remote: actor.nativeRemote === true,
+      capabilities: actor.nativeRemote
+        ? ["remote:controller"]
+        : actor.role === "admin"
           ? ["admin:users", "admin:devices", "admin:connections", "admin:audit", "admin:health"]
           : ["client:devices", "client:connections", "client:sync", "client:diagnostics"],
     });
