@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "repository": "ZHanry/home-tunnel-server",
+  "branch": "codex/freeze-api-v1-5",
+  "expected_parent": "e0bd2f1e4f7622b1f10b5d683551f793f02b4771",
+  "patch_sha256": "2df05b15679e889050693f6bd5d245b24f34d563a9d6c901a819e9c947500068",
+  "files": [
+    {
+      "path": "CHANGELOG.md",
+      "before_sha256": "80a9c06076e2fffda6ada60fa2742ff2ff924cc125cc9ae9c84385d68e5e7c3a",
+      "after_sha256": "d0a71f7340463c11e958dcdfd1169475df4ba1a2794d3473bc8e9f907ada4f3b",
+      "after_bytes": 7126
+    },
+    {
+      "path": "compatibility.json",
+      "before_sha256": "8e94dcb01295b1cf16b6fb0943e4aeb81cde347c8639c739dd3f7c17aa95b5c6",
+      "after_sha256": "a95b851775ddd4ee3a65423fa43fe63c415ddc2f596c3161897ce47e038d3e88",
+      "after_bytes": 1134
+    },
+    {
+      "path": "contracts/README.md",
+      "before_sha256": "3f0de58db74a1b57245eb26569d106d763022ae5fd148973346856a14453d4ef",
+      "after_sha256": "1122cbc3894f73e33d238c3f7bed155715dbced1220d09cf80ba462ef37cd88c",
+      "after_bytes": 1488
+    },
+    {
+      "path": "contracts/openapi.v1.json",
+      "before_sha256": "ea22c18e354e5c7af2bc74688db147e8944a901a1e880b99d98ef2c967e10160",
+      "after_sha256": "c447a23f72b9f72efc118d75cd7cf3e071e0533e2bf0773e9b34f0e1ec779f54",
+      "after_bytes": 1014936
+    },
+    {
+      "path": "control-center/public/openapi.json",
+      "before_sha256": "ea22c18e354e5c7af2bc74688db147e8944a901a1e880b99d98ef2c967e10160",
+      "after_sha256": "c447a23f72b9f72efc118d75cd7cf3e071e0533e2bf0773e9b34f0e1ec779f54",
+      "after_bytes": 1014936
+    },
+    {
+      "path": "docs/API.md",
+      "before_sha256": "ef010cd38c50ec50de5568c0fe0cd9480de4e0b00b8d5d37385fa7e3276f91e5",
+      "after_sha256": "5ce33b1d30dc25f4b00bcc90734a9f61036b7d8f017e09968a4b3a3891808bd7",
+      "after_bytes": 10242
+    },
+    {
+      "path": "docs/RELEASE_NOTES.md",
+      "before_sha256": "4c2eef44b3744a3287456525babe46ba59e65560e6163dd38c2d133f0da009a9",
+      "after_sha256": "e9283d659e1d9ec80c0ecc4a340a2a6dec8c10be705e38d696a41a67d5d5ce1b",
+      "after_bytes": 9003
+    },
+    {
+      "path": "docs/RELEASING.md",
+      "before_sha256": "8e7f83552467e79a09bd74f9f4173b71f082a4713d829ee5a66571fbdf6c5794",
+      "after_sha256": "c02b842a4522ffdd3029d3c20e58c1f49ea87abc3fb7cebd611a765e42cb9196",
+      "after_bytes": 6579
+    },
+    {
+      "path": "docs/UPGRADING.md",
+      "before_sha256": "81e7b86d2476056843c1ebb5daa60f04c0d1ef985385eda87660522f6e2facdb",
+      "after_sha256": "9a0a34196fe3e9b5b8b8140544f0df3a5233c8996e2557a560287a1cd6f32ca3",
+      "after_bytes": 8871
+    },
+    {
+      "path": "docs/api-v1.5.0-source-verification.json",
+      "before_sha256": null,
+      "after_sha256": "5ef2698923205bf338c432698c9391e4271534d5d3c320449a84e2de5a61c0e7",
+      "after_bytes": 8855
+    },
+    {
+      "path": "scripts/generate-api-spec.py",
+      "before_sha256": "89c5321ed5147ea41c7efc9eb6c2b9021db7a3753d7f3499bbc9cdc763f930b6",
+      "after_sha256": "6afe1196bc2702f3ae36cf52a3022362fdbd9df157e69946d988fd0a5ee4418a",
+      "after_bytes": 32350
+    },
+    {
+      "path": "scripts/test_release_candidate.py",
+      "before_sha256": "0a3ee88b1e5d19290ea6063417ce53eab0152ebfc1fd74c9bec3e48fdc072c23",
+      "after_sha256": "4e43f3f9a94c5ea1e80cc3749a16f1ac6697e86de2e0ed11bc3cc946c2fa975d",
+      "after_bytes": 30650
+    }
+  ]
+}

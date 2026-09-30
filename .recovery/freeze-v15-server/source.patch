@@ -1,0 +1,485 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b0979be..9d847bc 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,7 +5,7 @@
+ - Add a short-lived, single-use native remote sign-in handoff, scoped child sessions, parent-session revocation, and source-device binding. The handoff does not grant account or administration access.
+ - Reject remote authorization and sessions that target the controller's linked device.
+ - Add an authenticated current-device rename endpoint, with validation, audit history, and account isolation.
+-- Propose additive API 1.5.0 without modifying the published API 1.4.0 tag. Existing tunnels retain compatibility.
++- Freeze additive API 1.5.0 in source for immutable `api-v1.5.0` publication after clean-main verification, without modifying the published API 1.4.0 tag. Existing tunnels retain compatibility.
+ - Deployment and final-artifact acceptance remain pending. This candidate does not change a running production console.
+ 
+ ## 10.0.0
+diff --git a/compatibility.json b/compatibility.json
+index caad748..4dd59d2 100644
+--- a/compatibility.json
++++ b/compatibility.json
+@@ -3,9 +3,9 @@
+   "stage": "public-release",
+   "api_major": 1,
+   "contract_ref": "api-v1.5.0",
+-  "contract_status": "proposed",
+-  "frozen_tag": null,
+-  "support_policy": "10.1.0 candidate with the proposed additive api-v1.5.0 contract on /api/v1. Adds scoped one-time native remote sign-in handoff, self-remote safeguards and current-device rename. RD remains disabled by default; signed grants and discovered capabilities still apply. Existing 7.0+ tunnels remain supported. Back up and test restore before deployment. The release notes identify verified and unverified coverage; final-artifact acceptance is pending. FRP follows its separate upstream version.",
++  "contract_status": "frozen",
++  "frozen_tag": "api-v1.5.0",
++  "support_policy": "10.1.0 candidate with the frozen additive api-v1.5.0 contract on /api/v1. Adds scoped one-time native remote sign-in handoff, self-remote safeguards and current-device rename. RD remains disabled by default; signed grants and discovered capabilities still apply. Existing 7.0+ tunnels remain supported. Back up and test restore before deployment. The release notes identify verified and unverified coverage; final-artifact acceptance is pending. FRP follows its separate upstream version.",
+   "version": "10.1.0",
+   "minimum_server": "7.0.0",
+   "tested_combination": {
+diff --git a/contracts/README.md b/contracts/README.md
+index b8cb721..97fdab4 100644
+--- a/contracts/README.md
++++ b/contracts/README.md
+@@ -1,12 +1,17 @@
+ # API contract ownership
+ 
+-The server owns the API contracts. Version **1.4.0** is frozen for 10.0.0.
+-It adds discovered native capabilities, display DPI, four access modes,
+-actionable session failures, and agent-reported tunnel diagnostics under
+-`/api/v1`. Publish the immutable `api-v1.4.0` tag on the reviewed server commit
+-that carries `contract_status: frozen`, then consumers import from that tag and
+-update their locks. Never move it. The immutable `api-v1.3.0` tag and every
+-earlier tag stay unchanged.
++The server owns the API contracts. Version **1.5.0** is frozen in source for
++the 10.1.0 candidate. It adds a scoped, one-time native remote sign-in handoff,
++source-device safeguards and current-device rename under `/api/v1`. Existing
++1.4 operations and required fields are retained; remote wire registries and
++authorization/test vectors are unchanged. Android 10.0.0 retains its 1.4 lock.
++
++After the reviewed clean server commit passes its checks, publish the immutable
++`api-v1.5.0` tag on that exact commit, then consumers import from the verified
++tag and update all locks together. A source freeze does not assert that the tag
++or product Release already exists. Never move it. The immutable `api-v1.4.0`
++tag and every earlier tag stay unchanged. Source verification does not replace
++final-artifact runtime acceptance.
+ `openapi.v1.json` covers REST requests/responses; `api.schema.json` contains the
+ shared JSON Schema types. `home-tunnel.v1.json` remains byte-identical to the
+ historical `api-v1.0.0` sync/realtime fixture.
+diff --git a/contracts/openapi.v1.json b/contracts/openapi.v1.json
+index 66484f6..8c02ae5 100644
+--- a/contracts/openapi.v1.json
++++ b/contracts/openapi.v1.json
+@@ -3,7 +3,7 @@
+   "info": {
+     "title": "Home Tunnel API",
+     "version": "1.5.0",
+-    "description": "Home Tunnel 10.1.0 additive API 1.5.0 proposal. Adds one-time scoped native remote sign-in handoff, source-device self-remote safeguards and current-device rename; retains API 1.4 capabilities and tunnel compatibility. Media is UDP only: direct, or through the server's UDP TURN relay when both peers support it. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md.",
++    "description": "Home Tunnel 10.1.0 additive API 1.5.0 frozen contract. Adds one-time scoped native remote sign-in handoff, source-device self-remote safeguards and current-device rename; retains API 1.4 capabilities and tunnel compatibility. Media is UDP only: direct, or through the server's UDP TURN relay when both peers support it. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md.",
+     "license": {
+       "name": "Apache-2.0"
+     }
+@@ -24986,5 +24986,5 @@
+     }
+   },
+   "x-contract-ref": "api-v1.5.0",
+-  "x-contract-status": "proposed"
++  "x-contract-status": "frozen"
+ }
+diff --git a/control-center/public/openapi.json b/control-center/public/openapi.json
+index 66484f6..8c02ae5 100644
+--- a/control-center/public/openapi.json
++++ b/control-center/public/openapi.json
+@@ -3,7 +3,7 @@
+   "info": {
+     "title": "Home Tunnel API",
+     "version": "1.5.0",
+-    "description": "Home Tunnel 10.1.0 additive API 1.5.0 proposal. Adds one-time scoped native remote sign-in handoff, source-device self-remote safeguards and current-device rename; retains API 1.4 capabilities and tunnel compatibility. Media is UDP only: direct, or through the server's UDP TURN relay when both peers support it. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md.",
++    "description": "Home Tunnel 10.1.0 additive API 1.5.0 frozen contract. Adds one-time scoped native remote sign-in handoff, source-device self-remote safeguards and current-device rename; retains API 1.4 capabilities and tunnel compatibility. Media is UDP only: direct, or through the server's UDP TURN relay when both peers support it. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md.",
+     "license": {
+       "name": "Apache-2.0"
+     }
+@@ -24986,5 +24986,5 @@
+     }
+   },
+   "x-contract-ref": "api-v1.5.0",
+-  "x-contract-status": "proposed"
++  "x-contract-status": "frozen"
+ }
+diff --git a/docs/API.md b/docs/API.md
+index dc30161..1f98b82 100644
+--- a/docs/API.md
++++ b/docs/API.md
+@@ -1,4 +1,4 @@
+-# Home Tunnel API 1.5 proposal / server 10.1.0 candidate
++# Home Tunnel API 1.5 frozen source / server 10.1.0 candidate
+ 
+ [OpenAPI 3.1](../contracts/openapi.v1.json) · [JSON Schema 2020-12](../contracts/api.schema.json) · [Capabilities](../control-center/src/api-capabilities.ts)
+ 
+@@ -34,8 +34,11 @@ Never publish the control-center, gateway, metrics or FRPS plugin ports directly
+ 
+ ## 1.5 native remote and current-device additions
+ 
+-The 10.1.0 candidate proposes additive `api-v1.5.0`; its new API tag is not yet
+-published. The existing `api-v1.4.0` tag and its historical bytes are unchanged.
++The 10.1.0 candidate freezes additive `api-v1.5.0` in source. Publish its new
++immutable API tag only after the reviewed clean server commit passes its checks;
++consumers must verify that tag and import its exact commit. The existing
++`api-v1.4.0` tag and its historical bytes are unchanged. Contract source
++verification is separate from final-package acceptance and production deployment.
+ 
+ - `POST /auth/native-remote-handoff` requires a live device bearer session and the
+   exact configured HTTPS origin. It issues a single-use, 30-second opaque code
+@@ -62,7 +65,7 @@ from the corresponding desktop operations.
+ ## 1.4 discovery (retained compatibility)
+ 
+ The stable 10.0.0 `contract_version` is `1.4.0`, frozen as `api-v1.4.0`; the
+-10.1.0 candidate advertises `1.5.0` while its contract is under review. `api-v1.3.0` and earlier
++10.1.0 candidate advertises `1.5.0` with its additive contract frozen in source. `api-v1.3.0` and earlier
+ contract tags are unchanged. A server `remote_desktop.enabled` flag only opens
+ the control plane. Audio, files, displays, DPI, and secure desktop are available
+ only when the signed endpoint capability says the device agent discovered them.
+@@ -134,7 +137,9 @@ Batch operations return one status per item and can partially succeed.
+ 
+ ## Version policy and validation
+ 
+-The 10.0.0 combination is server/Web, desktop/CLI, Android and managed Agent.
++The 10.1.0 target is server/Web, desktop/CLI and managed Agent 10.1.0 with
++unchanged Android 10.0.0. Final-artifact acceptance of that combination remains
++pending. The historical 10.0.0 combination uses 10.0.0 across all components.
+ Existing tunnel management retains 7.0 compatibility; remote desktop requires
+ negotiated capabilities and matching 10.0.0 components. Remote desktop remains
+ disabled by default. Remote control payloads stay end-to-end encrypted over UDP and
+@@ -143,9 +148,11 @@ prefer direct P2P. An optional UDP TURN relay supports browser viewers connected
+ FRP, HTTP or WSS media fallback. The release notes describe platform limitations.
+ There is no promised lifetime for obsolete versions.
+ 
+-The frozen contract identifier is `api-v1.4.0`. The immutable `api-v1.3.0` tag and
+-all earlier contract tags remain unchanged. Consumers vendor all three files with
+-SHA-256 locks tied to the commit that the `api-v1.4.0` tag identifies.
++The 10.1.0 frozen source contract identifier is `api-v1.5.0`. The immutable
++`api-v1.4.0` tag and all earlier contract tags remain unchanged. Consumers of
++the new API vendor REST schemas and remote registries/vectors with SHA-256 locks
++tied to the clean commit that the verified `api-v1.5.0` tag identifies. Android
++10.0.0 remains a compatible 1.4 consumer; no Android artifact is relabeled.
+ 
+ ```sh
+ python3 scripts/generate-api-spec.py --check
+diff --git a/docs/RELEASE_NOTES.md b/docs/RELEASE_NOTES.md
+index cddfb06..45c254f 100644
+--- a/docs/RELEASE_NOTES.md
++++ b/docs/RELEASE_NOTES.md
+@@ -1,5 +1,12 @@
+ # Home Tunnel Server 10.0.0
+ 
++The separate 10.1.0 candidate adds native sign-in handoff and current-device
++rename with the additive API 1.5.0 definition frozen in source. Its immutable
++tag is published only after clean-main verification; final-artifact acceptance
++and production deployment remain pending. The evidence below belongs to
++10.0.0 only. See [the candidate changelog](../CHANGELOG.md) and
++[source verification](api-v1.5.0-source-verification.json).
++
+ Server/Web, desktop/CLI, Android and the managed Agent use 10.0.0; FRP keeps its
+ independent 0.70.1 version. The REST API stays on `/api/v1` and freezes contract
+ `api-v1.4.0`. `api-v1.3.0` and earlier contract tags are unchanged.
+diff --git a/docs/RELEASING.md b/docs/RELEASING.md
+index 925b1a3..36d5adc 100644
+--- a/docs/RELEASING.md
++++ b/docs/RELEASING.md
+@@ -1,6 +1,6 @@
+ # 服务端候选构建与发行
+ 
+-当前开发 Server/Client/Agent 10.1.0 候选，Android 10.0.0 保持不变并列为兼容性验证目标，FRP 保留独立版本。源码版本字段为 10.1.0，`compatibility.json` 将新增 `api-v1.5.0` 标记为草案；版本字段和开发测试记录不代表正式版本已通过验收。最终验收前冻结源码、版本、协议和依赖；改变交付物字节后必须生成新候选并重测。正式版本使用 `vX.Y.Z` 标签，源码版本与标签必须一致，`compatibility.json` 的阶段设为 `public-release`。
++当前开发 Server/Client/Agent 10.1.0 候选，Android 10.0.0 保持不变并列为兼容性验证目标，FRP 保留独立版本。源码版本字段为 10.1.0，`compatibility.json` 将新增 `api-v1.5.0` 标记为源码已冻结；不可变标签须在干净主分支检查通过后单独创建并核验，版本字段和开发测试记录不代表正式版本已通过验收。最终验收前冻结源码、版本、协议和依赖；改变交付物字节后必须生成新候选并重测。正式版本使用 `vX.Y.Z` 标签，源码版本与标签必须一致，`compatibility.json` 的阶段设为 `public-release`。
+ 
+ 1. 在待测分支固定源码提交，完成 Quality Gate、CodeQL 和 Secret scan。
+ 2. 构建并封存未打产品标签的候选，记录 run/attempt、artifact ID、ZIP 摘要和全部镜像摘要。
+@@ -12,7 +12,7 @@
+ 
+ 普通用户下载入口指向 Android `.apk`，桌面 `.exe` / `.zip` 或 Linux / macOS `.tar.gz`，服务端部署 `.tar.gz` 与 `compose.release.yaml`。Android `.aab` 和所有验证证据也在 Release 中持久保留。校验清单覆盖交付物和证据；APK 的 SHA-256 另外写入发布说明。项目入口仓库发布版本说明和发布清单并链接三个组件。
+ 
+-Android 沿用原包名与已有发行签名，递增 `versionCode`，按 ABI 记录实际运行覆盖。Windows/macOS 的实际签名状态以对应产物报告为准；缺少证书时明确标注未签名，不能把版本号当作签名或平台验收证明。签名和公证流程已接入，半配置会阻止发布。REST 路径继续使用 `/api/v1`；API 1.5 完成跨组件验证后固定于新的不可改写 `api-v1.5.0`，消费者导入相同来源的契约、测试向量和摘要锁。正式发布拒绝草案。跨组件改动必须验证权限、设备隔离及兼容性。
++Android 沿用原包名与已有发行签名，递增 `versionCode`，按 ABI 记录实际运行覆盖。Windows/macOS 的实际签名状态以对应产物报告为准；缺少证书时明确标注未签名，不能把版本号当作签名或平台验收证明。签名和公证流程已接入，半配置会阻止发布。REST 路径继续使用 `/api/v1`；API 1.5 已完成源码级跨组件契约验证并冻结定义；干净主分支检查通过后创建并核验新的不可改写 `api-v1.5.0`，消费者才可导入该标签对应的契约、测试向量和摘要锁。源码验证不代替最终制品验收。正式发布拒绝草案。跨组件改动必须验证权限、设备隔离及兼容性。
+ 
+ 先冻结契约，按客户端/共享 SDK → Android 与服务端 → 入口仓库顺序发行。更新服务端 `tests/client-baseline.json` 时，必须先下载并验证真实客户端附件的 SHA-256；禁止填写预估摘要。通过 amd64/arm64 发行联调和本地虚拟机验收后发布服务端。契约标签和产品标签可以对应不同提交，但冻结的协议内容不可漂移。最后更新项目入口的 `releases.json`、网站副本和下载说明，使所有链接对应实际正式产物。
+ 
+@@ -20,7 +20,7 @@ Android 沿用原包名与已有发行签名，递增 `versionCode`，按 ABI 
+ 
+ 候选入口是默认分支上已经登记的 `ci.yml` `workflow_dispatch`，输入 `build_candidate=true`。它先完成本次提交的 Quality Gate，并要求同一提交已有成功的 CodeQL 与 Secret scan。这两个安全工作流在 `main` 上已有 `workflow_dispatch`。候选作业单独持有 packages、id-token 与 attestations 权限；pull request 不满足 `workflow_dispatch` 条件，不会拿到这些权限。新的 `server-candidate.yml` 只有 `workflow_call`，本身不能被调度。`publish-stable.yml` 是新文件，在进入默认分支之前也不能被调度。在把这三份工作流文件送到 `main` 之前，不要把开发分支上的 `workflow_dispatch` 当成已经可用的入口。
+ 
+-正式发布只接受该候选 run 的原始字节。`publish-stable.yml` 用 GitHub API 核对 run 属于本仓库、调用方是 `ci.yml`、事件是 `workflow_dispatch`、结论成功、head SHA 与 artifact digest 一致，并用 `server-candidate.yml` 的原始 Sigstore 身份验证校验清单和镜像。清单里的 SHA 只在与 API 一致时采用。验收通过后另行签 `server-acceptance.SHA256SUMS.txt`，不覆盖 `SHA256SUMS.txt.sigstore.json`。验收必须包含服务端、Web UI、迁移、备份、网络、长期稳定性记录，以及与聚合仓库相同的四仓批次和 12 项门禁；缺项、未跑、失败、过期或不匹配都失败。发布脚本不生成通过记录。目标标签或附件已存在时拒绝创建。发布 10.1.0 时源码版本必须是 10.1.0，且 `api-v1.5.0` 已在该提交标记为冻结。预发布标签仍走原门禁。历史版本标签和 `api-v1.3.0` 及更早契约标签保持不变。
++正式发布只接受该候选 run 的原始字节。`publish-stable.yml` 用 GitHub API 核对 run 属于本仓库、调用方是 `ci.yml`、事件是 `workflow_dispatch`、结论成功、head SHA 与 artifact digest 一致，并用 `server-candidate.yml` 的原始 Sigstore 身份验证校验清单和镜像。清单里的 SHA 只在与 API 一致时采用。验收通过后另行签 `server-acceptance.SHA256SUMS.txt`，不覆盖 `SHA256SUMS.txt.sigstore.json`。验收必须包含服务端、Web UI、迁移、备份、网络、长期稳定性记录，以及与聚合仓库相同的四仓批次和 12 项门禁；缺项、未跑、失败、过期或不匹配都失败。发布脚本不生成通过记录。目标标签或附件已存在时拒绝创建。发布 10.1.0 时源码版本必须是 10.1.0，且 `api-v1.5.0` 已在该提交标记为冻结。预发布标签仍走原门禁。历史版本标签和 `api-v1.4.0` 及更早契约标签保持不变。
+ 
+ Windows 客户端采用未打标签候选：在 `release.yml` dispatch 设置 `candidate=true` 和完整源码 `revision`，构建原始候选附件。完成最终 worker、安装包和全部远控验收后，发布器使用原 run ID、artifact ID/摘要及独立验收收据发布同一批文件。正式版本必须通过原文件摘要、源提交、安装卸载、反病毒扫描及失联后两秒输入释放检查。24 小时测试后对原字节执行独立 Defender 复扫，不修改原始扫描记录。详见[客户端发行流程](https://github.com/ZHanry/home-tunnel-client/blob/main/docs/RELEASING.md)。
+ 
+diff --git a/docs/UPGRADING.md b/docs/UPGRADING.md
+index c90189f..09e65fc 100644
+--- a/docs/UPGRADING.md
++++ b/docs/UPGRADING.md
+@@ -1,7 +1,7 @@
+ # 10.1.0 候选验证（尚未正式发布）
+ 
+ 10.1.0 为 Windows 问题修复提供配套服务端：一次性远控登录接力、本机自控拦截与当前设备改名。
+-新增 API 1.5.0 保留 `/api/v1` 路径；不可变 API 1.4.0 标签不改写。Android 10.0.0 未改动，需验证既有兼容性。
++新增 API 1.5.0 定义已在源码冻结并保留 `/api/v1` 路径；不可变 API 1.4.0 标签不改写。Android 10.0.0 未改动，源码契约兼容性已验证，最终制品兼容性仍需实测。
+ 
+ 迁移 022 添加设备绑定的远控子会话关系与一次性交接记录。候选必须先在隔离环境验证升级、撤销、备份和恢复；
+ 不得把源码测试或前一版结果当作最终部署包验收。升级前保存并验证数据库、配置和秘密的备份，
+diff --git a/docs/api-v1.5.0-source-verification.json b/docs/api-v1.5.0-source-verification.json
+new file mode 100644
+index 0000000..c377712
+--- /dev/null
++++ b/docs/api-v1.5.0-source-verification.json
+@@ -0,0 +1,230 @@
++{
++  "schema_version": 1,
++  "purpose": "API 1.5 source contract freeze verification; not product acceptance",
++  "scope": "Local isolated source tests and contract byte comparison; no production deployment or final artifact runtime acceptance",
++  "contract_ref": "api-v1.5.0",
++  "source_definition_status": "frozen",
++  "immutable_tag_status": "pending creation and independent remote verification after clean-main checks",
++  "checked_sources": {
++    "server_base_commit": "e0bd2f1e4f7622b1f10b5d683551f793f02b4771",
++    "client_commit": "d4616525347d443950057e6cf2c83cb7e2c0602a",
++    "android_commit": "45a400bf57ca8a4d06e76261bff8a5b1109f7b97",
++    "server_runtime_and_contract_base": "a3ed77d12c77d241c835f6a836208733838e0de0",
++    "server_runtime_unchanged_from_base": true
++  },
++  "previous_contract": {
++    "tag": "api-v1.4.0",
++    "commit": "74e140da43c88043d0db2aad7505ba75fd3a9a49"
++  },
++  "additive_compatibility": {
++    "result": "passed",
++    "comparison": "All old OpenAPI paths, operations, parameters, constraints, responses and required fields are identical after excluding prose descriptions/version metadata and removing the three new routes plus two optional response properties.",
++    "new_paths": [
++      "/api/v1/auth/native-remote-handoff",
++      "/api/v1/auth/native-remote-handoff/redeem",
++      "/api/v1/devices/current/name"
++    ],
++    "optional_response_properties": [
++      "Identity.native_remote",
++      "GET /api/v1/auth/session -> native_window_id"
++    ],
++    "unchanged_wire_files": [
++      {
++        "path": "contracts/home-tunnel.v1.json",
++        "sha256": "47122e7f75788e0b60efe1f7b5180a6098183ea0310d248a9f96098474a5ef2a",
++        "bytes": 2387,
++        "identical_to_api_v1_4_0": true
++      },
++      {
++        "path": "contracts/remote-desktop.v1.json",
++        "sha256": "78e1c1d789118b710fa87ce7f1abb9a0b0ac4fa59475a67628ac48245bf3ca4d",
++        "bytes": 53219,
++        "identical_to_api_v1_4_0": true
++      },
++      {
++        "path": "contracts/remote-test-vectors.json",
++        "sha256": "e4c47ea288cf92266f09ea2b40e595c1dd333132dc3262d42e86ef9ea042b168",
++        "bytes": 1842,
++        "identical_to_api_v1_4_0": true
++      },
++      {
++        "path": "contracts/remote-authorization-vectors.json",
++        "sha256": "6ddafdaeb937cd8500c736e62bc21cb3ee92148173c4ae984d3fb9121a26cece",
++        "bytes": 30084,
++        "identical_to_api_v1_4_0": true
++      },
++      {
++        "path": "contracts/remote-crypto-vector.json",
++        "sha256": "2911d06ad45dbcb9f8d7bfe6942bc79f7327b92dec2916608e94a879f4bf9a85",
++        "bytes": 683,
++        "identical_to_api_v1_4_0": true
++      },
++      {
++        "path": "contracts/generated/remote_protocol.hpp",
++        "sha256": "fd4dd9488f2d61f2b61a2a7d59062e92a2eea8c3bcce1bfc3a493eff372a6631",
++        "bytes": 3018,
++        "identical_to_api_v1_4_0": true
++      },
++      {
++        "path": "contracts/generated/remote_protocol.js",
++        "sha256": "ba94122832b8849d5854432d102208d96dbc0e0f6a998aec8d58e6eaf4e4f55e",
++        "bytes": 54217,
++        "identical_to_api_v1_4_0": true
++      },
++      {
++        "path": "contracts/generated/remote_protocol.kt",
++        "sha256": "2517ae736467e6469c9dbefb69395ec049235803339c05805f23e8a0031bea5f",
++        "bytes": 2229,
++        "identical_to_api_v1_4_0": true
++      },
++      {
++        "path": "contracts/generated/remote_protocol.ts",
++        "sha256": "99ff2f5139d16f98472bfa5753fb12aac7e423170c2085056640a6ca7071b926",
++        "bytes": 54226,
++        "identical_to_api_v1_4_0": true
++      },
++      {
++        "path": "control-center/test-fixtures/rd-keyset-vectors.json",
++        "sha256": "455530edd2a23912c58fd18364cafdce90027e8da089c59b13128ea1973e63f4",
++        "bytes": 7037,
++        "identical_to_api_v1_4_0": true
++      }
++    ],
++    "android_remote_imports_identical": [
++      {
++        "server_path": "contracts/remote-desktop.v1.json",
++        "android_path": "contracts/remote-desktop.v1.json",
++        "sha256": "78e1c1d789118b710fa87ce7f1abb9a0b0ac4fa59475a67628ac48245bf3ca4d"
++      },
++      {
++        "server_path": "contracts/remote-test-vectors.json",
++        "android_path": "contracts/remote-test-vectors.json",
++        "sha256": "e4c47ea288cf92266f09ea2b40e595c1dd333132dc3262d42e86ef9ea042b168"
++      },
++      {
++        "server_path": "contracts/remote-authorization-vectors.json",
++        "android_path": "contracts/remote-authorization-vectors.json",
++        "sha256": "6ddafdaeb937cd8500c736e62bc21cb3ee92148173c4ae984d3fb9121a26cece"
++      },
++      {
++        "server_path": "control-center/test-fixtures/rd-keyset-vectors.json",
++        "android_path": "contracts/rd-keyset-vectors.json",
++        "sha256": "455530edd2a23912c58fd18364cafdce90027e8da089c59b13128ea1973e63f4"
++      },
++      {
++        "server_path": "contracts/generated/remote_protocol.kt",
++        "android_path": "app/src/main/java/io/github/zhanry/hometunnel/remote/protocol/RemoteProtocol.kt",
++        "sha256": "2517ae736467e6469c9dbefb69395ec049235803339c05805f23e8a0031bea5f"
++      }
++    ],
++    "android_unknown_response_fields": "HomeTunnelApi configures ignoreUnknownKeys = true; Android 10.0.0 keeps its API 1.4 locks"
++  },
++  "frozen_contract_files": [
++    {
++      "path": "contracts/openapi.v1.json",
++      "sha256": "c447a23f72b9f72efc118d75cd7cf3e071e0533e2bf0773e9b34f0e1ec779f54",
++      "bytes": 1014936
++    },
++    {
++      "path": "control-center/public/openapi.json",
++      "sha256": "c447a23f72b9f72efc118d75cd7cf3e071e0533e2bf0773e9b34f0e1ec779f54",
++      "bytes": 1014936
++    },
++    {
++      "path": "contracts/api.schema.json",
++      "sha256": "da9ac1a82d69d86c65131dc55750d904f96acc73aeb56f326269600ef723c154",
++      "bytes": 199322
++    },
++    {
++      "path": "control-center/public/api-schema.json",
++      "sha256": "da9ac1a82d69d86c65131dc55750d904f96acc73aeb56f326269600ef723c154",
++      "bytes": 199322
++    }
++  ],
++  "passed_local_checks": [
++    {
++      "check": "OpenAPI generator --check",
++      "http_operations": 135,
++      "shared_schemas": 64
++    },
++    {
++      "check": "Remote generator --check",
++      "message_types": 43,
++      "permissions": 10,
++      "language_registries": 4
++    },
++    {
++      "check": "Control-center service/schema/security tests",
++      "tests": 118
++    },
++    {
++      "check": "Control-center public-module/protocol tests",
++      "tests": 59
++    },
++    {
++      "check": "Real SQLite integration suite",
++      "result": "passed, including Android bearer login/refresh and existing device/tunnel flows"
++    },
++    {
++      "check": "Traffic-gateway tests",
++      "tests": 31
++    },
++    {
++      "check": "Client Python repository/import/release-policy tests",
++      "tests": 123
++    },
++    {
++      "check": "Client Go tests ./...",
++      "configuration": "CGO_ENABLED=0; Go 1.26.6",
++      "result": "all packages passed"
++    },
++    {
++      "check": "Client native handoff JavaScript tests",
++      "tests": 6
++    },
++    {
++      "check": "Android repository/import/release-policy tests",
++      "tests": 74
++    },
++    {
++      "check": "Android shared native source hashes",
++      "result": "verified; media backend and runtime not exercised"
++    },
++    {
++      "check": "Frozen server Python repository/release-policy tests",
++      "tests": 45
++    },
++    {
++      "check": "Exact Go client to exact server over HTTPS",
++      "result": "passed",
++      "scope": "Ephemeral loopback SQLite fixture and self-signed certificate trusted only by the test HTTP client; actual server route handlers and actual Go API consumer; no live user accounts",
++      "covered": [
++        "device login",
++        "normalized current-device rename",
++        "bound device listing/persistence",
++        "native handoff issuance",
++        "cookie-only redemption",
++        "single-use replay rejection",
++        "originating-window binding",
++        "native scoped-write rejection",
++        "parent bearer identity preserved",
++        "child revoked after parent session closes"
++      ]
++    }
++  ],
++  "not_claimed": [
++    "Final installer or portable archive runtime acceptance",
++    "Windows native or Android device/emulator execution by this source check",
++    "Production deployment",
++    "Published API tag or product Release",
++    "24-hour soak or final artifact acceptance"
++  ],
++  "publication_order": [
++    "Finish server freeze commit and remove temporary recovery workflow/helpers",
++    "Verify clean server main commit and all required checks",
++    "Create and independently verify immutable api-v1.5.0 at that exact server commit",
++    "Import the verified tag with --revision <exact tagged commit> --published-ref api-v1.5.0 into client",
++    "Update both client locks, compatibility metadata and native test server-lock together, then verify generated files",
++    "Build new sealed candidates and execute required final-artifact acceptance; prior proposed-contract candidates cannot be promoted"
++  ]
++}
+diff --git a/scripts/generate-api-spec.py b/scripts/generate-api-spec.py
+index 268072b..b799817 100644
+--- a/scripts/generate-api-spec.py
++++ b/scripts/generate-api-spec.py
+@@ -224,7 +224,7 @@ documented={(method,path) for path,methods in paths.items() for method in method
+ assert source_routes==documented, f"Route drift: missing={source_routes-documented}, removed={documented-source_routes}"
+ errors=sorted(set(re.findall(r'new HttpError\(\s*\d+,\s*"([A-Z0-9_]+)"', '\n'.join(p.read_text(encoding='utf-8') for p in (ROOT/'control-center/src').rglob('*.ts') if not p.name.endswith('.test.ts')))))
+ schemas['Error']['properties']['error_code']['description']='Known codes (consumers must handle unknown codes): '+', '.join(errors)
+-document={"openapi":"3.1.0","info":{"title":"Home Tunnel API","version":"1.5.0","description":"Home Tunnel 10.1.0 additive API 1.5.0 proposal. Adds one-time scoped native remote sign-in handoff, source-device self-remote safeguards and current-device rename; retains API 1.4 capabilities and tunnel compatibility. Media is UDP only: direct, or through the server's UDP TURN relay when both peers support it. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md.","license":{"name":"Apache-2.0"}},"servers":[{"url":"https://console.example.com"}],"security":[{"bearerAuth":[]},{"sessionCookie":[]}],"paths":paths,"components":{"securitySchemes":{"bearerAuth":{"type":"http","scheme":"bearer"},"sessionCookie":{"type":"apiKey","in":"cookie","name":"ht_access"},"internalKey":{"type":"apiKey","in":"header","name":"x-home-tunnel-key"},"dpopAuth":{"type":"http","scheme":"DPoP","description":"Short-lived endpoint token; requires a matching DPoP proof."},"dpopProof":{"type":"apiKey","in":"header","name":"DPoP","description":"ES256 proof binds token hash, nonce, HTTP method, canonical URL, timestamp and unique jti."}},"schemas":schemas},"x-contract-ref":"api-v1.5.0","x-contract-status":"proposed"}
++document={"openapi":"3.1.0","info":{"title":"Home Tunnel API","version":"1.5.0","description":"Home Tunnel 10.1.0 additive API 1.5.0 frozen contract. Adds one-time scoped native remote sign-in handoff, source-device self-remote safeguards and current-device rename; retains API 1.4 capabilities and tunnel compatibility. Media is UDP only: direct, or through the server's UDP TURN relay when both peers support it. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md.","license":{"name":"Apache-2.0"}},"servers":[{"url":"https://console.example.com"}],"security":[{"bearerAuth":[]},{"sessionCookie":[]}],"paths":paths,"components":{"securitySchemes":{"bearerAuth":{"type":"http","scheme":"bearer"},"sessionCookie":{"type":"apiKey","in":"cookie","name":"ht_access"},"internalKey":{"type":"apiKey","in":"header","name":"x-home-tunnel-key"},"dpopAuth":{"type":"http","scheme":"DPoP","description":"Short-lived endpoint token; requires a matching DPoP proof."},"dpopProof":{"type":"apiKey","in":"header","name":"DPoP","description":"ES256 proof binds token hash, nonce, HTTP method, canonical URL, timestamp and unique jti."}},"schemas":schemas},"x-contract-ref":"api-v1.5.0","x-contract-status":"frozen"}
+ encoded=json.dumps(document,ensure_ascii=False,indent=2)+'\n'
+ json_schema={"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://zhanry.github.io/home-tunnel/schemas/api-v1.5.0.json","$defs":schemas}
+ schema_encoded=json.dumps(json_schema,ensure_ascii=False,indent=2).replace('#/components/schemas/','#/$defs/')+'\n'
+diff --git a/scripts/test_release_candidate.py b/scripts/test_release_candidate.py
+index 6d5b725..b91e118 100644
+--- a/scripts/test_release_candidate.py
++++ b/scripts/test_release_candidate.py
+@@ -523,8 +523,11 @@ class CandidatePolicyTests(unittest.TestCase):
+         package = json.loads((ROOT / "control-center/package.json").read_text(encoding="utf-8"))
+         compatibility = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
+         current = dict(ready, version=package["version"], contract_status=compatibility["contract_status"], contract_ref=compatibility["contract_ref"])
+-        # The next contract is proposed until its immutable publication is reviewed.
+-        self.assertEqual(release_candidate.promotion_blockers(current), ["api-v1.5.0 contract is not frozen"])
++        # Source freeze removes only the contract blocker; acceptance/origin facts
++        # above are isolated fixtures, never a claim that a product is accepted.
++        self.assertEqual(release_candidate.promotion_blockers(current), [])
++        proposed = dict(current, contract_status="proposed")
++        self.assertEqual(release_candidate.promotion_blockers(proposed), ["api-v1.5.0 contract is not frozen"])
+         stale = dict(ready, version="9.0.0", contract_status="proposed")
+         blockers = release_candidate.promotion_blockers(stale)
+         self.assertTrue(any("10.1.0" in item for item in blockers))
