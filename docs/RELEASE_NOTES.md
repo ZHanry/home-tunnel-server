@@ -1,5 +1,12 @@
 # Home Tunnel Server 10.0.0
 
+The separate 10.1.0 candidate adds native sign-in handoff and current-device
+rename with the additive API 1.5.0 definition frozen in source. Its immutable
+tag is published only after clean-main verification; final-artifact acceptance
+and production deployment remain pending. The evidence below belongs to
+10.0.0 only. See [the candidate changelog](../CHANGELOG.md) and
+[source verification](api-v1.5.0-source-verification.json).
+
 Server/Web, desktop/CLI, Android and the managed Agent use 10.0.0; FRP keeps its
 independent 0.70.1 version. The REST API stays on `/api/v1` and freezes contract
 `api-v1.4.0`. `api-v1.3.0` and earlier contract tags are unchanged.

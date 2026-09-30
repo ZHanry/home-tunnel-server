@@ -5,7 +5,7 @@
 - Add a short-lived, single-use native remote sign-in handoff, scoped child sessions, parent-session revocation, and source-device binding. The handoff does not grant account or administration access.
 - Reject remote authorization and sessions that target the controller's linked device.
 - Add an authenticated current-device rename endpoint, with validation, audit history, and account isolation.
-- Propose additive API 1.5.0 without modifying the published API 1.4.0 tag. Existing tunnels retain compatibility.
+- Freeze additive API 1.5.0 in source for immutable `api-v1.5.0` publication after clean-main verification, without modifying the published API 1.4.0 tag. Existing tunnels retain compatibility.
 - Deployment and final-artifact acceptance remain pending. This candidate does not change a running production console.
 
 ## 10.0.0

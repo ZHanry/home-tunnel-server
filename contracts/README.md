@@ -1,12 +1,17 @@
 # API contract ownership
 
-The server owns the API contracts. Version **1.4.0** is frozen for 10.0.0.
-It adds discovered native capabilities, display DPI, four access modes,
-actionable session failures, and agent-reported tunnel diagnostics under
-`/api/v1`. Publish the immutable `api-v1.4.0` tag on the reviewed server commit
-that carries `contract_status: frozen`, then consumers import from that tag and
-update their locks. Never move it. The immutable `api-v1.3.0` tag and every
-earlier tag stay unchanged.
+The server owns the API contracts. Version **1.5.0** is frozen in source for
+the 10.1.0 candidate. It adds a scoped, one-time native remote sign-in handoff,
+source-device safeguards and current-device rename under `/api/v1`. Existing
+1.4 operations and required fields are retained; remote wire registries and
+authorization/test vectors are unchanged. Android 10.0.0 retains its 1.4 lock.
+
+After the reviewed clean server commit passes its checks, publish the immutable
+`api-v1.5.0` tag on that exact commit, then consumers import from the verified
+tag and update all locks together. A source freeze does not assert that the tag
+or product Release already exists. Never move it. The immutable `api-v1.4.0`
+tag and every earlier tag stay unchanged. Source verification does not replace
+final-artifact runtime acceptance.
 `openapi.v1.json` covers REST requests/responses; `api.schema.json` contains the
 shared JSON Schema types. `home-tunnel.v1.json` remains byte-identical to the
 historical `api-v1.0.0` sync/realtime fixture.

@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "purpose": "API 1.5 source contract freeze verification; not product acceptance",
+  "scope": "Local isolated source tests and contract byte comparison; no production deployment or final artifact runtime acceptance",
+  "contract_ref": "api-v1.5.0",
+  "source_definition_status": "frozen",
+  "immutable_tag_status": "pending creation and independent remote verification after clean-main checks",
+  "checked_sources": {
+    "server_base_commit": "e0bd2f1e4f7622b1f10b5d683551f793f02b4771",
+    "client_commit": "d4616525347d443950057e6cf2c83cb7e2c0602a",
+    "android_commit": "45a400bf57ca8a4d06e76261bff8a5b1109f7b97",
+    "server_runtime_and_contract_base": "a3ed77d12c77d241c835f6a836208733838e0de0",
+    "server_runtime_unchanged_from_base": true
+  },
+  "previous_contract": {
+    "tag": "api-v1.4.0",
+    "commit": "74e140da43c88043d0db2aad7505ba75fd3a9a49"
+  },
+  "additive_compatibility": {
+    "result": "passed",
+    "comparison": "All old OpenAPI paths, operations, parameters, constraints, responses and required fields are identical after excluding prose descriptions/version metadata and removing the three new routes plus two optional response properties.",
+    "new_paths": [
+      "/api/v1/auth/native-remote-handoff",
+      "/api/v1/auth/native-remote-handoff/redeem",
+      "/api/v1/devices/current/name"
+    ],
+    "optional_response_properties": [
+      "Identity.native_remote",
+      "GET /api/v1/auth/session -> native_window_id"
+    ],
+    "unchanged_wire_files": [
+      {
+        "path": "contracts/home-tunnel.v1.json",
+        "sha256": "47122e7f75788e0b60efe1f7b5180a6098183ea0310d248a9f96098474a5ef2a",
+        "bytes": 2387,
+        "identical_to_api_v1_4_0": true
+      },
+      {
+        "path": "contracts/remote-desktop.v1.json",
+        "sha256": "78e1c1d789118b710fa87ce7f1abb9a0b0ac4fa59475a67628ac48245bf3ca4d",
+        "bytes": 53219,
+        "identical_to_api_v1_4_0": true
+      },
+      {
+        "path": "contracts/remote-test-vectors.json",
+        "sha256": "e4c47ea288cf92266f09ea2b40e595c1dd333132dc3262d42e86ef9ea042b168",
+        "bytes": 1842,
+        "identical_to_api_v1_4_0": true
+      },
+      {
+        "path": "contracts/remote-authorization-vectors.json",
+        "sha256": "6ddafdaeb937cd8500c736e62bc21cb3ee92148173c4ae984d3fb9121a26cece",
+        "bytes": 30084,
+        "identical_to_api_v1_4_0": true
+      },
+      {
+        "path": "contracts/remote-crypto-vector.json",
+        "sha256": "2911d06ad45dbcb9f8d7bfe6942bc79f7327b92dec2916608e94a879f4bf9a85",
+        "bytes": 683,
+        "identical_to_api_v1_4_0": true
+      },
+      {
+        "path": "contracts/generated/remote_protocol.hpp",
+        "sha256": "fd4dd9488f2d61f2b61a2a7d59062e92a2eea8c3bcce1bfc3a493eff372a6631",
+        "bytes": 3018,
+        "identical_to_api_v1_4_0": true
+      },
+      {
+        "path": "contracts/generated/remote_protocol.js",
+        "sha256": "ba94122832b8849d5854432d102208d96dbc0e0f6a998aec8d58e6eaf4e4f55e",
+        "bytes": 54217,
+        "identical_to_api_v1_4_0": true
+      },
+      {
+        "path": "contracts/generated/remote_protocol.kt",
+        "sha256": "2517ae736467e6469c9dbefb69395ec049235803339c05805f23e8a0031bea5f",
+        "bytes": 2229,
+        "identical_to_api_v1_4_0": true
+      },
+      {
+        "path": "contracts/generated/remote_protocol.ts",
+        "sha256": "99ff2f5139d16f98472bfa5753fb12aac7e423170c2085056640a6ca7071b926",
+        "bytes": 54226,
+        "identical_to_api_v1_4_0": true
+      },
+      {
+        "path": "control-center/test-fixtures/rd-keyset-vectors.json",
+        "sha256": "455530edd2a23912c58fd18364cafdce90027e8da089c59b13128ea1973e63f4",
+        "bytes": 7037,
+        "identical_to_api_v1_4_0": true
+      }
+    ],
+    "android_remote_imports_identical": [
+      {
+        "server_path": "contracts/remote-desktop.v1.json",
+        "android_path": "contracts/remote-desktop.v1.json",
+        "sha256": "78e1c1d789118b710fa87ce7f1abb9a0b0ac4fa59475a67628ac48245bf3ca4d"
+      },
+      {
+        "server_path": "contracts/remote-test-vectors.json",
+        "android_path": "contracts/remote-test-vectors.json",
+        "sha256": "e4c47ea288cf92266f09ea2b40e595c1dd333132dc3262d42e86ef9ea042b168"
+      },
+      {
+        "server_path": "contracts/remote-authorization-vectors.json",
+        "android_path": "contracts/remote-authorization-vectors.json",
+        "sha256": "6ddafdaeb937cd8500c736e62bc21cb3ee92148173c4ae984d3fb9121a26cece"
+      },
+      {
+        "server_path": "control-center/test-fixtures/rd-keyset-vectors.json",
+        "android_path": "contracts/rd-keyset-vectors.json",
+        "sha256": "455530edd2a23912c58fd18364cafdce90027e8da089c59b13128ea1973e63f4"
+      },
+      {
+        "server_path": "contracts/generated/remote_protocol.kt",
+        "android_path": "app/src/main/java/io/github/zhanry/hometunnel/remote/protocol/RemoteProtocol.kt",
+        "sha256": "2517ae736467e6469c9dbefb69395ec049235803339c05805f23e8a0031bea5f"
+      }
+    ],
+    "android_unknown_response_fields": "HomeTunnelApi configures ignoreUnknownKeys = true; Android 10.0.0 keeps its API 1.4 locks"
+  },
+  "frozen_contract_files": [
+    {
+      "path": "contracts/openapi.v1.json",
+      "sha256": "c447a23f72b9f72efc118d75cd7cf3e071e0533e2bf0773e9b34f0e1ec779f54",
+      "bytes": 1014936
+    },
+    {
+      "path": "control-center/public/openapi.json",
+      "sha256": "c447a23f72b9f72efc118d75cd7cf3e071e0533e2bf0773e9b34f0e1ec779f54",
+      "bytes": 1014936
+    },
+    {
+      "path": "contracts/api.schema.json",
+      "sha256": "da9ac1a82d69d86c65131dc55750d904f96acc73aeb56f326269600ef723c154",
+      "bytes": 199322
+    },
+    {
+      "path": "control-center/public/api-schema.json",
+      "sha256": "da9ac1a82d69d86c65131dc55750d904f96acc73aeb56f326269600ef723c154",
+      "bytes": 199322
+    }
+  ],
+  "passed_local_checks": [
+    {
+      "check": "OpenAPI generator --check",
+      "http_operations": 135,
+      "shared_schemas": 64
+    },
+    {
+      "check": "Remote generator --check",
+      "message_types": 43,
+      "permissions": 10,
+      "language_registries": 4
+    },
+    {
+      "check": "Control-center service/schema/security tests",
+      "tests": 118
+    },
+    {
+      "check": "Control-center public-module/protocol tests",
+      "tests": 59
+    },
+    {
+      "check": "Real SQLite integration suite",
+      "result": "passed, including Android bearer login/refresh and existing device/tunnel flows"
+    },
+    {
+      "check": "Traffic-gateway tests",
+      "tests": 31
+    },
+    {
+      "check": "Client Python repository/import/release-policy tests",
+      "tests": 123
+    },
+    {
+      "check": "Client Go tests ./...",
+      "configuration": "CGO_ENABLED=0; Go 1.26.6",
+      "result": "all packages passed"
+    },
+    {
+      "check": "Client native handoff JavaScript tests",
+      "tests": 6
+    },
+    {
+      "check": "Android repository/import/release-policy tests",
+      "tests": 74
+    },
+    {
+      "check": "Android shared native source hashes",
+      "result": "verified; media backend and runtime not exercised"
+    },
+    {
+      "check": "Frozen server Python repository/release-policy tests",
+      "tests": 45
+    },
+    {
+      "check": "Exact Go client to exact server over HTTPS",
+      "result": "passed",
+      "scope": "Ephemeral loopback SQLite fixture and self-signed certificate trusted only by the test HTTP client; actual server route handlers and actual Go API consumer; no live user accounts",
+      "covered": [
+        "device login",
+        "normalized current-device rename",
+        "bound device listing/persistence",
+        "native handoff issuance",
+        "cookie-only redemption",
+        "single-use replay rejection",
+        "originating-window binding",
+        "native scoped-write rejection",
+        "parent bearer identity preserved",
+        "child revoked after parent session closes"
+      ]
+    }
+  ],
+  "not_claimed": [
+    "Final installer or portable archive runtime acceptance",
+    "Windows native or Android device/emulator execution by this source check",
+    "Production deployment",
+    "Published API tag or product Release",
+    "24-hour soak or final artifact acceptance"
+  ],
+  "publication_order": [
+    "Finish server freeze commit and remove temporary recovery workflow/helpers",
+    "Verify clean server main commit and all required checks",
+    "Create and independently verify immutable api-v1.5.0 at that exact server commit",
+    "Import the verified tag with --revision <exact tagged commit> --published-ref api-v1.5.0 into client",
+    "Update both client locks, compatibility metadata and native test server-lock together, then verify generated files",
+    "Build new sealed candidates and execute required final-artifact acceptance; prior proposed-contract candidates cannot be promoted"
+  ]
+}
