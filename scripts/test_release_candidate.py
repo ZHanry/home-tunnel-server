@@ -523,8 +523,11 @@ class CandidatePolicyTests(unittest.TestCase):
         package = json.loads((ROOT / "control-center/package.json").read_text(encoding="utf-8"))
         compatibility = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
         current = dict(ready, version=package["version"], contract_status=compatibility["contract_status"], contract_ref=compatibility["contract_ref"])
-        # The next contract is proposed until its immutable publication is reviewed.
-        self.assertEqual(release_candidate.promotion_blockers(current), ["api-v1.5.0 contract is not frozen"])
+        # Source freeze removes only the contract blocker; acceptance/origin facts
+        # above are isolated fixtures, never a claim that a product is accepted.
+        self.assertEqual(release_candidate.promotion_blockers(current), [])
+        proposed = dict(current, contract_status="proposed")
+        self.assertEqual(release_candidate.promotion_blockers(proposed), ["api-v1.5.0 contract is not frozen"])
         stale = dict(ready, version="9.0.0", contract_status="proposed")
         blockers = release_candidate.promotion_blockers(stale)
         self.assertTrue(any("10.1.0" in item for item in blockers))

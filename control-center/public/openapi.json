@@ -3,7 +3,7 @@
   "info": {
     "title": "Home Tunnel API",
     "version": "1.5.0",
-    "description": "Home Tunnel 10.1.0 additive API 1.5.0 proposal. Adds one-time scoped native remote sign-in handoff, source-device self-remote safeguards and current-device rename; retains API 1.4 capabilities and tunnel compatibility. Media is UDP only: direct, or through the server's UDP TURN relay when both peers support it. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md.",
+    "description": "Home Tunnel 10.1.0 additive API 1.5.0 frozen contract. Adds one-time scoped native remote sign-in handoff, source-device self-remote safeguards and current-device rename; retains API 1.4 capabilities and tunnel compatibility. Media is UDP only: direct, or through the server's UDP TURN relay when both peers support it. Existing tunnel WebSocket envelopes remain in home-tunnel.v1.json; RD wire registry is remote-desktop.v1.json. See docs/API.md.",
     "license": {
       "name": "Apache-2.0"
     }
@@ -24986,5 +24986,5 @@
     }
   },
   "x-contract-ref": "api-v1.5.0",
-  "x-contract-status": "proposed"
+  "x-contract-status": "frozen"
 }

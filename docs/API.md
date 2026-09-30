@@ -1,4 +1,4 @@
-# Home Tunnel API 1.5 proposal / server 10.1.0 candidate
+# Home Tunnel API 1.5 frozen source / server 10.1.0 candidate
 
 [OpenAPI 3.1](../contracts/openapi.v1.json) · [JSON Schema 2020-12](../contracts/api.schema.json) · [Capabilities](../control-center/src/api-capabilities.ts)
 
@@ -34,8 +34,11 @@ Never publish the control-center, gateway, metrics or FRPS plugin ports directly
 
 ## 1.5 native remote and current-device additions
 
-The 10.1.0 candidate proposes additive `api-v1.5.0`; its new API tag is not yet
-published. The existing `api-v1.4.0` tag and its historical bytes are unchanged.
+The 10.1.0 candidate freezes additive `api-v1.5.0` in source. Publish its new
+immutable API tag only after the reviewed clean server commit passes its checks;
+consumers must verify that tag and import its exact commit. The existing
+`api-v1.4.0` tag and its historical bytes are unchanged. Contract source
+verification is separate from final-package acceptance and production deployment.
 
 - `POST /auth/native-remote-handoff` requires a live device bearer session and the
   exact configured HTTPS origin. It issues a single-use, 30-second opaque code
@@ -62,7 +65,7 @@ from the corresponding desktop operations.
 ## 1.4 discovery (retained compatibility)
 
 The stable 10.0.0 `contract_version` is `1.4.0`, frozen as `api-v1.4.0`; the
-10.1.0 candidate advertises `1.5.0` while its contract is under review. `api-v1.3.0` and earlier
+10.1.0 candidate advertises `1.5.0` with its additive contract frozen in source. `api-v1.3.0` and earlier
 contract tags are unchanged. A server `remote_desktop.enabled` flag only opens
 the control plane. Audio, files, displays, DPI, and secure desktop are available
 only when the signed endpoint capability says the device agent discovered them.
@@ -134,7 +137,9 @@ Batch operations return one status per item and can partially succeed.
 
 ## Version policy and validation
 
-The 10.0.0 combination is server/Web, desktop/CLI, Android and managed Agent.
+The 10.1.0 target is server/Web, desktop/CLI and managed Agent 10.1.0 with
+unchanged Android 10.0.0. Final-artifact acceptance of that combination remains
+pending. The historical 10.0.0 combination uses 10.0.0 across all components.
 Existing tunnel management retains 7.0 compatibility; remote desktop requires
 negotiated capabilities and matching 10.0.0 components. Remote desktop remains
 disabled by default. Remote control payloads stay end-to-end encrypted over UDP and
@@ -143,9 +148,11 @@ prefer direct P2P. An optional UDP TURN relay supports browser viewers connected
 FRP, HTTP or WSS media fallback. The release notes describe platform limitations.
 There is no promised lifetime for obsolete versions.
 
-The frozen contract identifier is `api-v1.4.0`. The immutable `api-v1.3.0` tag and
-all earlier contract tags remain unchanged. Consumers vendor all three files with
-SHA-256 locks tied to the commit that the `api-v1.4.0` tag identifies.
+The 10.1.0 frozen source contract identifier is `api-v1.5.0`. The immutable
+`api-v1.4.0` tag and all earlier contract tags remain unchanged. Consumers of
+the new API vendor REST schemas and remote registries/vectors with SHA-256 locks
+tied to the clean commit that the verified `api-v1.5.0` tag identifies. Android
+10.0.0 remains a compatible 1.4 consumer; no Android artifact is relabeled.
 
 ```sh
 python3 scripts/generate-api-spec.py --check

@@ -3,9 +3,9 @@
   "stage": "public-release",
   "api_major": 1,
   "contract_ref": "api-v1.5.0",
-  "contract_status": "proposed",
-  "frozen_tag": null,
-  "support_policy": "10.1.0 candidate with the proposed additive api-v1.5.0 contract on /api/v1. Adds scoped one-time native remote sign-in handoff, self-remote safeguards and current-device rename. RD remains disabled by default; signed grants and discovered capabilities still apply. Existing 7.0+ tunnels remain supported. Back up and test restore before deployment. The release notes identify verified and unverified coverage; final-artifact acceptance is pending. FRP follows its separate upstream version.",
+  "contract_status": "frozen",
+  "frozen_tag": "api-v1.5.0",
+  "support_policy": "10.1.0 candidate with the frozen additive api-v1.5.0 contract on /api/v1. Adds scoped one-time native remote sign-in handoff, self-remote safeguards and current-device rename. RD remains disabled by default; signed grants and discovered capabilities still apply. Existing 7.0+ tunnels remain supported. Back up and test restore before deployment. The release notes identify verified and unverified coverage; final-artifact acceptance is pending. FRP follows its separate upstream version.",
   "version": "10.1.0",
   "minimum_server": "7.0.0",
   "tested_combination": {
