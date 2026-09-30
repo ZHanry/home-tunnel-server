@@ -33,8 +33,10 @@ HTTP access protection, TOTP/recovery codes, session revocation, one-time enroll
 paginated catalogs, tags/favorites and per-item batch operations. Remote desktop is
 opt-in, with explicit endpoint pairing, authorization and browser viewing. From 10.0.0,
 displays, DPI, audio and files follow the device agent's signed capability report, and
-tunnels expose agent-reported diagnostics. Remote control payloads use direct UDP P2P
-only, with no relay or TURN fallback. See the [release notes](docs/RELEASE_NOTES.md)
+tunnels expose agent-reported diagnostics. Remote control payloads stay end-to-end
+encrypted over UDP and prefer direct P2P. An optional UDP TURN relay supports browser
+viewers connected to 10.0.0 hosts. Android controllers and 9.x hosts remain direct-only.
+There is no TCP, FRP, HTTP or WSS media fallback. See the [release notes](docs/RELEASE_NOTES.md)
 for platform capabilities and unverified paths.
 
 [Account security](docs/ACCOUNT_SECURITY.md) · [Encrypted backup and recovery](docs/disaster-recovery.md) · [Monitoring](docs/MONITORING.md) · [NAS/preflight](docs/NAS.md) · [API/OpenAPI](docs/API.md)

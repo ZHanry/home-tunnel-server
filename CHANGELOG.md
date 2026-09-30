@@ -2,7 +2,8 @@
 
 ## 10.0.0
 
-- Freeze API 1.4.0 as `api-v1.4.0`; server/Web, desktop/CLI, Android and the managed Agent use 10.0.0. Remote control payloads remain direct UDP P2P only.
+- Freeze API 1.4.0 as `api-v1.4.0`; server/Web, desktop/CLI, Android and the managed Agent use 10.0.0.
+- Remote control payloads stay end-to-end encrypted over UDP and prefer direct P2P. An optional UDP TURN relay supports browser viewers connected to 10.0.0 hosts. Android controllers and 9.x hosts remain direct-only; there is no TCP, FRP, HTTP or WSS media fallback.
 - Add API 1.4.0. Endpoint capabilities can report agent-discovered displays, DPI, audio, and files; session and tunnel failures carry typed retry actions.
 - Keep 9.0 rows readable. Migration 020 adds a nullable tunnel diagnostic column, and migration 021 stores the selected display metrics.
 - Split server candidate construction from stable publication. Stable publication requires acceptance of the same source SHA, image digests, and deployment hashes.

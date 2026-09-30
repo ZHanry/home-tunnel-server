@@ -109,7 +109,10 @@ Batch operations return one status per item and can partially succeed.
 The 10.0.0 combination is server/Web, desktop/CLI, Android and managed Agent.
 Existing tunnel management retains 7.0 compatibility; remote desktop requires
 negotiated capabilities and matching 10.0.0 components. Remote desktop remains
-disabled by default; remote control payloads use direct UDP P2P only and has platform limitations described in the release notes.
+disabled by default. Remote control payloads stay end-to-end encrypted over UDP and
+prefer direct P2P. An optional UDP TURN relay supports browser viewers connected to
+10.0.0 hosts; Android controllers and 9.x hosts remain direct-only. There is no TCP,
+FRP, HTTP or WSS media fallback. The release notes describe platform limitations.
 There is no promised lifetime for obsolete versions.
 
 The frozen contract identifier is `api-v1.4.0`. The immutable `api-v1.3.0` tag and

@@ -31,8 +31,10 @@ docker compose -f compose.yaml -f compose.release.yaml up -d
 HTTP/HTTPS、受控 TCP/UDP 端口池、SSH/RDP/RTSP 预设；用户/设备隔离、流量限制、
 HTTP 白名单和 Basic Auth；TOTP/恢复码、会话撤销、短期接入码；分页搜索、标签收藏和
 最多 50 项批量操作。远控默认关闭，包含端点配对、独立授权与浏览器观看入口；10.0.0 起按设备 Agent
-签名上报的能力开放显示器、DPI、音频和文件，并提供隧道诊断。远控载荷仅走 UDP P2P 直连，无中继或
-TURN 回退；具体平台能力和未验证项见[发行说明](docs/RELEASE_NOTES.md)。
+签名上报的能力开放显示器、DPI、音频和文件，并提供隧道诊断。远控载荷通过端到端加密的 UDP 传输，
+优先 P2P 直连；浏览器观看端连接 10.0.0 被控端时可使用可选的 UDP TURN 中继。
+Android 控制端与 9.x 被控端仍仅支持直连，不提供 TCP、FRP、HTTP 或 WSS 媒体回退。
+具体平台能力和未验证项见[发行说明](docs/RELEASE_NOTES.md)。
 
 | 运维任务 | 文档 |
 | --- | --- |

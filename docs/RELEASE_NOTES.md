@@ -22,8 +22,8 @@ independent 0.70.1 version. The REST API stays on `/api/v1` and freezes contract
   new one revokes the host's previous active password.
 - Optional UDP TURN relay (`deploy/compose.turn.yaml`, coturn). When direct UDP
   fails, a browser viewer can reach a 10.0.0 host through the relay. Payloads stay
-  end-to-end DTLS encrypted, so the relay cannot read them. There is no TCP
-  fallback. Android controllers and 9.x hosts stay direct-only.
+  end-to-end DTLS encrypted, so the relay cannot read them. There is no TCP,
+  FRP, HTTP or WSS media fallback. Android controllers and 9.x hosts stay direct-only.
 - Stable publication promotes the accepted, sealed candidate bytes and image
   digests; it does not rebuild images.
 
@@ -31,9 +31,12 @@ Remote desktop remains disabled by default. Before deploying, verify an encrypte
 backup can be restored and use the release's `compose.release.yaml` to pin both
 image digests. See [upgrading](UPGRADING.md).
 
-**Verification scope.** The release candidate was deployed to a production server
-upgraded from 9.0.0, then tested there with a Web viewer controlling a Windows
-10.0.0 host. These worked over both direct UDP and the TURN relay:
+**Verification scope.** A production server upgraded from 9.0.0 was tested with a
+Web viewer controlling a Windows 10.0.0 host. These Web-to-Windows remote-runtime
+tests used development builds of the same feature code and were not rerun against
+the final release bytes. This qualification applies to these runtime results;
+separate CI records report the automated check outcomes. The following worked
+over both direct UDP and the TURN relay:
 
 - screen, keyboard, mouse and Chinese text
 - clipboard in both directions
