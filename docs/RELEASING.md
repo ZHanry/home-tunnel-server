@@ -1,6 +1,6 @@
 # 服务端候选构建与发行
 
-当前开发 Server/Client/Agent 10.1.0 候选，Android 10.0.0 保持不变并列为兼容性验证目标，FRP 保留独立版本。源码版本字段为 10.1.0，`compatibility.json` 将新增 `api-v1.5.0` 标记为源码已冻结；不可变标签须在干净主分支检查通过后单独创建并核验，版本字段和开发测试记录不代表正式版本已通过验收。最终验收前冻结源码、版本、协议和依赖；改变交付物字节后必须生成新候选并重测。正式版本使用 `vX.Y.Z` 标签，源码版本与标签必须一致，`compatibility.json` 的阶段设为 `public-release`。
+当前稳定发布 Server/Client/Agent 10.1.0，Android 10.0.0 保持不变；完整运行兼容性仍有未验证项，FRP 保留独立版本。源码版本字段为 10.1.0，`compatibility.json` 将新增 `api-v1.5.0` 标记为源码已冻结；不可变标签 `api-v1.5.0` 已核验指向 `194ae805f3569dc16d94b7fda71367e5d68fdff5`，版本字段和开发测试记录不代表正式版本已通过验收。最终验收前冻结源码、版本、协议和依赖；改变交付物字节后必须生成新候选并重测。正式版本使用 `vX.Y.Z` 标签，源码版本与标签必须一致，`compatibility.json` 的阶段设为 `public-release`。
 
 1. 在待测分支固定源码提交，完成 Quality Gate、CodeQL 和 Secret scan。
 2. 构建并封存未打产品标签的候选，记录 run/attempt、artifact ID、ZIP 摘要和全部镜像摘要。

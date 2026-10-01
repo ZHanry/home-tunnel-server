@@ -4,7 +4,7 @@
 
 **控制台、权限与隧道服务端**
 
-[![Stable 10.0.0](https://img.shields.io/badge/stable-10.0.0-176653)](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.0.0) [![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Stable 10.1.0](https://img.shields.io/badge/stable-10.1.0-176653)](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.1.0) [![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 [English](README.en.md) · [项目网站](https://zhanry.github.io/home-tunnel/) · [下载](https://github.com/ZHanry/home-tunnel/blob/main/docs/DOWNLOADS.md) · [快速开始](https://github.com/ZHanry/home-tunnel/blob/main/docs/GETTING_STARTED.md)
 
@@ -12,10 +12,10 @@
 在自己的公网 Linux 主机上部署 Web 控制台、API、流量网关、FRPS 和 Caddy，
 为家庭服务提供访问入口。本仓库负责控制面与部署；隧道执行端见 [Client](https://github.com/ZHanry/home-tunnel-client)。
 
-## 部署 10.0.0
+## 部署 10.1.0
 
 需要公网 Linux amd64/arm64、域名、Docker Compose v2；起步建议 2 GiB 内存。
-从 [Release](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.0.0) 下载部署包并核验 SHA256SUMS，进入解压目录：
+从 [Release](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.1.0) 下载部署包并核验 SHA256SUMS，进入解压目录：
 
 ```sh
 python3 deploy/scripts/setup-wizard.py --write
@@ -39,13 +39,13 @@ Android 控制端与 9.x 被控端仍仅支持直连，不提供 TCP、FRP、HTT
 | 运维任务 | 文档 |
 | --- | --- |
 | 新部署 / NAS / 应用示例 | [部署](docs/SELF_HOSTING.md) · [向导与 NAS](docs/NAS.md) |
-| 升级、回退边界 | [升级 10.0.0](docs/UPGRADING.md) |
+| 升级、回退边界 | [升级 10.1.0](docs/UPGRADING.md) |
 | TOTP、接入码与会话 | [账号安全](docs/ACCOUNT_SECURITY.md) |
 | 管理员找回、异机备份、恢复演练 | [灾难恢复](docs/disaster-recovery.md) |
 | Grafana、证书与备份告警 | [监控](docs/MONITORING.md) |
 | 开发、字段和兼容性 | [API](docs/API.md) · [OpenAPI](contracts/openapi.v1.json) |
 
-当前发行组合为 Server/Web、Client/Agent、Android **10.0.0**，API 契约为冻结的 `api-v1.4.0`；远控应使用同一发行组合。
+当前发行组合为 Server/Web、Client/Agent **10.1.0**，Android 保留 **10.0.0**，API 契约为冻结的 `api-v1.5.0`。原镜像与部署包直接晋升；实测范围和未验证项目见发行说明。
 FRP 0.70.1 独立版本及已固定的安全依赖不受产品版本号变更影响。
 
 ## 开发与质量

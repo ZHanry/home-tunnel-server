@@ -1,4 +1,4 @@
-# Home Tunnel API 1.5 frozen source / server 10.1.0 candidate
+# Home Tunnel API 1.5 / server 10.1.0
 
 [OpenAPI 3.1](../contracts/openapi.v1.json) · [JSON Schema 2020-12](../contracts/api.schema.json) · [Capabilities](../control-center/src/api-capabilities.ts)
 
@@ -34,9 +34,8 @@ Never publish the control-center, gateway, metrics or FRPS plugin ports directly
 
 ## 1.5 native remote and current-device additions
 
-The 10.1.0 candidate freezes additive `api-v1.5.0` in source. Publish its new
-immutable API tag only after the reviewed clean server commit passes its checks;
-consumers must verify that tag and import its exact commit. The existing
+The 10.1.0 release uses immutable `api-v1.5.0`, pointing to clean server source
+`194ae805f3569dc16d94b7fda71367e5d68fdff5`. Consumers must verify that tag and import its exact commit. The existing
 `api-v1.4.0` tag and its historical bytes are unchanged. Contract source
 verification is separate from final-package acceptance and production deployment.
 
@@ -65,7 +64,7 @@ from the corresponding desktop operations.
 ## 1.4 discovery (retained compatibility)
 
 The stable 10.0.0 `contract_version` is `1.4.0`, frozen as `api-v1.4.0`; the
-10.1.0 candidate advertises `1.5.0` with its additive contract frozen in source. `api-v1.3.0` and earlier
+10.1.0 advertises `1.5.0` with its additive contract frozen at `api-v1.5.0`. `api-v1.3.0` and earlier
 contract tags are unchanged. A server `remote_desktop.enabled` flag only opens
 the control plane. Audio, files, displays, DPI, and secure desktop are available
 only when the signed endpoint capability says the device agent discovered them.
