@@ -57,7 +57,8 @@ test("public home keeps prototype artwork, features and language on narrow scree
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await expect(page.locator(".marketing-brand img")).toHaveAttribute("src", "/HomeTunnel.svg");
+  await expect(page.locator(".marketing-brand .brand-mark svg")).toBeVisible();
+  await expect(page.locator(".marketing-brand")).toContainText("HomeDesk");
   await expect(page.locator(".hero-art .art-server")).toBeVisible();
   await expect(page.locator(".landing-features article")).toHaveCount(3);
   await expect(page.locator("#hero-download")).toHaveAttribute(
@@ -69,13 +70,13 @@ test("public home keeps prototype artwork, features and language on narrow scree
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test("dashboard quick actions use real console destinations and fit a phone", async ({ page }) => {
+test("dashboard uses the shared header and navigation actions and fits a phone", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ready(page, "/admin#dashboard");
   await expect(page.locator(".overview-metric")).toHaveCount(4);
-  await expect(page.locator(".dashboard-actions button")).toHaveCount(3);
+  await expect(page.locator('#page-actions [data-action="create-connection"]')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.locator('.dashboard-actions [data-action="view-remote"]').click();
+  await page.locator('.nav-primary[data-view="remote"]').click();
   await expect(page).toHaveURL(/#remote$/);
 });
 

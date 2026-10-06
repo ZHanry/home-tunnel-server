@@ -1,4 +1,4 @@
-import { localeTag } from "./locale.js?v=10.1.0";
+import { localeTag } from "./locale.js?v=10.1.0-hearth.1";
 
 export function escapeHtml(value) {
   return String(value ?? "")
@@ -38,13 +38,15 @@ export function statusBadge(status) {
     ? "ok"
     : ["pending", "applying", "degraded", "must_change", "unknown"].includes(normalized)
       ? "warn"
-      : ["offline", "disabled"].includes(normalized)
+      : ["offline", "disabled", "paused"].includes(normalized)
         ? "neutral"
         : "error";
   const label =
     {
       active: "启用",
       disabled: "已禁用",
+      paused: "已暂停",
+      error: "异常",
       revoked: "已撤销",
       healthy: "健康",
       unhealthy: "异常",
@@ -57,7 +59,7 @@ export function statusBadge(status) {
       online: "在线",
       offline: "离线",
       quota_suspended: "配额停用",
-    }[normalized] ?? normalized;
+    }[normalized] ?? "待确认";
   return `<span class="status-badge ${tone}">${escapeHtml(label)}</span>`;
 }
 

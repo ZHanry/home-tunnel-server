@@ -1,4 +1,4 @@
-import { localizedApiError, localizedText } from "./locale.js?v=10.1.0";
+import { localizedApiError, localizedText } from "./locale.js?v=10.1.0-hearth.1";
 import { state } from "./state.js?v=10.1.0";
 
 let refreshInFlight = null;

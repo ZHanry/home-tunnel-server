@@ -1,5 +1,5 @@
-import { createConnectionsView } from "./modules/connections.js?v=10.1.0";
-import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=10.1.0";
+import { createConnectionsView } from "./modules/connections.js?v=10.1.0-hearth.1";
+import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=10.1.0-hearth.1";
 import { tunnelVerification } from "./modules/tunnel-model.js?v=10.1.0";
 import { createAccountSecurityView } from "./modules/account-security.js?v=10.1.0";
 import {
@@ -10,9 +10,9 @@ import {
   setBusy,
   changedFields,
 } from "./modules/forms.js?v=10.1.0";
-import { createDevicesView } from "./modules/devices.js?v=10.1.0";
+import { createDevicesView } from "./modules/devices.js?v=10.1.0-hearth.1";
 import { createRemoteView } from "./modules/remote/view.js?v=10.1.0";
-import { api, refreshSession, allPages } from "./modules/api.js?v=10.1.0";
+import { api, refreshSession, allPages } from "./modules/api.js?v=10.1.0-hearth.1";
 import {
   componentLabel,
   configState,
@@ -21,8 +21,8 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=10.1.0";
-import { localeTag, updateDocumentMetadata, t, currentThemePreference } from "./modules/locale.js?v=10.1.0";
+} from "./modules/format.js?v=10.1.0-hearth.1";
+import { localeTag, updateDocumentMetadata, t, currentThemePreference } from "./modules/locale.js?v=10.1.0-hearth.1";
 import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=10.1.0";
 import { state } from "./modules/state.js?v=10.1.0";
 
@@ -95,7 +95,7 @@ function applyRoleChrome() {
     item.hidden = !isAdmin();
   });
   const brand = document.querySelector(".sidebar-brand .brand-copy small");
-  if (brand) brand.textContent = isAdmin() ? "SERVER / WEB" : "MY WORKSPACE";
+  if (brand) brand.textContent = isAdmin() ? t("控制中心", "Control center") : t("我的工作区", "My workspace");
   const sessionCopy = document.querySelector(".sidebar-session small");
   if (sessionCopy) sessionCopy.textContent = isAdmin() ? "权限已验证" : "仅显示你的资源";
 }
@@ -153,6 +153,7 @@ async function loadPublicConfig() {
     if (typeof value.tunnel_domain !== "string" || !/^[a-z0-9.-]{1,253}$/.test(value.tunnel_domain))
       return;
     state.tunnelDomain = value.tunnel_domain;
+    document.querySelector("#workspace-domain").textContent = state.tunnelDomain;
     state.prefixPolicy =
       value.subdomain_prefix_policy === "off" || value.subdomain_prefix_policy === "enforce"
         ? value.subdomain_prefix_policy
@@ -320,6 +321,7 @@ async function renderView(view, { background = false } = {}) {
   const renderId = ++state.renderId;
   view = resolveView(view);
   state.currentView = view;
+  viewContent.dataset.page = view;
   if (!background) closeMoreNavigation();
   document
     .querySelectorAll(".nav-item")
@@ -424,8 +426,7 @@ async function renderDashboard(renderId) {
   ];
   viewContent.innerHTML = `
     <section class="overview-metrics" aria-label="运行概况">${metrics.map((metric) => `<article class="overview-metric"><div><span>${metric.label}</span><svg viewBox="0 0 24 24" aria-hidden="true">${metric.icon}</svg></div><strong>${metric.value}</strong><small>${metric.note}</small></article>`).join("")}</section>
-    <div class="dashboard-primary"><section class="panel dashboard-quick"><div class="panel-header"><h3>快速开始</h3><span class="panel-subtle">最常用的操作</span></div><div class="dashboard-actions"><button type="button" data-action="view-remote"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="15" rx="2"/><path d="M8 22h8m-4-4v4M7 10l3-3m0 0H7m3 0v3"/></svg><strong>连接远程电脑</strong><span aria-hidden="true">→</span></button><button type="button" data-action="create-connection"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.3 1.3M14 11a5 5 0 0 0-7.1 0l-2 2a5 5 0 0 0 7.1 7.1l1.3-1.3"/></svg><strong>创建内网连接</strong><span aria-hidden="true">→</span></button><button type="button" data-action="view-devices"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg><strong>查看设备</strong><span aria-hidden="true">→</span></button></div></section><section class="panel dashboard-health"><div class="panel-header"><h3>系统组件</h3>${statusBadge(health.status)}</div><div class="health-rail-list">${healthRows}</div></section></div>
-    <section class="overview-banner"><div><p class="eyebrow">YOUR HOME, CONNECTED</p><h2>${health.status === "healthy" ? "你的家庭服务，触手可及。" : "有些服务需要你的关注。"}</h2><p>设备、远控和内网连接独立管理。 <span class="mono" data-no-translate>${escapeHtml(state.tunnelDomain)}</span></p></div><button class="button button-secondary" data-action="view-connections">管理连接 →</button></section>
+    <div class="dashboard-primary">
     <section class="panel table-panel dashboard-traffic"><div class="panel-header"><div><h3>流量最高的连接</h3><span class="panel-subtle">过去 24 小时 · 按实际使用量排序</span></div><button class="button button-quiet" data-action="view-connections">全部连接</button></div>${
       traffic.items.length
         ? `<table class="data-table"><thead><tr><th>服务</th><th>上传</th><th>下载</th><th>请求</th></tr></thead><tbody>${traffic.items
@@ -436,7 +437,7 @@ async function renderDashboard(renderId) {
             )
             .join("")}</tbody></table>`
         : emptyState("还没有流量记录", "发布服务并访问后，这里会显示使用情况。")
-    }</section>`;
+    }</section><section class="panel dashboard-health"><div class="panel-header"><h3>系统组件</h3>${statusBadge(health.status)}</div><div class="health-rail-list">${healthRows}</div></section></div>`;
 }
 
 function emptyState(title, detail, action, actionLabel) {
@@ -506,7 +507,6 @@ async function renderUserDashboard(renderId) {
   ).length;
   const onlineDevices = state.devices.filter((item) => item.online).length;
   viewContent.innerHTML = `
-    <section class="overview-banner"><div><p class="eyebrow">YOUR PERSONAL WORKSPACE</p><h2 data-no-translate>${escapeHtml(state.me.display_name)}</h2><p>你的设备与服务，在这里相连。</p></div><div class="overview-domain"><small>当前部署</small><strong class="mono" data-no-translate>${escapeHtml(state.tunnelDomain)}</strong></div></section>
     <section class="overview-metrics"><article class="overview-metric"><span>在线连接</span><strong>${onlineConnections}</strong></article><article class="overview-metric"><span>全部连接</span><strong>${state.connections.length}</strong></article><article class="overview-metric"><span>在线设备</span><strong>${onlineDevices} / ${state.devices.length}</strong></article><article class="overview-metric"><span>累计流量</span><strong>${formatBytes(totalTraffic)}</strong></article></section>
     <section class="panel table-panel table-section">
       <div class="panel-header">
@@ -939,7 +939,7 @@ function showConnectionDetails(id) {
   const raw = isRawProxy(c.proxy_type);
   openModal({
     title: `连接详情 · ${c.name}`,
-    body: `<p class="detail-status">${statusBadge(c.enabled ? c.state : "disabled")}</p><p>${escapeHtml(connectionDiagnostic(c))}</p><dl class="connection-detail"><dt>公网地址</dt><dd data-no-translate>${escapeHtml(publicAddress(c))}</dd><dt>家庭设备</dt><dd data-no-translate>${escapeHtml(c.device_name)}</dd><dt>本地服务</dt><dd data-no-translate>${escapeHtml(raw ? c.proxy_type : c.local_scheme)}://${escapeHtml(c.local_host)}:${c.local_port}</dd><dt>配置进度</dt><dd>已应用 ${Number(c.applied_version ?? 0)} / 目标 ${Number(c.version)}</dd>${c.last_error_code ? `<dt>诊断代码</dt><dd data-no-translate>${escapeHtml(c.last_error_code)}</dd>` : ""}</dl><h3>排查步骤</h3><ol class="diagnostic-steps"><li>确认家庭设备开机，客户端已登录。</li><li>在家庭设备上访问本地服务地址，确认端口正确。</li><li>确认配置已同步，再从外部网络检查公网地址。</li><li>${raw ? "检查应用自身的认证、加密和公网端口防火墙。" : "如配置了 IP 白名单或访问口令，请确认访问条件。"}</li></ol>`,
+    body: `<p class="detail-status">${statusBadge(c.enabled ? c.state : "paused")}</p><p>${escapeHtml(connectionDiagnostic(c))}</p><dl class="connection-detail"><dt>公网地址</dt><dd data-no-translate>${escapeHtml(publicAddress(c))}</dd><dt>家庭设备</dt><dd data-no-translate>${escapeHtml(c.device_name)}</dd><dt>本地服务</dt><dd data-no-translate>${escapeHtml(raw ? c.proxy_type : c.local_scheme)}://${escapeHtml(c.local_host)}:${c.local_port}</dd><dt>配置进度</dt><dd>已应用 ${Number(c.applied_version ?? 0)} / 目标 ${Number(c.version)}</dd>${c.last_error_code ? `<dt>诊断代码</dt><dd data-no-translate>${escapeHtml(c.last_error_code)}</dd>` : ""}</dl><h3>排查步骤</h3><ol class="diagnostic-steps"><li>确认家庭设备开机，客户端已登录。</li><li>在家庭设备上访问本地服务地址，确认端口正确。</li><li>确认配置已同步，再从外部网络检查公网地址。</li><li>${raw ? "检查应用自身的认证、加密和公网端口防火墙。" : "如配置了 IP 白名单或访问口令，请确认访问条件。"}</li></ol>`,
     submitLabel: "知道了",
     onSubmit: () => modal.close("done"),
   });

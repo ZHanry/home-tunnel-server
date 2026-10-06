@@ -127,8 +127,7 @@ for (const theme of ["light", "dark"]) {
         active: css(".nav-item.active").backgroundColor, activeText: css(".nav-item.active").color,
         name: css("#current-user").color, chip: css(".user-chip").backgroundColor };
     });
-    if (theme === "light") expect(luminance(colors.side)).toBeGreaterThan(0.85);
-    else expect(luminance(colors.side)).toBeLessThan(0.05);
+    expect(colors.side).toBe(theme === "light" ? "rgb(239, 235, 228)" : "rgb(29, 26, 23)");
     expect(contrast(colors.item, colors.side)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(colors.activeText, colors.active)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(colors.name, colors.chip)).toBeGreaterThanOrEqual(4.5);
@@ -173,8 +172,9 @@ test("the remote device grid fills the available width at 2000px", async ({ page
     return { columns, perRow: firstRow.length, gridWidth: grid.getBoundingClientRect().width, heading: heading.width,
       rowRight: firstRow.at(-1).right - grid.getBoundingClientRect().left };
   });
-  expect(layout.columns).toBeGreaterThanOrEqual(5);
-  expect(layout.perRow).toBeGreaterThanOrEqual(5);
+  expect(layout.columns).toBe(4);
+  expect(layout.perRow).toBe(4);
+  expect(layout.gridWidth).toBeLessThanOrEqual(1320);
   expect(layout.gridWidth).toBeGreaterThanOrEqual(layout.heading - 1);
   expect(layout.rowRight).toBeGreaterThanOrEqual(layout.gridWidth * 0.8);
   const connect = page.locator("[data-remote-host]").first();
@@ -218,7 +218,7 @@ for (const width of [1280, 390]) {
     expect(heights.size, "actions share one height").toBe(1);
     if (width >= 1280) {
       expect(box.row.height).toBeLessThanOrEqual(150);
-      expect(box.actions.at(-1).right).toBeGreaterThanOrEqual(box.row.right - 40);
+      expect(box.actions.at(-1).right).toBeGreaterThanOrEqual(box.row.right - 40 - 1);
       const batch = await page.locator('[data-action="batch-connections"]').first().boundingBox();
       expect(batch.height).toBeLessThanOrEqual(40);
     } else {

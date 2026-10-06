@@ -1,5 +1,5 @@
 import { serviceTemplates, tunnelVerification } from "./tunnel-model.js?v=10.1.0";
-import { localizedText as t } from "./locale.js?v=10.1.0";
+import { localizedText as t } from "./locale.js?v=10.1.0-hearth.1";
 
 const activeWizards = new WeakMap();
 export function disposeTunnelWizard(modal) { activeWizards.get(modal)?.(); }

@@ -158,7 +158,7 @@ test("public landing page stays available while Windows release metadata is abse
     assert.match(localeModule.body.toString("utf8"), /function updateDocumentMetadata\(\)/);
     assert.match(
       localeModule.body.toString("utf8"),
-      /Home Tunnel — Secure access to services at home/,
+      /HomeDesk — Secure access to services at home/,
     );
     assert.match(localeModule.body.toString("utf8"), /record\.type === "characterData"/);
     assert.equal(localeModule.headers["cache-control"], "no-cache");

@@ -5,6 +5,11 @@ const appShell = document.querySelector("#app-shell");
 
 const localeStorageKey = "ht_locale";
 const zhToEn = {
+  "家庭连接": "Home tunnels",
+  "下载官方隧道客户端": "Get the official tunnel client",
+  "服务与设备": "Service and device",
+  "访问地址": "Access address",
+  "已暂停": "Paused",
   ...remoteTranslations,
   "标签（逗号分隔，最多 12 个）": "Tags (comma-separated, up to 12)",
   "收藏此设备": "Favorite this device",
@@ -276,7 +281,7 @@ const zhToEn = {
   "每台设备，各司其职。": "The right app for every device.",
   "下载 Windows / macOS / Linux →": "Download Windows / macOS / Linux \u2192",
   "下载 Android APK →": "Download Android APK \u2192",
-  "Home Tunnel · 开源、自托管": "Home Tunnel \u00b7 Open source and self-hosted",
+  "HomeDesk · 开源、自托管": "HomeDesk \u00b7 Open source and self-hosted",
   "家中的服务，": "Services at home,",
   "随时在身边。": "always within reach.",
   "一个入口，连接你的设备、服务与日常。": "One place for your devices, services and daily life.",
@@ -295,8 +300,8 @@ const zhToEn = {
   "已关闭，密码不会保留": "Closed. Passwords are not retained.",
   跳到主要内容: "Skip to main content",
   产品导航: "Product navigation",
-  "Home Tunnel 首页": "Home Tunnel home",
-  "访问 Home Tunnel GitHub 仓库": "Visit the Home Tunnel GitHub repository",
+  "HomeDesk 首页": "HomeDesk home",
+  "访问 HomeDesk GitHub 仓库": "Visit the HomeDesk GitHub repository",
   "GitHub 仓库": "GitHub repository",
   登录后台: "Admin sign in",
   登录控制台: "Sign in to console",
@@ -309,7 +314,7 @@ const zhToEn = {
   选择客户端平台: "Choose a client platform",
   "Windows 图形客户端": "Windows desktop client",
   桌面图形客户端: "Desktop GUI client",
-  "Home Tunnel 桌面图形客户端开发预览": "Home Tunnel desktop GUI development preview",
+  "HomeDesk 桌面图形客户端开发预览": "HomeDesk desktop GUI development preview",
   "Linux 客户端快速开始": "Linux client quick start",
   "Windows x64 EXE": "Windows x64 EXE",
   "当前为正式版，客户端以源码构建为主。Windows / macOS / Linux 共用图形客户端，NAS 可使用 CLI 服务。":
@@ -339,7 +344,7 @@ const zhToEn = {
   "＋ 新建连接": "+ New connection",
   "家庭 NAS": "Home NAS",
   在线: "Online",
-  "开始使用 Home Tunnel": "Get started with Home Tunnel",
+  "开始使用 HomeDesk": "Get started with HomeDesk",
   安装受管客户端: "Install a managed client",
   "Windows 使用图形界面，Linux/macOS 作为系统服务运行。":
     "Use the desktop app on Windows or run the system service on Linux/macOS.",
@@ -369,7 +374,7 @@ const zhToEn = {
   "适合 NAS、家庭服务器和常开的 Linux/macOS 主机；支持实时配置通知，不含 GUI 与自动更新。":
     "Designed for NAS devices, home servers, and always-on Linux/macOS hosts, with realtime configuration notifications but no GUI or automatic updates.",
   查看安装与运维说明: "View installation and operations guide",
-  "返回 Home Tunnel 产品首页": "Back to the Home Tunnel home page",
+  "返回 HomeDesk 产品首页": "Back to the HomeDesk home page",
   登录控制中心: "Sign in to Control Center",
   "使用管理员账号继续。": "Continue with an administrator account.",
   "使用管理员或普通用户账号继续。": "Continue with an administrator or standard user account.",
@@ -634,8 +639,8 @@ const zhToEn = {
   "TCP/UDP 端口仍由管理员分配。": "TCP/UDP ports are still assigned by an administrator.",
   已安全退出: "Signed out securely",
   "密码已修改，请使用新密码重新登录": "Password changed; sign in again with the new password",
-  "登录后台 — Home Tunnel": "Admin sign in — Home Tunnel",
-  "Home Tunnel 控制中心": "Home Tunnel Control Center",
+  "登录后台 — HomeDesk": "Admin sign in — HomeDesk",
+  "HomeDesk 控制中心": "HomeDesk Control Center",
   请求失败: "Request failed",
   "小写字母、数字、点、下划线或连字符": "Lowercase letters, numbers, dots, underscores, or hyphens",
   "临时密码 72 小时有效，首次登录后必须修改。关闭后无法再次查看。":
@@ -967,20 +972,20 @@ export function updateDocumentMetadata() {
   const adminPath = location.pathname.startsWith("/admin");
   const signedIn = adminPath && !appShell.classList.contains("hidden");
   document.title = signedIn
-    ? t("Home Tunnel 控制中心", "Home Tunnel Control Center")
+    ? t("HomeDesk 控制中心", "HomeDesk Control Center")
     : adminPath
-      ? t("登录后台 — Home Tunnel", "Admin sign in — Home Tunnel")
+      ? t("登录后台 — HomeDesk", "Admin sign in — HomeDesk")
       : t(
-          "Home Tunnel — 随时安全访问家里的服务",
-          "Home Tunnel — Secure access to services at home",
+          "HomeDesk — 随时安全访问家里的服务",
+          "HomeDesk — Secure access to services at home",
         );
   document
     .querySelector('meta[name="description"]')
     ?.setAttribute(
       "content",
       t(
-        "Home Tunnel 受管发布 Web、通用 TCP 与固定端口 UDP 服务。",
-        "Home Tunnel publishes managed Web, general TCP, and fixed-port UDP services.",
+        "HomeDesk 受管发布 Web、通用 TCP 与固定端口 UDP 服务。",
+        "HomeDesk publishes managed Web, general TCP, and fixed-port UDP services.",
       ),
     );
 }
@@ -1040,7 +1045,7 @@ export function applyTheme(theme, persist = true) {
   document.documentElement.style.colorScheme = normalized;
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", normalized === "dark" ? "#0f172a" : "#f8fafc");
+    ?.setAttribute("content", normalized === "dark" ? "#171512" : "#F6F4EF");
   const labels = { system: t("跟随系统", "System"), light: t("浅色", "Light"), dark: t("深色", "Dark") };
   document.querySelectorAll("[data-theme-select]").forEach((select) => {
     select.value = preference;
