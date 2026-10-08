@@ -2,6 +2,8 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./browser-tests",
+  // Historical browser media engine is retired from HomeDesk 11 production.
+  testIgnore: process.env.HOME_TUNNEL_LEGACY_RD_TESTS ? [] : ["**/remote*.spec.mjs"],
   timeout: 20_000,
   workers: 1,
   use: {

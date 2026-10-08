@@ -263,6 +263,33 @@ app.patch("/api/v1/admin/settings", (request, response) => {
     transport_settings_version: transportVersion,
   });
 });
+app.get("/api/v1/homedesk/config", (_request, response) =>
+  response.json({
+    configured: true,
+    server: "hbbs.example.com:21116",
+    key: "fixture-public-key",
+    key_sha256: "ab".repeat(32),
+    policy: "require_direct",
+    relay_enabled: false,
+  }),
+);
+app.get("/api/v1/homedesk/devices", (request, response) =>
+  response.json({
+    version: 1,
+    items: isEmpty(request)
+      ? []
+      : [
+          {
+            device_id: ids.device,
+            remote_id: "123456789",
+            platform: "Windows",
+            online: true,
+            server: "hbbs.example.com:21116",
+            key_sha256: "ab".repeat(32),
+          },
+        ],
+  }),
+);
 app.get("/api/v1/client/devices", (request, response) =>
   response.json({ items: isEmpty(request) ? [] : devices.filter((d) => d.user_id === ids.user) }),
 );

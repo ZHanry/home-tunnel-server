@@ -15,6 +15,7 @@ import { accountSecurityRouter } from "./routes/account-security.js";
 import { platformRouter } from "./routes/platform.js";
 import { clientRouter } from "./routes/client.js";
 import { deviceNameRouter } from "./routes/device-name.js";
+import { homedeskRouter } from "./routes/homedesk.js";
 import { internalRouter } from "./routes/internal.js";
 import { downloadRouter, publicRouter } from "./routes/public.js";
 import { APP_VERSION } from "./version.js";
@@ -98,6 +99,7 @@ export async function createApplication(
   app.use("/api/v1/admin", adminRouter);
   app.use("/api/v1", platformRouter);
   app.use("/api/v1", deviceNameRouter);
+  app.use("/api/v1", homedeskRouter);
   app.use("/api/v1", clientRouter);
   app.use("/internal", internalRouter);
 

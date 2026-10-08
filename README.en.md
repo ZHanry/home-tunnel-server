@@ -1,22 +1,10 @@
-<img src="control-center/public/HomeTunnel.svg" alt="" width="64" height="64">
+# Home Tunnel Server / HomeDesk
 
-# Home Tunnel Server
+The current main line is **11.0.0-rc.1**, integrating the Hearth Web console and native HomeDesk device directory. HTTP/HTTPS and governed TCP/UDP tunneling remain available. Remote desktop requires authenticated, encrypted direct P2P; failure terminates the connection. The server adds hbbs signaling only, with no hbbr/TURN or media forwarding.
 
-**Control plane, access policies and tunnel server**
+[简体中文](README.md) · [Candidate release](https://github.com/ZHanry/home-tunnel-server/releases/tag/v11.0.0-rc.1) · [Last stable 10.1.0](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.1.0)
 
-[![Stable 10.1.0](https://img.shields.io/badge/stable-10.1.0-176653)](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.1.0) [![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-
-[简体中文](README.md) · [Website](https://zhanry.github.io/home-tunnel/en/) · [Downloads](https://github.com/ZHanry/home-tunnel/blob/main/docs/DOWNLOADS.md) · [Quick start](https://github.com/ZHanry/home-tunnel/blob/main/docs/GETTING_STARTED.md)
-
-
-Deploy the Web console, API, traffic gateway, FRPS and Caddy on your own public
-Linux host. The [client repository](https://github.com/ZHanry/home-tunnel-client)
-owns desktop/CLI tunnel execution.
-
-## Deploy 10.1.0
-
-Use Linux amd64/arm64, your domain and Docker Compose v2; start with a 2 GiB memory
-budget. Verify the release archive's SHA-256, extract it, then run:
+Deploy on public Linux amd64/arm64 with DNS and Docker Compose v2. Node/SQLite, FRPS, the traffic gateway and Caddy remain. The additional hbbs process has a 64 MiB memory limit; total deployment capacity still needs measurement.
 
 ```sh
 python3 deploy/scripts/setup-wizard.py --write
@@ -24,28 +12,12 @@ python3 deploy/scripts/preflight.py
 docker compose -f compose.yaml -f compose.release.yaml up -d
 ```
 
-The wizard asks for your actual DNS, public host and ACME email and refuses to
-overwrite existing secrets. Change the bootstrap administrator password at first
-login. [Detailed deployment](docs/SELF_HOSTING.md) · [Upgrade](docs/UPGRADING.md).
+Verify the archive checksum first; change the bootstrap password at first login. Configure the same hbbs address and public key on the server and both peers. [Deployment, identity backup and upgrade](docs/HOMEDESK.md). API `api-v1.6.0` stays additive on `/api/v1`. Historical browser remote desktop and RD/TURN/STUN overlays are retired from production in 11.x.
 
-HTTP/HTTPS and controlled TCP/UDP pools; user/device isolation, traffic policies,
-HTTP access protection, TOTP/recovery codes, session revocation, one-time enrollment,
-paginated catalogs, tags/favorites and per-item batch operations. Remote desktop is
-opt-in, with explicit endpoint pairing, authorization and browser viewing. From 10.0.0,
-displays, DPI, audio and files follow the device agent's signed capability report, and
-tunnels expose agent-reported diagnostics. Remote control payloads stay end-to-end
-encrypted over UDP and prefer direct P2P. An optional UDP TURN relay supports browser
-viewers connected to 10.0.0 hosts. Android controllers and 9.x hosts remain direct-only.
-There is no TCP, FRP, HTTP or WSS media fallback. See the [release notes](docs/RELEASE_NOTES.md)
-for platform capabilities and unverified paths.
+Permissions, ACLs, quotas, traffic policies, diagnostics, MFA, revocation, enrollment and batch operations remain. Independent CLI/NAS Agents continue without the GUI. The Web directory launches `homedesk://ID`; authentication stays in the native app. Recent registration does not prove a media connection.
 
-[Account security](docs/ACCOUNT_SECURITY.md) · [Encrypted backup and recovery](docs/disaster-recovery.md) · [Monitoring](docs/MONITORING.md) · [NAS/preflight](docs/NAS.md) · [API/OpenAPI](docs/API.md)
+Cross-network NAT, sustained media and physical Android acceptance remain pending. Restricted networks can fail direct connectivity; this candidate has no relay fallback. [Candidate release notes](docs/HOMEDESK_RELEASE.md). Historical acceptance records apply only to their own versions.
 
-The current release set is server/Web and client/Agent **10.1.0**, retaining
-Android **10.0.0**, with frozen `api-v1.5.0`. Original candidate images and packages
-are promoted unchanged; release notes identify tested and unverified coverage.
-FRP remains independently versioned at 0.70.1. CI validates service
-tests, browser flows, deployment, API responses, recovery and security. Release
-assets retain image digests, checksums and integration evidence. Image SBOMs and
-build provenance are stored as attestations on the pinned GHCR image digests;
-see the [verification guide](docs/RELEASING.md).
+Node 24.19.0, FRP 0.70.1 and digest-pinned hbbs 1.1.16. Releases contain three attachments: deployment archive, source/evidence materials and SHA256SUMS. Image SBOMs and provenance stay attached to immutable GHCR digests.
+
+[API](contracts/openapi.v1.json) · [Recovery](docs/disaster-recovery.md) · [Account security](docs/ACCOUNT_SECURITY.md) · [Monitoring](docs/MONITORING.md) · [Apache-2.0](LICENSE)

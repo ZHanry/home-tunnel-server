@@ -525,8 +525,10 @@ class CandidatePolicyTests(unittest.TestCase):
         current = dict(ready, version=package["version"], contract_status=compatibility["contract_status"], contract_ref=compatibility["contract_ref"])
         # Source freeze removes only the contract blocker; acceptance/origin facts
         # above are isolated fixtures, never a claim that a product is accepted.
-        self.assertEqual(release_candidate.promotion_blockers(current), [])
-        proposed = dict(current, contract_status="proposed")
+        # The historical stable-promotion gate must continue to reject the new RC.
+        expected = [] if package["version"] == "10.1.0" else ["source version is not the final 10.1.0 product version", "api-v1.5.0 contract is not frozen"]
+        self.assertEqual(release_candidate.promotion_blockers(current), expected)
+        proposed = dict(ready, contract_status="proposed")
         self.assertEqual(release_candidate.promotion_blockers(proposed), ["api-v1.5.0 contract is not frozen"])
         stale = dict(ready, version="9.0.0", contract_status="proposed")
         blockers = release_candidate.promotion_blockers(stale)
@@ -535,8 +537,8 @@ class CandidatePolicyTests(unittest.TestCase):
 
     def test_candidate_target_does_not_relabel_historical_coverage(self):
         compatibility = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
-        self.assertEqual(compatibility["target_combination"]["server"], "10.1.0")
-        self.assertEqual(compatibility["target_combination"]["android"], "10.0.0")
+        self.assertEqual(compatibility["target_combination"]["server"], compatibility["version"])
+        self.assertEqual(compatibility["target_combination"]["android"], "11.0.0-rc.1")
         self.assertEqual(set(compatibility["tested_combination"].values()), {"10.0.0"})
         self.assertIn("acceptance pending", compatibility["tested_combination_scope"])
 

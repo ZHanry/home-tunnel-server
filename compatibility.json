@@ -1,12 +1,12 @@
 {
   "component": "server",
-  "stage": "public-release",
+  "stage": "internal-testing",
   "api_major": 1,
-  "contract_ref": "api-v1.5.0",
+  "contract_ref": "api-v1.6.0",
   "contract_status": "frozen",
-  "frozen_tag": "api-v1.5.0",
-  "support_policy": "10.1.0 stable release with the frozen additive api-v1.5.0 contract on /api/v1. Adds scoped one-time native remote sign-in handoff, self-remote safeguards and current-device rename. RD remains disabled by default; signed grants and discovered capabilities still apply. Existing 7.0+ tunnels remain supported. Back up and test restore before deployment. The release notes identify verified and unverified coverage; incomplete runtime coverage remains explicitly unverified. FRP follows its separate upstream version.",
-  "version": "10.1.0",
+  "frozen_tag": "api-v1.6.0",
+  "support_policy": "11.0.0-rc.1 candidate: existing HTTP/HTTPS and governed TCP/UDP tunnels remain supported; native HomeDesk remote sessions require authenticated encrypted direct P2P with hbbs signaling only. No relay fallback. Full NAT and physical-device acceptance pending. Back up SQLite, deployment secrets and hbbs identity before upgrade. Release notes distinguish verified and unverified coverage.",
+  "version": "11.0.0-rc.1",
   "minimum_server": "7.0.0",
   "tested_combination": {
     "server": "10.0.0",
@@ -14,12 +14,12 @@
     "android": "10.0.0",
     "agent": "10.0.0"
   },
-  "tested_combination_scope": "Historical 10.0.0 identity record retained. 10.1.0 stable component identities are listed in target_combination; exact-worker and server-image checks passed within documented scope, not a complete cross-product runtime matrix. Complete cross-product runtime acceptance pending.",
-  "previous_immutable_tag": "api-v1.4.0",
+  "tested_combination_scope": "Historical 10.0.0 identity retained. Candidate unit, integration and build checks are recorded separately; target versions are not evidence of full cross-network or physical-device acceptance. Complete cross-product runtime acceptance pending.",
+  "previous_immutable_tag": "api-v1.5.0",
   "target_combination": {
-    "server": "10.1.0",
-    "client": "10.1.0",
-    "android": "10.0.0",
+    "server": "11.0.0-rc.1",
+    "client": "11.0.0-rc.1",
+    "android": "11.0.0-rc.1",
     "agent": "10.1.0"
   }
 }

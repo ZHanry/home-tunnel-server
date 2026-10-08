@@ -1,21 +1,14 @@
-<img src="control-center/public/HomeTunnel.svg" alt="" width="64" height="64">
+# Home Tunnel Server / HomeDesk
 
-# Home Tunnel Server
+当前主线为 **11.0.0-rc.1 候选版**，整合暖居 Web 控制台和原生 HomeDesk 远控目录。内网穿透完整保留；远控必须认证、加密并直接连接，连接失败会停止。服务器只增加 hbbs 信令，不运行 hbbr/TURN，也不转发远控画面、声音、输入或文件。
 
-**控制台、权限与隧道服务端**
+[English](README.en.md) · [候选发行](https://github.com/ZHanry/home-tunnel-server/releases/tag/v11.0.0-rc.1) · [最后稳定版 10.1.0](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.1.0)
 
-[![Stable 10.1.0](https://img.shields.io/badge/stable-10.1.0-176653)](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.1.0) [![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+## 部署
 
-[English](README.en.md) · [项目网站](https://zhanry.github.io/home-tunnel/) · [下载](https://github.com/ZHanry/home-tunnel/blob/main/docs/DOWNLOADS.md) · [快速开始](https://github.com/ZHanry/home-tunnel/blob/main/docs/GETTING_STARTED.md)
+需要公网 Linux amd64/arm64、域名、Docker Compose v2。现有 Node/SQLite、FRPS、流量网关和 Caddy 保留，新增 hbbs 限制 64 MiB 内存；这不是整体最低内存或实测容量承诺。
 
-
-在自己的公网 Linux 主机上部署 Web 控制台、API、流量网关、FRPS 和 Caddy，
-为家庭服务提供访问入口。本仓库负责控制面与部署；隧道执行端见 [Client](https://github.com/ZHanry/home-tunnel-client)。
-
-## 部署 10.1.0
-
-需要公网 Linux amd64/arm64、域名、Docker Compose v2；起步建议 2 GiB 内存。
-从 [Release](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.1.0) 下载部署包并核验 SHA256SUMS，进入解压目录：
+从候选 Release 下载部署包，核验 SHA256SUMS，解压后运行：
 
 ```sh
 python3 deploy/scripts/setup-wizard.py --write
@@ -23,32 +16,19 @@ python3 deploy/scripts/preflight.py
 docker compose -f compose.yaml -f compose.release.yaml up -d
 ```
 
-向导会询问域名、公网地址和 ACME 邮箱，拒绝覆盖已有秘密。
-首次登录必须改密。完整 DNS、端口、镜像与升级步骤见 [部署指南](docs/SELF_HOSTING.md)。
+首次登录必须改密。配置 hbbs 公网地址与公钥后，两端 HomeDesk 使用同一信任配置。实际端口、指纹、身份备份及升级步骤见 [HomeDesk 部署](docs/HOMEDESK.md)。新 API 为冻结的 `api-v1.6.0`，保留 `/api/v1`。旧浏览器远控在 11.x 生产路径退休，不再叠加历史 RD/TURN/STUN overlays。
 
-## 能力
+## 能力与边界
 
-HTTP/HTTPS、受控 TCP/UDP 端口池、SSH/RDP/RTSP 预设；用户/设备隔离、流量限制、
-HTTP 白名单和 Basic Auth；TOTP/恢复码、会话撤销、短期接入码；分页搜索、标签收藏和
-最多 50 项批量操作。远控默认关闭，包含端点配对、独立授权与浏览器观看入口；10.0.0 起按设备 Agent
-签名上报的能力开放显示器、DPI、音频和文件，并提供隧道诊断。远控载荷通过端到端加密的 UDP 传输，
-优先 P2P 直连；浏览器观看端连接 10.0.0 被控端时可使用可选的 UDP TURN 中继。
-Android 控制端与 9.x 被控端仍仅支持直连，不提供 TCP、FRP、HTTP 或 WSS 媒体回退。
-具体平台能力和未验证项见[发行说明](docs/RELEASE_NOTES.md)。
+HTTP/HTTPS、受控 TCP/UDP、端口池、用户与设备权限、ACL、配额、流量治理、诊断、TOTP、会话撤销、接入码和批量操作继续使用现有实现。CLI/NAS/background Agent 独立运行，不受 HomeDesk 远控配置或打洞失败影响。
 
-| 运维任务 | 文档 |
-| --- | --- |
-| 新部署 / NAS / 应用示例 | [部署](docs/SELF_HOSTING.md) · [向导与 NAS](docs/NAS.md) |
-| 升级、回退边界 | [升级 10.1.0](docs/UPGRADING.md) |
-| TOTP、接入码与会话 | [账号安全](docs/ACCOUNT_SECURITY.md) |
-| 管理员找回、异机备份、恢复演练 | [灾难恢复](docs/disaster-recovery.md) |
-| Grafana、证书与备份告警 | [监控](docs/MONITORING.md) |
-| 开发、字段和兼容性 | [API](docs/API.md) · [OpenAPI](contracts/openapi.v1.json) |
+Web 显示本账号已接入的 HomeDesk 设备，并通过 `homedesk://ID` 打开原生客户端。密码、信任配置和认证留在客户端。近期登记只表示目录刷新，不代表已经建立 P2P 远控。
 
-当前发行组合为 Server/Web、Client/Agent **10.1.0**，Android 保留 **10.0.0**，API 契约为冻结的 `api-v1.5.0`。原镜像与部署包直接晋升；实测范围和未验证项目见发行说明。
-FRP 0.70.1 独立版本及已固定的安全依赖不受产品版本号变更影响。
+跨网 NAT、长期媒体和 Android 真机验收尚未完成；受限网络可能无法直连，此候选版不会用中继兜底。详见 [候选发行说明](docs/HOMEDESK_RELEASE.md)。旧 10.x 验证材料仅属于对应历史版本。
 
-## 开发与质量
+## 运维与开发
+
+[自托管](docs/SELF_HOSTING.md) · [HomeDesk 升级与密钥备份](docs/HOMEDESK.md) · [数据库与配置恢复](docs/disaster-recovery.md) · [账号安全](docs/ACCOUNT_SECURITY.md) · [监控](docs/MONITORING.md) · [NAS](docs/NAS.md) · [API](contracts/openapi.v1.json)
 
 ```sh
 pnpm --dir control-center install --frozen-lockfile
@@ -57,9 +37,6 @@ pnpm --dir control-center test
 python3 scripts/generate-api-spec.py --check
 ```
 
-Node 24.19.0；traffic-gateway 使用相同命令单独检查。CI 包含浏览器回归、
-部署验证、契约响应校验、恢复测试和安全扫描。Release 保留镜像摘要、校验清单与
-联调报告；镜像 SBOM 和构建证明附在对应的 GHCR 不可变镜像摘要上。
-发布需先通过主分支质量门禁，验证方法见[发布指南](docs/RELEASING.md)。
+Node 24.19.0，FRP 0.70.1，hbbs 1.1.16 固定镜像摘要。三个公开附件：部署包、包含源码/许可证/镜像证据的材料包、SHA256SUMS。镜像 SBOM 和构建证明保留在 GHCR 不可变摘要上。
 
-[项目入口](https://github.com/ZHanry/home-tunnel) · [贡献](CONTRIBUTING.md) · [安全报告](SECURITY.md)
+[项目入口](https://github.com/ZHanry/home-tunnel) · [Client](https://github.com/ZHanry/home-tunnel-client) · [安全](SECURITY.md) · [Apache-2.0](LICENSE)

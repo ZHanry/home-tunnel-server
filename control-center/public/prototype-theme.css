@@ -1517,3 +1517,7 @@ textarea::placeholder {
     padding: 22px 18px;
   }
 }
+/* Native launch and copy actions remain comfortable touch targets. */
+.homedesk-directory .button {
+  min-height: 44px;
+}

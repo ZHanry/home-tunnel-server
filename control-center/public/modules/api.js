@@ -1,5 +1,5 @@
-import { localizedApiError, localizedText } from "./locale.js?v=10.1.0-hearth.1";
-import { state } from "./state.js?v=10.1.0";
+import { localizedApiError, localizedText } from "./locale.js?v=11.0.0-rc.1-hearth.1";
+import { state } from "./state.js?v=11.0.0-rc.1";
 
 let refreshInFlight = null;
 const sessionChannel = typeof window.BroadcastChannel === "function"

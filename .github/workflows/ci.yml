@@ -10,15 +10,19 @@ name: Server CI
   workflow_dispatch:
     inputs:
       build_candidate:
-        description: Build and sign immutable server candidate images for this branch SHA. Does not create a tag or release.
+        description: Build and sign immutable server candidate images for this branch
+          SHA. Does not create a tag or release.
         required: false
         type: boolean
         default: false
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_candidate == 'true' && format('server-candidate-{0}', github.ref) || format('ci-{0}', github.ref) }}
-  cancel-in-progress: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.build_candidate == 'true') }}
+  group: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_candidate
+    == 'true' && format('server-candidate-{0}', github.ref) || format('ci-{0}', github.ref)
+    }}
+  cancel-in-progress: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.build_candidate
+    == 'true') }}
 jobs:
   services:
     name: TypeScript services
@@ -224,23 +228,6 @@ jobs:
         grep -Fq '(-rc\.[0-9]+)?$' deploy/scripts/update-ui.sh
         grep -Fq 'source_version="$version"' deploy/scripts/update-ui.sh
         grep -Fq "b.version!=='\$source_version'" deploy/scripts/update-ui.sh
-  stun-runtime:
-    name: Isolated STUN-only runtime
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-    - name: Install namespace firewall tools
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y nftables
-    - name: Exercise the pinned deployment without publishing any port
-      run: python3 tests/stun-runtime.py
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-      if: ${{ always() }}
-      with:
-        name: stun-runtime-evidence
-        path: outputs/stun-runtime.json
-        if-no-files-found: error
   repository:
     name: Repository boundaries
     runs-on: ubuntu-latest
@@ -325,7 +312,7 @@ jobs:
     - deployment
     - repository
     - platform-operations
-    - stun-runtime
+    - hbbs-runtime
     steps:
     - name: Require all component checks
       env:
@@ -341,11 +328,9 @@ jobs:
   server-candidate:
     name: Build server candidate
     needs: quality-gate
-    # Opt-in on the dispatch entry that already exists on main. Pull requests do not receive this token.
-    # The dependency-review ancestor is intentionally skipped outside PRs. An
-    # explicit status function prevents its skip from suppressing this job after
-    # Quality Gate has successfully evaluated all required checks.
-    if: ${{ always() && !cancelled() && github.event_name == 'workflow_dispatch' && github.event.inputs.build_candidate == 'true' && needs.quality-gate.result == 'success' }}
+    if: ${{ always() && !cancelled() && github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.build_candidate == 'true' && needs.quality-gate.result ==
+      'success' }}
     permissions:
       contents: read
       actions: read
@@ -355,3 +340,16 @@ jobs:
     uses: ./.github/workflows/server-candidate.yml
     with:
       build_candidate: true
+  hbbs-runtime:
+    name: Isolated hbbs-only runtime
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - name: Verify hbbs without media relay
+      run: python3 tests/hbbs-runtime.py
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      if: ${{ always() }}
+      with:
+        name: hbbs-runtime-evidence
+        path: outputs/hbbs-runtime.json
+        if-no-files-found: error

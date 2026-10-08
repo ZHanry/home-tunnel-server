@@ -1,13 +1,24 @@
 import { APP_VERSION } from "./version.js";
 import { rdConfig, relayEnabled } from "./rd/config.js";
+import { homedeskConfig } from "./homedesk.js";
 
 export const apiCapabilities = {
   api_major: 1,
-  contract_version: "1.5.0",
+  contract_version: "1.6.0",
   server_version: APP_VERSION,
   minimum_clients: { desktop: "7.0.0", android: "7.0.0", agent: "7.0.0" },
   openapi_url: "/openapi.json",
   schema_url: "/api-schema.json",
+  homedesk: {
+    enabled: homedeskConfig.configured,
+    directory_version: 1,
+    minimum_client: "11.0.0-rc.1",
+    policy: "require_direct",
+    relay_enabled: false,
+    config_path: "/api/v1/homedesk/config",
+    devices_path: "/api/v1/homedesk/devices",
+    online_means: "recent_directory_report",
+  },
   remote_desktop: {
     enabled: rdConfig.enabled,
     protocol: { major: 1, minor: 0 },
@@ -43,10 +54,9 @@ export const apiCapabilities = {
     "batch_connections",
     "durable_backup_health",
     "http_latency_metrics",
-    "rd_discovered_capabilities",
     "tunnel_agent_diagnostics",
-    "rd_udp_relay",
-    "native_remote_handoff",
+    "homedesk_directory_v1",
+    "remote_require_direct",
   ],
   limits: {
     page_size: 100,

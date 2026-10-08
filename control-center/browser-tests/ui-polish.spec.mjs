@@ -160,37 +160,26 @@ test("main pages have no horizontal overflow at 390px and 2000px in both themes"
   }
 });
 
-test("the remote device grid fills the available width at 2000px", async ({ page }) => {
-  await page.setViewportSize({ width: 2000, height: 1000 });
-  await mockRemote(page);
-  await ready(page, "/admin#remote");
-  const layout = await page.locator("#remote-device-grid").evaluate((grid) => {
-    const columns = getComputedStyle(grid).gridTemplateColumns.split(" ").length;
-    const cards = [...grid.querySelectorAll(".remote-device-card")].map((card) => card.getBoundingClientRect());
-    const firstRow = cards.filter((card) => Math.abs(card.top - cards[0].top) < 1);
-    const heading = document.querySelector(".remote-dashboard-heading").getBoundingClientRect();
-    return { columns, perRow: firstRow.length, gridWidth: grid.getBoundingClientRect().width, heading: heading.width,
-      rowRight: firstRow.at(-1).right - grid.getBoundingClientRect().left };
-  });
-  expect(layout.columns).toBe(4);
-  expect(layout.perRow).toBe(4);
-  expect(layout.gridWidth).toBeLessThanOrEqual(1320);
-  expect(layout.gridWidth).toBeGreaterThanOrEqual(layout.heading - 1);
-  expect(layout.rowRight).toBeGreaterThanOrEqual(layout.gridWidth * 0.8);
-  const connect = page.locator("[data-remote-host]").first();
-  const css = await connect.evaluate((button) => ({ opacity: getComputedStyle(button).opacity, color: getComputedStyle(button).color, background: getComputedStyle(button).backgroundColor, height: button.getBoundingClientRect().height }));
-  expect(css.opacity).toBe("1");
-  expect(contrast(css.color, css.background)).toBeGreaterThanOrEqual(4.5);
-  expect(css.height).toBeGreaterThanOrEqual(40);
+test("the native remote directory fits wide and phone layouts", async ({ page }) => {
+  for (const width of [2000, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await ready(page, "/admin#remote");
+    const launch = page.getByRole("link", { name: "用 HomeDesk 连接" });
+    await expect(launch).toHaveAttribute("href", "homedesk://123456789");
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
+    expect(overflow).toBe(false);
+    const css = await launch.evaluate(button => ({ color: getComputedStyle(button).color,
+      background: getComputedStyle(button).backgroundColor, height: button.getBoundingClientRect().height }));
+    expect(contrast(css.color, css.background)).toBeGreaterThanOrEqual(4.5);
+    expect(css.height).toBeGreaterThanOrEqual(40);
+  }
 });
 
-test("the remote dashboard shows no unattended-access card", async ({ page }) => {
-  await mockRemote(page);
+test("the native remote directory keeps authentication in the app", async ({ page }) => {
   await ready(page, "/admin#remote");
-  await expect(page.locator(".remote-dashboard h3", { hasText: "无人值守" })).toHaveCount(0);
-  await expect(page.locator(".remote-unattended-preview")).toHaveCount(0);
-  await expect(page.locator("[data-remote-trust]")).toHaveCount(0);
-  await expect(page.locator(".remote-assist-preview")).toHaveCount(1);
+  await expect(page.locator("#view-content input[type=password]")).toHaveCount(0);
+  await expect(page.locator(".remote-assist-preview")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "用 HomeDesk 连接" })).toBeVisible();
 });
 
 for (const width of [1280, 390]) {

@@ -124,43 +124,15 @@ test("login asks for MFA only after the server requires it", async ({ page }) =>
   await expect(page.locator("#login-mfa")).not.toHaveAttribute("required");
 });
 
-test("remote desktop opens a separate viewer window", async ({ page, context }) => {
-  await context.route("**/api/v1/public/capabilities", (route) =>
-    route.fulfill({ json: { remote_desktop: { enabled: true } } }),
-  );
-  await context.route("**/api/v1/rd/endpoints?**", (route) =>
-    route.fulfill({
-      json: {
-        items: [
-          {
-            id: "test-host",
-            name: "书房工作站",
-            role: "host",
-            status: "active",
-            online: true,
-            local_enabled: true,
-            platform: "Windows",
-            capabilities: { status: "ready", permissions: ["view"], displays: [{ id: "main" }] },
-          },
-        ],
-      },
-    }),
-  );
-  await context.route("**/api/v1/rd/reauth", (route) =>
-    route.fulfill({ status: 401, json: { error_code: "MFA_REQUIRED" } }),
-  );
+test("remote page launches the native app with only a device ID", async ({ page }) => {
+  const requests = [];
+  page.on("request", request => requests.push(new URL(request.url()).pathname));
   await ready(page, "/admin#remote");
-  const popupPromise = page.waitForEvent("popup");
-  await page.locator('[data-remote-host="test-host"]').click();
-  const popup = await popupPromise;
-  await expect(popup.locator(".remote-dialog")).toBeVisible();
-  await expect(popup.locator(".remote-auth")).toBeVisible();
-  await expect(popup.locator(".remote-mfa-field")).toBeHidden();
-  await popup.locator('.remote-auth [name="password"]').fill("example-password");
-  await popup.locator('.remote-auth button[type="submit"]').click();
-  await expect(popup.locator(".remote-mfa-field")).toBeVisible();
+  const launch = page.getByRole("link", { name: "用 HomeDesk 连接" });
+  await expect(launch).toHaveAttribute("href", "homedesk://123456789");
+  await expect(page.locator("#view-content")).toContainText("远控必须 P2P 直连");
+  expect(requests.some(path => path.startsWith("/api/v1/rd/"))).toBe(false);
   await expect(page.locator(".remote-dialog")).toHaveCount(0);
-  await popup.close();
 });
 
 test("updates page displays only official server release metadata", async ({ page }) => {
@@ -578,18 +550,13 @@ test("mobile More hides admin routes and closes when focus leaves or the layout 
   await expect(page.locator("#nav-secondary")).toBeHidden();
 });
 
-test("remote access choices translate in both directions", async ({ page }) => {
-  await page.route("**/api/v1/public/capabilities", (route) => route.fulfill({ json: { remote_desktop: { enabled: true } } }));
-  await page.route("**/api/v1/rd/endpoints?**", (route) => route.fulfill({ json: { items: [] } }));
+test("native remote instructions translate in both directions", async ({ page }) => {
   await ready(page, "/admin#remote");
   await page.locator(".sidebar [data-locale-toggle]").click();
-  const assist = page.locator(".remote-assist-preview");
-  await expect(assist).toHaveCount(1);
-  await expect(assist).toContainText("Connect to another account");
-  await expect(assist).toContainText("Supports host approval, a permanent password (usable for unattended access), and a one-time temporary password.");
-  expect(await page.locator(".remote-dashboard").innerText()).not.toMatch(/[\u3400-\u9fff]/);
+  await expect(page.locator("#view-content")).toContainText("P2P direct connection is required");
+  await expect(page.getByRole("link", { name: "Connect with HomeDesk" })).toHaveAttribute("href", "homedesk://123456789");
   await page.locator(".sidebar [data-locale-toggle]").click();
-  await expect(assist).toContainText("支持被控端批准、固定密码（可用于无人值守）和一次性临时密码。");
+  await expect(page.getByRole("link", { name: "用 HomeDesk 连接" })).toBeVisible();
 });
 
 test("realtime startup preserves foreground loading failures and an explicit retry", async ({ page }) => {

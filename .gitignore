@@ -90,3 +90,7 @@ release-notes.md
 # Deployment-specific monitoring and restores
 deploy/monitoring/prometheus.generated.yml
 restore/
+/outputs/
+__pycache__/
+*.pyc
+*.gpg

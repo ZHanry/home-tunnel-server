@@ -6,13 +6,15 @@ x-logging: &logging
 
 services:
   control-center:
-    image: home-tunnel/control-center:10.1.0-arm64
+    image: home-tunnel/control-center:11.0.0-rc.1-arm64
     pull_policy: never
     container_name: home-tunnel-control-center
     restart: unless-stopped
     init: true
     environment:
       NODE_ENV: production
+      HOMEDESK_ID_SERVER: ${HOME_TUNNEL_HBBS_SERVER:-}
+      HOMEDESK_HBBS_PUBLIC_KEY: ${HOME_TUNNEL_HBBS_PUBLIC_KEY:-}
       NODE_OPTIONS: --max-old-space-size=160 --disable-warning=ExperimentalWarning
       PORT: "8080"
       PUBLIC_BASE_URL: ${HOME_TUNNEL_PUBLIC_BASE_URL:?set HOME_TUNNEL_PUBLIC_BASE_URL}
@@ -74,7 +76,7 @@ services:
     logging: *logging
 
   traffic-gateway:
-    image: home-tunnel/traffic-gateway:10.1.0-arm64
+    image: home-tunnel/traffic-gateway:11.0.0-rc.1-arm64
     pull_policy: never
     container_name: home-tunnel-traffic-gateway
     restart: unless-stopped
@@ -149,7 +151,46 @@ services:
     stop_grace_period: 20s
     logging: *logging
 
+  # Only rendezvous/NAT signaling. No hbbr, TURN or media gateway is deployed.
+  # Prepare the private named volume once; this reuses the existing FRPS image.
+  hbbs-state:
+    image: home-tunnel/frps:0.70.1-arm64
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-ec"]
+    command: ["chmod 700 /state"]
+    volumes: [hbbs-data:/state]
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 16m
+    pids_limit: 8
+
+  hbbs:
+    image: ghcr.io/rustdesk/rustdesk-server:1.1.16@sha256:8ecdab65deb7c84652a626380e31d11a8f1fbafd97916d57f95c20628f943c00
+    command: ["hbbs", "-k", "_"]
+    depends_on:
+      hbbs-state:
+        condition: service_completed_successfully
+    working_dir: /root
+    restart: unless-stopped
+    init: true
+    ports:
+      - "${HOME_TUNNEL_HBBS_BIND_ADDRESS:-0.0.0.0}:21115:21115/tcp"
+      - "${HOME_TUNNEL_HBBS_BIND_ADDRESS:-0.0.0.0}:21116:21116/tcp"
+      - "${HOME_TUNNEL_HBBS_BIND_ADDRESS:-0.0.0.0}:21116:21116/udp"
+    volumes: [hbbs-data:/root]
+    read_only: true
+    tmpfs:
+      - "/tmp:size=8m,noexec,nosuid,nodev"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 64m
+    cpus: "0.25"
+    pids_limit: 64
+
 volumes:
+  hbbs-data:
   sqlite-data:
     name: home-tunnel-sqlite-data
 

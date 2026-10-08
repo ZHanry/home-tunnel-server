@@ -36,7 +36,8 @@ function flag(name: string, fallback: boolean) {
   throw new Error(`Invalid ${name}`);
 }
 export const rdConfig = {
-  enabled: flag("RD_ENABLED", false),
+  // 11.x retires the browser/WebRTC engine. Its historical contract tests remain runnable.
+  enabled: process.env.NODE_ENV === "test" && flag("RD_ENABLED", false),
   signingKeyFile: process.env.RD_SIGNING_KEY_FILE ?? "",
   keysetFile: process.env.RD_KEYSET_FILE ?? "",
   stunUrls: (process.env.RD_STUN_URLS ?? "")

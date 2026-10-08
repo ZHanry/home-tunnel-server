@@ -269,27 +269,8 @@ for (const theme of ["light", "dark"]) {
       await page.route(/\/api\/v1\/admin\/devices(?:\?|$)/, (route) => route.fulfill({ json: { items: [], total: 0, total_pages: 1 } }));
       await ready("devices");
       await capture("devices-empty", "#app-shell");
-      const device = (await (await request.get("/api/v1/admin/devices")).json()).items[0];
-      await page.context().route("**/api/v1/public/capabilities", (route) => route.fulfill({ json: { remote_desktop: { enabled: true, stun_urls: [] } } }));
-      await page.context().route("**/api/v1/rd/endpoints?**", (route) => route.fulfill({ json: { items: [{ ...device, role: "host", platform: "Windows", online: true, local_enabled: true, capabilities: { status: "ready", permissions: ["view"], displays: [{ id: "main", name: "主屏幕", width: 1920, height: 1080 }] } }] } }));
-      await page.context().route("**/modules/remote/http.js", (route) => route.fulfill({ contentType: "text/javascript", body: `
-        export class RemoteError extends Error { constructor(code) { super(code); this.code = code; } }
-        export class RemoteApi {
-          constructor() { this.userId = "fixture"; this.identity = {}; }
-          assertCurrent() {}
-          async initialize() { throw new RemoteError("RD_RECENT_AUTH_REQUIRED"); }
-          close() {}
-        }
-      ` }));
       await ready("remote");
-      const opening = page.waitForEvent("popup");
-      await page.locator("[data-remote-host]").first().click();
-      const popup = await opening;
-      await popup.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
-      await expect(popup.locator(".remote-auth")).toBeVisible();
-      await popup.screenshot({ path: resolve(output, "remote-auth.png"), animations: "disabled" });
-      results.push({ view: "remote-auth", ...await geometry(popup, ".remote-dialog") });
-      await popup.close();
+      await capture("native-remote", "#app-shell");
       await writeFile(resolve(output, "geometry.json"), JSON.stringify({ theme, width, results }, null, 2));
       expect(results.flatMap((r) => r.failures.map((failure) => `${r.view}: ${failure}`))).toEqual([]);
       await page.unrouteAll({ behavior: "wait" });

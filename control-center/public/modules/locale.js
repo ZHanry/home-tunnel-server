@@ -1,10 +1,28 @@
-import { state } from "./state.js?v=10.1.0";
-import { remoteTranslations } from "./remote/translations.js?v=10.1.0";
+import { state } from "./state.js?v=11.0.0-rc.1";
+import { remoteTranslations } from "./remote/translations.js?v=11.0.0-rc.1";
 
 const appShell = document.querySelector("#app-shell");
 
 const localeStorageKey = "ht_locale";
 const zhToEn = {
+  "家庭远控": "Family remote desktop",
+  "画面、声音、输入与文件只在两端设备之间传输。": "Screen, audio, input and files travel directly between the two devices.",
+  "下载 HomeDesk": "Download HomeDesk",
+  "远控必须 P2P 直连。打洞失败会明确停止，不使用中继。设备登记状态不代表已经建立远控连接。": "P2P direct connection is required. Connection failure stops the session without relay. Registration does not prove a remote session is connected.",
+  "管理员尚未配置 hbbs 信令服务器与公钥。请先按部署说明完成配置。": "The administrator has not configured the hbbs server and public key. Follow the deployment guide first.",
+  "远控 ID": "Remote ID",
+  "登记状态": "Registration",
+  "用 HomeDesk 连接": "Connect with HomeDesk",
+  "复制 ID": "Copy ID",
+  "尚未登记": "Not registered",
+  "最近已登记": "Recently registered",
+  "未收到近期登记": "No recent registration",
+  "请在这台设备上安装 HomeDesk、配置远控并接入账号": "Install HomeDesk, configure remote access and enroll this device.",
+  "没有已接入的设备。请先在家庭电脑上安装 HomeDesk 并登录账号。": "No enrolled devices. Install HomeDesk on a family computer and sign in first.",
+  "首次连接会由系统打开 HomeDesk；未打开时可复制 ID，在客户端输入。隧道服务仍由“连接管理”独立管理。": "The system opens HomeDesk when connecting. You can also copy the ID into the app. Manage tunnels separately in Connections.",
+  "已复制远控 ID": "Remote ID copied",
+  "浏览器无法复制，请手动选中远控 ID。": "Copy is unavailable. Select the remote ID manually.",
+
   "家庭连接": "Home tunnels",
   "下载官方隧道客户端": "Get the official tunnel client",
   "服务与设备": "Service and device",
@@ -788,6 +806,7 @@ export function localizedText(value, targetLocale = state.locale) {
   let translated = targetLocale === "en" ? (zhToEn[core] ?? core) : (enToZh[core] ?? core);
   if (targetLocale === "en") {
     translated = translated
+      .replace(/^信令服务器：(.+)。客户端需配置同一服务器与公钥。$/, "Signaling server: $1. Configure the same server and public key in the app.")
       .replace(/^本月已用 (.+)。$/, "Used this month: $1.")
       .replace(/^已应用 (\d+) \/ 目标 (\d+)$/, "Applied $1 / Target $2")
       .replace(/^(\d+) \/ (\d+) 字节$/, "$1 / $2 bytes")
