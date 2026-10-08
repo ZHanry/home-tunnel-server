@@ -52,8 +52,10 @@ def main():
             pid = state["State"]["Pid"]
             deadline = time.monotonic() + 30
             while True:
-                tcp = run("sudo", "cat", f"/proc/{pid}/net/tcp").splitlines()[1:]
-                udp = run("sudo", "cat", f"/proc/{pid}/net/udp").splitlines()[1:]
+                tcp = run("sudo", "cat", f"/proc/{pid}/net/tcp", f"/proc/{pid}/net/tcp6").splitlines()
+                udp = run("sudo", "cat", f"/proc/{pid}/net/udp", f"/proc/{pid}/net/udp6").splitlines()
+                tcp = [line for line in tcp if line.strip() and line.split()[0] != "sl"]
+                udp = [line for line in udp if line.strip() and line.split()[0] != "sl"]
                 listening = {int(line.split()[1].split(":")[1], 16) for line in tcp if line.split()[3] == "0A"}
                 datagrams = {int(line.split()[1].split(":")[1], 16) for line in udp}
                 if {21115, 21116} <= listening and 21116 in datagrams:
