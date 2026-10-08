@@ -83,7 +83,7 @@ test("public landing page stays available while Windows release metadata is abse
     assert.doesNotMatch(landing.body.toString("utf8"), /内部测试|Experimental|Beta/);
     assert.match(
       landing.body.toString("utf8"),
-      /href="https:\/\/github\.com\/ZHanry\/home-tunnel-client\/releases\/latest"/,
+      /href="https:\/\/github\.com\/ZHanry\/home-tunnel-client\/releases\/tag\/v11\.0\.0-rc\.1"/,
     );
     assert.match(landing.body.toString("utf8"), /id="features"/);
     assert.doesNotMatch(landing.body.toString("utf8"), /home-tunnel\/releases\/latest\/download/);
