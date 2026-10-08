@@ -5,8 +5,8 @@
   "contract_ref": "api-v1.6.0",
   "contract_status": "frozen",
   "frozen_tag": "api-v1.6.0",
-  "support_policy": "11.0.0-rc.1 candidate: existing HTTP/HTTPS and governed TCP/UDP tunnels remain supported; native HomeDesk remote sessions require authenticated encrypted direct P2P with hbbs signaling only. No relay fallback. Full NAT and physical-device acceptance pending. Back up SQLite, deployment secrets and hbbs identity before upgrade. Release notes distinguish verified and unverified coverage.",
-  "version": "11.0.0-rc.1",
+  "support_policy": "11.0.0-rc.2 candidate: existing HTTP/HTTPS and governed TCP/UDP tunnels remain supported; native HomeDesk remote sessions require authenticated encrypted direct P2P with hbbs signaling only. No relay fallback. Full NAT and physical-device acceptance pending. Back up SQLite, deployment secrets and hbbs identity before upgrade. Release notes distinguish verified and unverified coverage.",
+  "version": "11.0.0-rc.2",
   "minimum_server": "7.0.0",
   "tested_combination": {
     "server": "10.0.0",
@@ -17,7 +17,7 @@
   "tested_combination_scope": "Historical 10.0.0 identity retained. Candidate unit, integration and build checks are recorded separately; target versions are not evidence of full cross-network or physical-device acceptance. Complete cross-product runtime acceptance pending.",
   "previous_immutable_tag": "api-v1.5.0",
   "target_combination": {
-    "server": "11.0.0-rc.1",
+    "server": "11.0.0-rc.2",
     "client": "11.0.0-rc.1",
     "android": "11.0.0-rc.1",
     "agent": "10.1.0"

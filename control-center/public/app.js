@@ -1,7 +1,7 @@
-import { createConnectionsView } from "./modules/connections.js?v=11.0.0-rc.1-hearth.1";
-import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=11.0.0-rc.1-hearth.1";
-import { tunnelVerification } from "./modules/tunnel-model.js?v=11.0.0-rc.1";
-import { createAccountSecurityView } from "./modules/account-security.js?v=11.0.0-rc.1";
+import { createConnectionsView } from "./modules/connections.js?v=11.0.0-rc.2-hearth.1";
+import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=11.0.0-rc.2-hearth.1";
+import { tunnelVerification } from "./modules/tunnel-model.js?v=11.0.0-rc.2";
+import { createAccountSecurityView } from "./modules/account-security.js?v=11.0.0-rc.2";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -9,10 +9,10 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=11.0.0-rc.1";
-import { createDevicesView } from "./modules/devices.js?v=11.0.0-rc.1-hearth.1";
-import { createHomeDeskView as createRemoteView } from "./modules/homedesk.js?v=11.0.0-rc.1";
-import { api, refreshSession, allPages } from "./modules/api.js?v=11.0.0-rc.1-hearth.1";
+} from "./modules/forms.js?v=11.0.0-rc.2";
+import { createDevicesView } from "./modules/devices.js?v=11.0.0-rc.2-hearth.1";
+import { createHomeDeskView as createRemoteView } from "./modules/homedesk.js?v=11.0.0-rc.2";
+import { api, refreshSession, allPages } from "./modules/api.js?v=11.0.0-rc.2-hearth.1";
 import {
   componentLabel,
   configState,
@@ -21,10 +21,10 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=11.0.0-rc.1-hearth.1";
-import { localeTag, updateDocumentMetadata, t, currentThemePreference } from "./modules/locale.js?v=11.0.0-rc.1-hearth.1";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=11.0.0-rc.1";
-import { state } from "./modules/state.js?v=11.0.0-rc.1";
+} from "./modules/format.js?v=11.0.0-rc.2-hearth.1";
+import { localeTag, updateDocumentMetadata, t, currentThemePreference } from "./modules/locale.js?v=11.0.0-rc.2-hearth.1";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=11.0.0-rc.2";
+import { state } from "./modules/state.js?v=11.0.0-rc.2";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");

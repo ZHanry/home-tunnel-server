@@ -1,4 +1,4 @@
-# HomeDesk 11.0.0-rc.1 服务端候选
+# HomeDesk 11.0.0-rc.2 服务端候选
 
 保留 HTTP/HTTPS、受控 TCP/UDP、端口池、权限、ACL、流量治理、诊断和独立 CLI/NAS Agent。暖居 Web 管理台提供原生 HomeDesk 入口；同账号设备目录写入原 SQLite，撤销设备会清除映射。
 

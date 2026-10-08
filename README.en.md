@@ -1,8 +1,8 @@
 # Home Tunnel Server / HomeDesk
 
-The current main line is **11.0.0-rc.1**, integrating the Hearth Web console and native HomeDesk device directory. HTTP/HTTPS and governed TCP/UDP tunneling remain available. Remote desktop requires authenticated, encrypted direct P2P; failure terminates the connection. The server adds hbbs signaling only, with no hbbr/TURN or media forwarding.
+The current main line is **11.0.0-rc.2**, integrating the Hearth Web console and native HomeDesk device directory. HTTP/HTTPS and governed TCP/UDP tunneling remain available. Remote desktop requires authenticated, encrypted direct P2P; failure terminates the connection. The server adds hbbs signaling only, with no hbbr/TURN or media forwarding.
 
-[简体中文](README.md) · [Candidate release](https://github.com/ZHanry/home-tunnel-server/releases/tag/v11.0.0-rc.1) · [Last stable 10.1.0](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.1.0)
+[简体中文](README.md) · [Candidate release](https://github.com/ZHanry/home-tunnel-server/releases/tag/v11.0.0-rc.2) · [Last stable 10.1.0](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.1.0)
 
 Deploy on public Linux amd64/arm64 with DNS and Docker Compose v2. Node/SQLite, FRPS, the traffic gateway and Caddy remain. The additional hbbs process has a 64 MiB memory limit; total deployment capacity still needs measurement.
 

@@ -12,7 +12,7 @@ export const apiCapabilities = {
   homedesk: {
     enabled: homedeskConfig.configured,
     directory_version: 1,
-    minimum_client: "11.0.0-rc.1",
+    minimum_client: "11.0.0-rc.2",
     policy: "require_direct",
     relay_enabled: false,
     config_path: "/api/v1/homedesk/config",

@@ -761,7 +761,7 @@ try {
             else:
                 raise RuntimeError("Console endpoint did not become ready")
 
-            public_get(arguments.origin + "/", "Home Tunnel")
+            public_get(arguments.origin + "/", "HomeDesk")
             _, landing_body = fetch(arguments.origin + "/")
             validate_landing_page(landing_body.decode())
 

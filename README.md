@@ -1,8 +1,8 @@
 # Home Tunnel Server / HomeDesk
 
-当前主线为 **11.0.0-rc.1 候选版**，整合暖居 Web 控制台和原生 HomeDesk 远控目录。内网穿透完整保留；远控必须认证、加密并直接连接，连接失败会停止。服务器只增加 hbbs 信令，不运行 hbbr/TURN，也不转发远控画面、声音、输入或文件。
+当前主线为 **11.0.0-rc.2 候选版**，整合暖居 Web 控制台和原生 HomeDesk 远控目录。内网穿透完整保留；远控必须认证、加密并直接连接，连接失败会停止。服务器只增加 hbbs 信令，不运行 hbbr/TURN，也不转发远控画面、声音、输入或文件。
 
-[English](README.en.md) · [候选发行](https://github.com/ZHanry/home-tunnel-server/releases/tag/v11.0.0-rc.1) · [最后稳定版 10.1.0](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.1.0)
+[English](README.en.md) · [候选发行](https://github.com/ZHanry/home-tunnel-server/releases/tag/v11.0.0-rc.2) · [最后稳定版 10.1.0](https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.1.0)
 
 ## 部署
 

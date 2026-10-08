@@ -7,7 +7,7 @@ HTTP/HTTPS、受控 TCP/UDP、端口池、权限、访问控制、流量治理�
 ## 首次配置
 
 1. 按原自建部署步骤准备域名、TLS、密钥、SQLite 备份及穿透端口池。先运行 `docker compose up -d hbbs`。
-2. 读取公钥：`docker compose exec -T hbbs cat /root/id_ed25519.pub`。只读取 `.pub`，不要复制或公开私钥。
+2. 将公钥复制到宿主机：`docker cp "$(docker compose ps -q hbbs):/root/id_ed25519.pub" ./hbbs-public-key.txt`，再读取 `hbbs-public-key.txt`。镜像内没有 shell 或 cat；只复制 `.pub`，不要复制或公开私钥。
 3. 在 `.env` 同时设置 `HOME_TUNNEL_HBBS_SERVER=你的信令域名:21116` 和 `HOME_TUNNEL_HBBS_PUBLIC_KEY=上一步的Base64公钥`，再启动完整服务。
 4. 防火墙允许 hbbs 的 TCP 21115、TCP/UDP 21116；不开放 21117、21118、21119。FRPS 和 HTTP/TCP/UDP 服务端口仍按原部署规则开放。
 5. 在 HomeDesk“配置 P2P 远控”填写相同的服务器、公钥及家庭私网 CIDR。通用安装包不内置任何服务器、公钥或登录凭据。登录家庭服务并接入这台电脑后，由设备会话登记远控 ID。
@@ -34,4 +34,4 @@ python3 deploy/scripts/hbbs-identity.py verify --file hbbs-identity.gpg \
 
 ## 当前候选验证范围
 
-11.0.0-rc.1 为候选版本。自动测试、构建和安装包校验不能替代两台机器的屏幕/输入、声音/剪贴板/文件，以及家庭宽带与移动网络直连测试。发行材料记录真实检查结果和待验收项目；不将历史 10.x 的验收结果计为 11.x 已通过。
+11.0.0-rc.2 为候选版本。自动测试、构建和安装包校验不能替代两台机器的屏幕/输入、声音/剪贴板/文件，以及家庭宽带与移动网络直连测试。发行材料记录真实检查结果和待验收项目；不将历史 10.x 的验收结果计为 11.x 已通过。
