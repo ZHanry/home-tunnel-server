@@ -24,7 +24,7 @@ const zhToEn = {
   "浏览器无法复制，请手动选中远控 ID。": "Copy is unavailable. Select the remote ID manually.",
 
   "家庭连接": "Home tunnels",
-  "下载官方隧道客户端": "Get the official tunnel client",
+  "下载 HomeDesk 候选版": "Get the HomeDesk candidate",
   "服务与设备": "Service and device",
   "访问地址": "Access address",
   "已暂停": "Paused",
@@ -297,7 +297,7 @@ const zhToEn = {
   "手机、浏览器，或另一台电脑": "A phone, browser or another computer",
   开始连接: "Get connected",
   "每台设备，各司其职。": "The right app for every device.",
-  "下载 Windows / macOS / Linux →": "Download Windows / macOS / Linux \u2192",
+  "Windows 图形客户端与跨平台 CLI →": "Windows GUI and cross-platform CLI \u2192",
   "下载 Android APK →": "Download Android APK \u2192",
   "HomeDesk · 开源、自托管": "HomeDesk \u00b7 Open source and self-hosted",
   "家中的服务，": "Services at home,",

@@ -452,8 +452,8 @@ def validate_landing_page(page: str) -> None:
     links = Links()
     links.feed(page)
     expected = {
-        "https://github.com/ZHanry/home-tunnel-client/releases/latest",
-        "https://github.com/ZHanry/home-tunnel-android/releases/latest",
+        "https://github.com/ZHanry/home-tunnel-client/releases/tag/v11.0.0-rc.1",
+        "https://github.com/ZHanry/home-tunnel-android/releases/tag/v11.0.0-rc.1",
     }
     if not expected.issubset(links.links):
         raise RuntimeError("Landing page is missing an official component download destination")

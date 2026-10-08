@@ -63,7 +63,7 @@ test("public home keeps prototype artwork, features and language on narrow scree
   await expect(page.locator(".landing-features article")).toHaveCount(3);
   await expect(page.locator("#hero-download")).toHaveAttribute(
     "href",
-    "https://github.com/ZHanry/home-tunnel-client/releases/latest",
+    "https://github.com/ZHanry/home-tunnel-client/releases/tag/v11.0.0-rc.1",
   );
   await page.locator(".marketing-footer [data-locale-toggle]").click();
   await expect(page.locator("#hero-title")).toContainText("Bring your home services");
