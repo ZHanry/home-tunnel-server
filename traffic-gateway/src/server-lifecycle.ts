@@ -96,7 +96,7 @@ function handleRequest(request: IncomingMessage, response: ServerResponse): void
     const mapping = {
       stale: [503, "POLICY_STALE", "策略快照不可用，请稍后重试"],
       reserved: [404, "SUBDOMAIN_RESERVED", "该主机名不可用于业务连接"],
-      invalid: [421, "HOST_INVALID", "请求主机名不受 Home Tunnel 管理"],
+      invalid: [421, "HOST_INVALID", "请求主机名不受 nestlink 管理"],
       not_found: [404, "CONNECTION_NOT_FOUND", "未分配该业务子域"],
     } as const;
     const [status, code, message] = mapping[authorized.error ?? "invalid"];
@@ -148,7 +148,7 @@ function handleUpgrade(request: IncomingMessage, client: Socket, head: Buffer): 
     const authorizationHeader = request.headers.authorization;
     if (typeof authorizationHeader !== "string" || !authorizationHeader) {
       metrics.accessDeniedTotal.basic += 1;
-      rejectUpgrade(client, "401 Unauthorized", 'WWW-Authenticate: Basic realm="Home Tunnel"\r\n');
+      rejectUpgrade(client, "401 Unauthorized", 'WWW-Authenticate: Basic realm="nestlink"\r\n');
       return;
     }
     void verifyBasicAuthorization(policy, authorizationHeader)
@@ -159,7 +159,7 @@ function handleUpgrade(request: IncomingMessage, client: Socket, head: Buffer): 
           rejectUpgrade(
             client,
             "401 Unauthorized",
-            'WWW-Authenticate: Basic realm="Home Tunnel"\r\n',
+            'WWW-Authenticate: Basic realm="nestlink"\r\n',
           );
           return;
         }
@@ -169,7 +169,7 @@ function handleUpgrade(request: IncomingMessage, client: Socket, head: Buffer): 
         rejectUpgrade(
           client,
           "401 Unauthorized",
-          'WWW-Authenticate: Basic realm="Home Tunnel"\r\n',
+          'WWW-Authenticate: Basic realm="nestlink"\r\n',
         ),
       );
     return;

@@ -437,7 +437,7 @@ router.post(
     const outcome = await sendAlert({
       event_type: "alert.test",
       severity: "info",
-      title: "Home Tunnel 告警测试",
+      title: "nestlink 告警测试",
       message: `由管理员 ${actor.username} 手动触发的测试告警。`,
       subject_id: `test:${Date.now()}`,
       details: { requested_by: actor.username },

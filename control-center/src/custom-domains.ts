@@ -55,7 +55,7 @@ export function validateCustomDomain(value: string): string | null {
   const managed = config.tunnelDomain.toLowerCase();
   const consoleDomain = new URL(config.publicBaseUrl).hostname.toLowerCase();
   if (domain === managed || domain.endsWith(`.${managed}`) || domain === consoleDomain) {
-    return "不能把 Home Tunnel 自身域名作为自定义域名";
+    return "不能把 nestlink 自身域名作为自定义域名";
   }
   return null;
 }

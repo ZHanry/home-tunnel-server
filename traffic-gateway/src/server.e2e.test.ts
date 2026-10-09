@@ -714,7 +714,7 @@ test("Basic Auth gate challenges, rejects bad credentials, and hides the header 
 
   const missing = await gatewayRequest({ path: "/echo", headers: { host: basicGatedHost } });
   assert.equal(missing.status, 401);
-  assert.equal(missing.headers["www-authenticate"], 'Basic realm="Home Tunnel"');
+  assert.equal(missing.headers["www-authenticate"], 'Basic realm="nestlink"');
   assert.equal(errorCode(missing), "ACCESS_BASIC_UNAUTHORIZED");
 
   const malformed = await gatewayRequest({
@@ -722,7 +722,7 @@ test("Basic Auth gate challenges, rejects bad credentials, and hides the header 
     headers: { host: basicGatedHost, authorization: "Bearer not-basic" },
   });
   assert.equal(malformed.status, 401);
-  assert.equal(malformed.headers["www-authenticate"], 'Basic realm="Home Tunnel"');
+  assert.equal(malformed.headers["www-authenticate"], 'Basic realm="nestlink"');
 
   const wrongPassword = await gatewayRequest({
     path: "/echo",
@@ -838,7 +838,7 @@ test("upgrade path enforces IP and Basic gates before proxying", async () => {
 
   const basicMissing = await upgradeAttempt(basicGatedHost, "");
   assert.match(basicMissing.toString("latin1"), /^HTTP\/1\.1 401 /);
-  assert.match(basicMissing.toString("latin1"), /www-authenticate: Basic realm="Home Tunnel"/i);
+  assert.match(basicMissing.toString("latin1"), /www-authenticate: Basic realm="nestlink"/i);
 
   const basicWrong = await upgradeAttempt(
     basicGatedHost,

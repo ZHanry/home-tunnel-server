@@ -118,7 +118,7 @@ export function basicAuthChallenge(response: ServerResponse): void {
   response.writeHead(401, {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
-    "www-authenticate": 'Basic realm="Home Tunnel"',
+    "www-authenticate": 'Basic realm="nestlink"',
   });
   response.end(
     JSON.stringify({
