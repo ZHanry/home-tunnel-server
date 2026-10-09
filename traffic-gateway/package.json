@@ -1,6 +1,6 @@
 {
   "name": "home-tunnel-traffic-gateway",
-  "version": "12.0.0-RC1",
+  "version": "13.0.0",
   "private": true,
   "type": "module",
   "scripts": {

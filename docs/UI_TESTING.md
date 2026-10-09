@@ -20,28 +20,8 @@
 在 `control-center/` 安装依赖与 Playwright Chromium 后执行 `pnpm run test:browser`。
 配套服务测试覆盖接口行为与数据约束。桌面页面和 Android 交互分别在对应代码仓库维护。
 
-## 10.0.0 界面截图 / UI screenshots
+## 当前界面与截图
 
-以下截图来自服务端 `v10.0.0` 的实际 Web 界面，使用仓库自带预览服务的示例数据，未修改产品 UI 源码。截图用于说明界面，不代表生产服务健康、真实隧道或远程会话已经验证。
+当前文档只使用 nestlink 13.0.0 的界面。旧版本图片及引用已移除。截图清单见 [13.0.0 manifest](assets/13.0.0/manifest.json)；空清单表示尚未收录最终截图。网站的实际页面和安装版截图记录各自源码、产物 SHA-256、采集参数及示例数据范围。
 
-These screenshots show the actual server `v10.0.0` Web UI with example data from the repository's preview service. Product UI source is unchanged. The screenshots illustrate the interface; they do not establish production health, working tunnels, or a verified remote session.
-
-### 系统总览 / Dashboard
-
-![10.0.0 Web 管理后台系统总览，使用示例数据 / Web dashboard with example data](assets/v10.0.0/admin-console.png)
-
-设备数、流量及组件状态均为预览示例值。Device counts, traffic, and component health are preview example values.
-
-### 发布内网服务 / Publishing wizard
-
-![10.0.0 发布内网服务向导的设备与模板步骤，未发布连接 / Device and template step; no connection published](assets/v10.0.0/tunnel-wizard.png)
-
-展示“设备与模板”步骤，未提交或发布真实连接。The capture shows the device-and-template step; no real connection was submitted or published.
-
-### 远程桌面入口 / Remote desktop entry
-
-![10.0.0 Web 远程桌面入口，没有被控电脑或已连接会话 / Remote desktop entry with no host or connected session](assets/v10.0.0/remote-entry.png)
-
-预览启用了远程桌面入口，但设备列表为空；这不是 Windows 原生客户端或实际远控会话截图。The preview enables the remote entry with an empty device list. This is not a native Windows client capture or a live remote-control session.
-
-截图于 2026-09-30 UTC 生成，源提交为 [`9e5b4ff4e6381a42317c94618d1805b7398c558e`](https://github.com/ZHanry/home-tunnel-server/commit/9e5b4ff4e6381a42317c94618d1805b7398c558e)。原始 PNG、SHA-256 与采集参数见[原始清单 / original manifest](assets/v10.0.0/manifest.json)；[来源与复核说明 / provenance and visual review](assets/v10.0.0/README.md)说明示例数据与截图范围。
+浏览器内远控需要实际登录的 Windows 或 Linux 设备批准或验证密码。截图本身不作为媒体、输入或穿透验收证据。

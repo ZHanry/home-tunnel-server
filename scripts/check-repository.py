@@ -59,6 +59,10 @@ else:
         wrapper = root / "gradle/wrapper/gradle-wrapper.jar"
         assert hashlib.sha256(wrapper.read_bytes()).hexdigest() == "498495120a03b9a6ab5d155f5de3c8f0d986a449153702fb80fc80e134484f17"
 
+extension = json.loads((root/'contracts/browser.lock.json').read_text())
+for item in extension['files']:
+    assert hashlib.sha256((root/item['path']).read_bytes()).hexdigest()==item['sha256'], 'Browser extension drift'
+
 files = subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=root).decode().split("\0")
 for name in filter(None, files):
     path = root / name

@@ -5,21 +5,24 @@
   "contract_ref": "api-v2.0.0",
   "contract_status": "frozen",
   "frozen_tag": "api-v2.0.0",
-  "support_policy": "NestLink self-hosted account authentication and signed native P2P permits use API v2. Existing tunnel sync and independent background credentials retain API v1 compatibility. Release notes distinguish verified and unverified coverage.",
-  "version": "12.0.0-RC1",
-  "minimum_server": "12.0.0-RC1",
+  "support_policy": "NestLink account authentication and native P2P permits use frozen API v2. Browser P2P has a separate versioned extension. Desktop clients own tunneling; historical background credentials and required tunnel protocols remain compatible. Release notes list verified and unverified coverage for each actual build.",
+  "version": "13.0.0",
+  "minimum_server": "13.0.0",
   "tested_combination": {
     "server": "10.0.0",
     "client": "10.0.0",
     "android": "10.0.0",
     "agent": "10.0.0"
   },
-  "tested_combination_scope": "Historical 10.0.0 baseline retained; 12.0.0-RC1 acceptance pending its own build and integration evidence.",
+  "tested_combination_scope": "Historical 10.0.0 baseline retained; 13.0.0 acceptance pending its own build and integration evidence.",
   "previous_immutable_tag": "api-v1.6.0",
   "target_combination": {
-    "server": "12.0.0-RC1",
-    "client": "12.0.0-RC1",
-    "android": "12.0.0-RC1",
-    "agent": "12.0.0-RC1"
+    "server": "13.0.0",
+    "client": "13.0.0",
+    "android": "13.0.0",
+    "agent": "13.0.0"
+  },
+  "extensions": {
+    "browser_remote": "nestlink-browser-v1"
   }
 }

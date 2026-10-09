@@ -20,14 +20,16 @@ finally:
     os.chdir(previous_directory)
 
 class ReleasePolicyTests(unittest.TestCase):
-    def test_tag_build_workflow_only_listens_for_release_candidates(self):
+    def test_tag_workflow_reuses_accepted_stable_bytes(self):
         workflow = (script.parent.parent / ".github/workflows/release.yml").read_text(encoding="utf-8")
         trigger = workflow.split("'on':\n", 1)[1].split("permissions:\n", 1)[0]
-        # Keep the complete trigger small and explicit: stable publication has a
-        # separate acceptance workflow and must not launch an image rebuild.
-        self.assertEqual(trigger, "  push:\n    tags:\n    - v*-rc.*\n    - v*-RC*\n")
+        # Stable publication downloads the accepted CI artifact and never builds images.
+        self.assertEqual(trigger, "  push:\n    tags:\n    - v*-rc.*\n    - v*-RC*\n    - v13.*\n")
+        self.assertIn("stable: ${{ steps.version.outputs.stable }}", workflow)
+        self.assertIn("python3 scripts/homedesk-release.py verify-server --input release", workflow)
+        self.assertIn("run-id: ${{ needs.metadata.outputs.build-run }}", workflow)
         patterns = [line.strip()[2:] for line in trigger.splitlines() if line.strip().startswith("- ")]
-        for tag in ("v10.0.0-rc.1", "v11.2.3-rc.12", "v12.0.0-RC1"):
+        for tag in ("v10.0.0-rc.1", "v11.2.3-rc.12", "v13.0.0"):
             with self.subTest(tag=tag):
                 self.assertTrue(any(fnmatchcase(tag, pattern) for pattern in patterns))
         for tag in ("v10.0.0", "v11.2.3", "api-v1.4.0"):

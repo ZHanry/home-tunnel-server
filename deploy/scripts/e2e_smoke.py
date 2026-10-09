@@ -452,15 +452,15 @@ def validate_landing_page(page: str) -> None:
     links = Links()
     links.feed(page)
     expected = {
-        "https://github.com/ZHanry/home-tunnel-client/releases/tag/v12.0.0-RC1",
-        "https://github.com/ZHanry/home-tunnel-android/releases/tag/v12.0.0-RC1",
+        "https://github.com/ZHanry/home-tunnel-client/releases/tag/v13.0.0",
+        "https://github.com/ZHanry/home-tunnel-android/releases/tag/v13.0.0",
     }
     if not expected.issubset(links.links):
         raise RuntimeError("Landing page is missing an official component download destination")
     if "hero-download" not in links.ids:
         raise RuntimeError("Landing page is missing the primary download action")
-    if "home-tunnel-client status" not in page:
-        raise RuntimeError("Landing page is missing the headless client entry")
+    if "Linux 图形客户端" not in page:
+        raise RuntimeError("Landing page is missing the Linux GUI entry")
 
 
 def main() -> None:
@@ -771,7 +771,7 @@ try {
                 raise RuntimeError("Bootstrap administrator did not require a password change")
             api("POST", "/api/v2/auth/password/change", {"current_password": bootstrap_password, "new_password": admin_password}, bootstrap_login["access_token"], (204,))
             Path(arguments.handoff_file).write_text(
-                f"栖云桥 / NestLink 管理后台\nURL: {arguments.origin}/admin\n用户名: admin\n初始密码: {bootstrap_password}\n首次登录必须修改密码，改密后请删除本文件。\n",
+                f"NestLink 管理后台\nURL: {arguments.origin}/admin\n用户名: admin\n初始密码: {bootstrap_password}\n首次登录必须修改密码，改密后请删除本文件。\n",
                 encoding="utf-8",
             )
             os.chmod(arguments.handoff_file, 0o600)
@@ -795,7 +795,7 @@ try {
                 "name": "Deployment Smoke Device",
                 "install_id": f"smoke-{suffix}",
                 "fingerprint_hash": hashlib.sha256(f"smoke-{suffix}".encode()).hexdigest(),
-                "client_version": "12.0.0-RC1",
+                "client_version": "13.0.0",
                 "client_type": "cli", "credential_purpose": "background",
             }, user_token, (201,))
             device_id = registered["device_id"]
