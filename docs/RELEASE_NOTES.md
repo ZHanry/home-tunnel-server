@@ -13,3 +13,13 @@
 完整记录见 [13.0.0 验收记录](release/acceptance-13.0.0.json)。附件提供实际部署字节、SHA-256、对应源码、许可证与 Sigstore 构建证据。镜像按不可变 digest 核验后同步 13.0.0 标签。本次发布包含 GitHub、镜像和分发站点；生产部署升级另行执行。
 
 尚未验证 Android 真机、运营商 NAT、长期媒体运行、Windows/ARM64 实际远控媒体和 Wayland。音频、文件、剪贴板未纳入本次验收。Windows 安装器没有 Authenticode 发布者签名。Android 保留原 applicationId 和发行证书。历史 Git 标签与发行材料保留。
+
+The following remain unverified for the final release build:
+
+- file transfer from host to viewer
+- fixed-password mode on the final build (wrong-password rejection was verified; successful fixed-password connections were not)
+- Android controlling a Windows host (the installed Android-to-Linux path is recorded separately)
+- 2-hour and 24-hour soaks and the 30-connection repeat
+- IPv6, blocked-UDP and network-recovery matrix
+- backup restore in an upgraded production deployment
+- full Gemini review of the final UI (installed UI captures were reviewed directly)
