@@ -219,7 +219,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     const microphonePermitted = !!host.capabilities.permissions?.includes("audio.microphone");
     dialog.innerHTML = `${popoutWindow ? "" : `<button type="button" class="remote-close" data-close aria-label="关闭远程桌面" title="关闭远程桌面">${toolIcon("close")}</button>`}<div class="remote-card"><header class="remote-header"><span class="remote-badge" aria-hidden="true">${toolIcon("display")}</span><div class="remote-identity"><h2>${escapeHtml(host.name)}</h2><p class="remote-status" role="status">正在准备安全连接</p></div><span class="remote-latency" data-no-translate hidden></span></header>
       <p class="remote-error" role="alert"></p>
-      <form class="remote-auth" hidden><div class="field"><label>当前账号的登录密码<input name="password" placeholder="用于确认是你本人" type="password" autocomplete="current-password" required maxlength="256"></label></div><div class="field remote-mfa-field" hidden><label>动态码或恢复码<input name="mfa" autocomplete="one-time-code" maxlength="128"></label></div>
+      <form class="remote-auth" hidden><div class="field"><label>当前账号的登录密码<input name="password" placeholder="用于确认是你本人" type="password" autocomplete="current-password" required maxlength="256"></label></div>
       <fieldset><legend>${assistInviteId ? (connectionDefaults(host, assistInviteId) === narrowPermissions ? "画面、键鼠与文本剪贴板随本次连接授权" : "画面、键鼠、剪贴板、文件与声音随本次连接授权") : mode === "persistent" ? "绑定可信设备需本机管理员批准；持续授权最长 30 天" : "本次请求权限，仍需被控端同意"}</legend>${Object.entries(labels).filter(([permission]) => host.capabilities.permissions?.includes(permission)).map(([permission, label]) => `<label class="remote-permission"><input type="checkbox" name="permission" value="${permission}" ${connectionDefaults(host, assistInviteId).includes(permission) ? "checked" : ""} ${permission === "view" ? "disabled" : ""}>${label}</label>`).join("")}</fieldset>
       <button class="button button-primary" type="submit">${mode === "persistent" ? "验证并绑定可信设备" : "验证并请求连接"}</button></form>
       <section class="remote-pairing" hidden><p>${assistInviteId ? "正在验证设备身份与本次连接。" : mode === "persistent" ? "请让被控电脑的管理员确认设备身份并批准持续授权。配对码：" : "请在被控电脑上批准本次连接。配对码用于核对设备身份："}</p><strong class="remote-code" data-no-translate></strong></section>
@@ -376,7 +376,7 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
       if (values) status.textContent = "正在验证账号";
       try {
         if (!navigator.locks) throw new RemoteError("RD_BROWSER_LOCKS_UNAVAILABLE");
-        if (values) await api("/api/v1/rd/reauth", { method: "POST", body: JSON.stringify({ password: values.get("password"), ...(values.get("mfa") ? { mfa_code: values.get("mfa") } : {}) }) });
+        if (values) await api("/api/v1/rd/reauth", { method: "POST", body: JSON.stringify({ password: values.get("password") }) });
         if (current.disposed) return;
         const context = await controllerConnection(); current.api = context.api; current.signal = context.signal;
         if (current.disposed) { void releaseController(); return; }
@@ -405,16 +405,10 @@ export function createRemoteView({ api, state, viewContent, escapeHtml }) {
     form.addEventListener("submit", safe(async () => {
       try { await track(startConnection(new FormData(form))); }
       catch (failure) {
-        if (failure?.code === "MFA_REQUIRED" || failure?.code === "MFA_INVALID") {
-          form.querySelector(".remote-mfa-field").hidden = false;
-          status.textContent = failure.code === "MFA_REQUIRED" ? "请输入动态码或恢复码" : "动态码无效，请重试";
-          form.querySelector('[name="mfa"]').focus();
-          return;
-        }
         status.textContent = "请验证账号后重试连接";
         form.querySelector('[name="password"]').value = "";
         throw failure;
-      } finally { form.querySelector('[name="mfa"]').value = ""; }
+      }
     }));
     async function pollPairing() {
       if (current.disposed) return;

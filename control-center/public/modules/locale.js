@@ -1,30 +1,54 @@
-import { state } from "./state.js?v=11.0.0-rc.2";
-import { remoteTranslations } from "./remote/translations.js?v=11.0.0-rc.2";
+import { state } from "./state.js?v=12.0.0-RC1";
+import { remoteTranslations } from "./remote/translations.js?v=12.0.0-RC1";
 
 const appShell = document.querySelector("#app-shell");
 
 const localeStorageKey = "ht_locale";
 const zhToEn = {
+  "栖云桥": "NestLink",
+  "连接设备": "Connect",
+  "未就绪": "Not ready",
+  "设备 ID": "Device ID",
+  "输入对方的设备 ID": "Enter the other device ID",
+  "打开客户端连接": "Connect in the app",
+  "还没有连接记录": "No recent connections",
+  "远控服务尚未配置，请联系管理员。": "Remote service is not configured. Contact your administrator.",
+  "还没有设备": "No devices yet",
+  "在设备上安装栖云桥并登录账号。": "Install NestLink on a device and sign in.",
+  "远控设备分页": "Remote device pages",
+  "已请求打开栖云桥；请在客户端登录并完成连接。": "Opening NestLink. Sign in to the app to finish connecting.",
+
+  "下载 栖云桥 候选版": "Get the NestLink candidate",
+  "栖云桥 · 开源、自托管": "NestLink · Open source and self-hosted",
+  "用户分页": "User pages",
+  "审计分页": "Audit pages",
+  "设备分页": "Device pages",
+  "穿透分页": "Tunnel pages",
+  "退出此会话": "Sign out of this session",
+  "版本与更新": "Version and updates",
+  "发起连接": "Connect to a device",
+  "最近连接": "Recent connections",
+  "当前会话": "Current session",
   "家庭远控": "Family remote desktop",
   "画面、声音、输入与文件只在两端设备之间传输。": "Screen, audio, input and files travel directly between the two devices.",
-  "下载 HomeDesk": "Download HomeDesk",
+  "下载 NestLink": "Download NestLink",
   "远控必须 P2P 直连。打洞失败会明确停止，不使用中继。设备登记状态不代表已经建立远控连接。": "P2P direct connection is required. Connection failure stops the session without relay. Registration does not prove a remote session is connected.",
   "管理员尚未配置 hbbs 信令服务器与公钥。请先按部署说明完成配置。": "The administrator has not configured the hbbs server and public key. Follow the deployment guide first.",
   "远控 ID": "Remote ID",
   "登记状态": "Registration",
-  "用 HomeDesk 连接": "Connect with HomeDesk",
+  "用 NestLink 连接": "Connect with NestLink",
   "复制 ID": "Copy ID",
   "尚未登记": "Not registered",
   "最近已登记": "Recently registered",
   "未收到近期登记": "No recent registration",
-  "请在这台设备上安装 HomeDesk、配置远控并接入账号": "Install HomeDesk, configure remote access and enroll this device.",
-  "没有已接入的设备。请先在家庭电脑上安装 HomeDesk 并登录账号。": "No enrolled devices. Install HomeDesk on a family computer and sign in first.",
-  "首次连接会由系统打开 HomeDesk；未打开时可复制 ID，在客户端输入。隧道服务仍由“连接管理”独立管理。": "The system opens HomeDesk when connecting. You can also copy the ID into the app. Manage tunnels separately in Connections.",
+  "请在这台设备上安装 NestLink、配置远控并接入账号": "Install NestLink, configure remote access and enroll this device.",
+  "没有已接入的设备。请先在家庭电脑上安装 NestLink 并登录账号。": "No enrolled devices. Install NestLink on a family computer and sign in first.",
+  "首次连接会由系统打开 NestLink；未打开时可复制 ID，在客户端输入。隧道服务仍由“连接管理”独立管理。": "The system opens NestLink when connecting. You can also copy the ID into the app. Manage tunnels separately in Connections.",
   "已复制远控 ID": "Remote ID copied",
   "浏览器无法复制，请手动选中远控 ID。": "Copy is unavailable. Select the remote ID manually.",
 
   "家庭连接": "Home tunnels",
-  "下载 HomeDesk 候选版": "Get the HomeDesk candidate",
+  "下载 NestLink 候选版": "Get the NestLink candidate",
   "服务与设备": "Service and device",
   "访问地址": "Access address",
   "已暂停": "Paused",
@@ -70,8 +94,6 @@ const zhToEn = {
   "双重验证：": "Two-factor authentication:",
   "未开启": "Not enabled",
   "添加验证器": "Add authenticator",
-  "设备接入码": "Device enrollment codes",
-  "生成接入码": "Generate enrollment code",
   "接入码只用于登记新电脑，不会显示账号密码。": "Enrollment codes register new computers without revealing the account password.",
   "管理会话": "Management sessions",
   "这里管理 Web、手机和未登记的桌面登录。已登记电脑的长期接入权限请在设备管理中撤销。": "Manage Web, mobile and unenrolled desktop sign-ins here. Revoke enrolled computers in Devices.",
@@ -87,15 +109,12 @@ const zhToEn = {
   "新恢复码": "New recovery codes",
   "旧恢复码已失效，请离线安全保存新恢复码。": "Old recovery codes are invalid. Store the new codes safely offline.",
   "双重验证已关闭，其他管理会话已退出": "Two-factor authentication is disabled. Other management sessions have signed out",
-  "生成一次性接入码": "Generate a one-time enrollment code",
-  "在新电脑客户端输入服务器地址和接入码，即可登记到当前账号。有效期 10 分钟，只能使用一次。": "Enter the server address and enrollment code in the new computer's client to register it to this account. The code expires in 10 minutes and can be used once.",
   "用途备注": "Purpose or note",
   "新设备": "New device",
   "已使用": "Used",
   "待接入": "Awaiting enrollment",
   "撤销": "Revoke",
   "（当前会话）": "(current session)",
-  "退出此会话": "Sign out this session",
   "显示最近 100 个会话。修改密码可退出所有会话。": "Showing the 100 most recent sessions. Change your password to sign out all sessions.",
   "无法连接服务器，请检查网络后重试": "Unable to connect to the server. Check your network and try again",
   "请求超时，请检查网络后重试": "Request timed out. Check your network and try again",
@@ -299,7 +318,7 @@ const zhToEn = {
   "每台设备，各司其职。": "The right app for every device.",
   "Windows 图形客户端与跨平台 CLI →": "Windows GUI and cross-platform CLI \u2192",
   "下载 Android APK →": "Download Android APK \u2192",
-  "HomeDesk · 开源、自托管": "HomeDesk \u00b7 Open source and self-hosted",
+  "NestLink · 开源、自托管": "NestLink \u00b7 Open source and self-hosted",
   "家中的服务，": "Services at home,",
   "随时在身边。": "always within reach.",
   "一个入口，连接你的设备、服务与日常。": "One place for your devices, services and daily life.",
@@ -318,8 +337,8 @@ const zhToEn = {
   "已关闭，密码不会保留": "Closed. Passwords are not retained.",
   跳到主要内容: "Skip to main content",
   产品导航: "Product navigation",
-  "HomeDesk 首页": "HomeDesk home",
-  "访问 HomeDesk GitHub 仓库": "Visit the HomeDesk GitHub repository",
+  "NestLink 首页": "NestLink home",
+  "访问 NestLink GitHub 仓库": "Visit the NestLink GitHub repository",
   "GitHub 仓库": "GitHub repository",
   登录后台: "Admin sign in",
   登录控制台: "Sign in to console",
@@ -332,7 +351,7 @@ const zhToEn = {
   选择客户端平台: "Choose a client platform",
   "Windows 图形客户端": "Windows desktop client",
   桌面图形客户端: "Desktop GUI client",
-  "HomeDesk 桌面图形客户端开发预览": "HomeDesk desktop GUI development preview",
+  "NestLink 桌面图形客户端开发预览": "NestLink desktop GUI development preview",
   "Linux 客户端快速开始": "Linux client quick start",
   "Windows x64 EXE": "Windows x64 EXE",
   "当前为正式版，客户端以源码构建为主。Windows / macOS / Linux 共用图形客户端，NAS 可使用 CLI 服务。":
@@ -362,7 +381,7 @@ const zhToEn = {
   "＋ 新建连接": "+ New connection",
   "家庭 NAS": "Home NAS",
   在线: "Online",
-  "开始使用 HomeDesk": "Get started with HomeDesk",
+  "开始使用 NestLink": "Get started with NestLink",
   安装受管客户端: "Install a managed client",
   "Windows 使用图形界面，Linux/macOS 作为系统服务运行。":
     "Use the desktop app on Windows or run the system service on Linux/macOS.",
@@ -392,7 +411,7 @@ const zhToEn = {
   "适合 NAS、家庭服务器和常开的 Linux/macOS 主机；支持实时配置通知，不含 GUI 与自动更新。":
     "Designed for NAS devices, home servers, and always-on Linux/macOS hosts, with realtime configuration notifications but no GUI or automatic updates.",
   查看安装与运维说明: "View installation and operations guide",
-  "返回 HomeDesk 产品首页": "Back to the HomeDesk home page",
+  "返回 NestLink 产品首页": "Back to the NestLink home page",
   登录控制中心: "Sign in to Control Center",
   "使用管理员账号继续。": "Continue with an administrator account.",
   "使用管理员或普通用户账号继续。": "Continue with an administrator or standard user account.",
@@ -657,8 +676,8 @@ const zhToEn = {
   "TCP/UDP 端口仍由管理员分配。": "TCP/UDP ports are still assigned by an administrator.",
   已安全退出: "Signed out securely",
   "密码已修改，请使用新密码重新登录": "Password changed; sign in again with the new password",
-  "登录后台 — HomeDesk": "Admin sign in — HomeDesk",
-  "HomeDesk 控制中心": "HomeDesk Control Center",
+  "登录后台 — NestLink": "Admin sign in — NestLink",
+  "NestLink 控制中心": "NestLink Control Center",
   请求失败: "Request failed",
   "小写字母、数字、点、下划线或连字符": "Lowercase letters, numbers, dots, underscores, or hyphens",
   "临时密码 72 小时有效，首次登录后必须修改。关闭后无法再次查看。":
@@ -920,8 +939,6 @@ export function localizedApiError(data, status) {
     {
       AUTH_INVALID: "Authentication failed",
       AUTH_REQUIRED: "Authentication is required",
-      MFA_REQUIRED: "Enter your authenticator or recovery code",
-      MFA_INVALID: "The authenticator or recovery code is invalid; try again",
       FORBIDDEN: "You do not have permission to perform this action",
       CSRF_INVALID: "The security token is invalid; refresh and try again",
       VALIDATION_ERROR: "Some fields are invalid",
@@ -991,20 +1008,20 @@ export function updateDocumentMetadata() {
   const adminPath = location.pathname.startsWith("/admin");
   const signedIn = adminPath && !appShell.classList.contains("hidden");
   document.title = signedIn
-    ? t("HomeDesk 控制中心", "HomeDesk Control Center")
+    ? t("栖云桥控制中心", "NestLink Control Center")
     : adminPath
-      ? t("登录后台 — HomeDesk", "Admin sign in — HomeDesk")
+      ? t("登录栖云桥", "Sign in to NestLink")
       : t(
-          "HomeDesk — 随时安全访问家里的服务",
-          "HomeDesk — Secure access to services at home",
+          "NestLink — 随时安全访问家里的服务",
+          "NestLink — Secure access to services at home",
         );
   document
     .querySelector('meta[name="description"]')
     ?.setAttribute(
       "content",
       t(
-        "HomeDesk 受管发布 Web、通用 TCP 与固定端口 UDP 服务。",
-        "HomeDesk publishes managed Web, general TCP, and fixed-port UDP services.",
+        "NestLink 受管发布 Web、通用 TCP 与固定端口 UDP 服务。",
+        "NestLink publishes managed Web, general TCP, and fixed-port UDP services.",
       ),
     );
 }

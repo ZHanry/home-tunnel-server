@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { readFileSync } from "node:fs";
 import express from "express";
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 import { WebSocketServer } from "ws";
@@ -187,24 +188,38 @@ const domains = [];
 
 app.use(express.json());
 app.use(express.static(publicDirectory, { etag: false, lastModified: false, maxAge: 0 }));
+app.get("/api/v2/public/capabilities", (_request, response) =>
+  response.json({ api_major: 2, server_version: "12.0.0-RC1", contract_version: "2.0.0" }),
+);
 
+app.get("/api/v2/public/updates/:component", (request, response) =>
+  response.json({
+    current_version: "12.0.0-RC1",
+    update_available: false,
+    latest: {
+      version: "12.0.0-RC1",
+      notes: "NestLink release preview",
+      prerelease: true,
+      url:
+        "https://github.com/ZHanry/home-tunnel-" +
+        request.params.component +
+        "/releases/tag/v12.0.0-RC1",
+    },
+  }),
+);
 app.get("/api/v1/public/releases/latest", (_request, response) =>
   response.status(404).json({
     error: { code: "RELEASE_UNAVAILABLE", message: "Windows 安装包暂不可用" },
   }),
 );
-app.get("/api/v1/auth/session", (_request, response) =>
+app.get("/api/v2/auth/session", (_request, response) =>
   response.status(401).json({ error_code: "AUTH_REQUIRED", message: "Refresh preview session" }),
 );
-app.get("/api/v1/auth/mfa", (_request, response) =>
-  response.json({ enabled: false, recovery_codes_remaining: 0 }),
-);
-app.get("/api/v1/auth/sessions", (_request, response) => response.json({ items: [] }));
-app.get("/api/v1/client/enrollment-codes", (_request, response) => response.json({ items: [] }));
-app.post("/api/v1/auth/refresh", (_request, response) =>
+app.get("/api/v2/auth/sessions", (_request, response) => response.json({ items: [] }));
+app.post("/api/v2/auth/refresh", (_request, response) =>
   response.json({ csrf_token: "local-ui-preview" }),
 );
-app.post("/api/v1/auth/login", (_request, response) =>
+app.post("/api/v2/auth/login", (_request, response) =>
   response.json({
     access_token: "preview-access-token",
     refresh_token: "preview-refresh-token",
@@ -212,7 +227,7 @@ app.post("/api/v1/auth/login", (_request, response) =>
     password_change_required: false,
   }),
 );
-app.get("/api/v1/auth/me", (request, response) =>
+app.get("/api/v2/auth/me", (request, response) =>
   response.json({
     id: isUser(request) ? ids.user : "preview-admin",
     username: isUser(request) ? "lin" : "admin",
@@ -263,7 +278,7 @@ app.patch("/api/v1/admin/settings", (request, response) => {
     transport_settings_version: transportVersion,
   });
 });
-app.get("/api/v1/homedesk/config", (_request, response) =>
+app.get("/api/v2/homedesk/config", (_request, response) =>
   response.json({
     configured: true,
     server: "hbbs.example.com:21116",
@@ -273,7 +288,7 @@ app.get("/api/v1/homedesk/config", (_request, response) =>
     relay_enabled: false,
   }),
 );
-app.get("/api/v1/homedesk/devices", (request, response) =>
+app.get("/api/v2/homedesk/devices", (request, response) =>
   response.json({
     version: 1,
     items: isEmpty(request)
@@ -294,7 +309,7 @@ app.get("/api/v1/client/devices", (request, response) =>
   response.json({ items: isEmpty(request) ? [] : devices.filter((d) => d.user_id === ids.user) }),
 );
 app.get("/api/v1/client/traffic/summary", (_request, response) => response.json({ items: [] }));
-app.post("/api/v1/auth/password/change", (_request, response) => response.sendStatus(204));
+app.post("/api/v2/auth/password/change", (_request, response) => response.sendStatus(204));
 app.get("/api/v1/client/subdomains/availability", (request, response) => {
   const name = String(request.query.name ?? "");
   const owner =
@@ -324,7 +339,7 @@ app.post("/__preview/reset", (_request, response) => {
   transportVersion = 0;
   response.sendStatus(204);
 });
-app.post("/api/v1/auth/logout", (_request, response) => response.sendStatus(204));
+app.post("/api/v2/auth/logout", (_request, response) => response.sendStatus(204));
 app.get("/api/v1/admin/summary", (_request, response) =>
   response.json({
     users: 2,
@@ -540,7 +555,7 @@ app.use("/downloads", (_request, response) =>
 );
 app.use((request, response, next) => {
   if (request.method !== "GET") return next();
-  response.sendFile(join(publicDirectory, "index.html"));
+  response.type("html").send(readFileSync(join(publicDirectory, "index.html")));
 });
 
 const server = app.listen(port, "127.0.0.1", () => {
@@ -548,7 +563,7 @@ const server = app.listen(port, "127.0.0.1", () => {
 });
 const webSockets = new WebSocketServer({ noServer: true });
 server.on("upgrade", (request, socket, head) => {
-  if (request.url !== "/api/v1/ws") {
+  if (request.url !== "/api/v2/ws") {
     socket.destroy();
     return;
   }

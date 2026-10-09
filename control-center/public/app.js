@@ -1,7 +1,7 @@
-import { createConnectionsView } from "./modules/connections.js?v=11.0.0-rc.2-hearth.1";
-import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=11.0.0-rc.2-hearth.1";
-import { tunnelVerification } from "./modules/tunnel-model.js?v=11.0.0-rc.2";
-import { createAccountSecurityView } from "./modules/account-security.js?v=11.0.0-rc.2";
+import { createConnectionsView } from "./modules/connections.js?v=12.0.0-RC1";
+import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=12.0.0-RC1";
+import { tunnelVerification } from "./modules/tunnel-model.js?v=12.0.0-RC1";
+import { createAccountSecurityView } from "./modules/account-security.js?v=12.0.0-RC1";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -9,10 +9,10 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=11.0.0-rc.2";
-import { createDevicesView } from "./modules/devices.js?v=11.0.0-rc.2-hearth.1";
-import { createHomeDeskView as createRemoteView } from "./modules/homedesk.js?v=11.0.0-rc.2";
-import { api, refreshSession, allPages } from "./modules/api.js?v=11.0.0-rc.2-hearth.1";
+} from "./modules/forms.js?v=12.0.0-RC1";
+import { createDevicesView } from "./modules/devices.js?v=12.0.0-RC1";
+import { createNestLinkView as createRemoteView } from "./modules/homedesk.js?v=12.0.0-RC1";
+import { api, refreshSession, allPages } from "./modules/api.js?v=12.0.0-RC1";
 import {
   componentLabel,
   configState,
@@ -21,10 +21,11 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=11.0.0-rc.2-hearth.1";
-import { localeTag, updateDocumentMetadata, t, currentThemePreference } from "./modules/locale.js?v=11.0.0-rc.2-hearth.1";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=11.0.0-rc.2";
-import { state } from "./modules/state.js?v=11.0.0-rc.2";
+} from "./modules/format.js?v=12.0.0-RC1";
+import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=12.0.0-RC1";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=12.0.0-RC1";
+import { state } from "./modules/state.js?v=12.0.0-RC1";
+import { pagination } from "./modules/pagination.js?v=12.0.0-RC1";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -76,7 +77,6 @@ const viewMeta = {
   connections: ["内网穿透", "受管隧道"],
   audit: ["审计事件", "操作轨迹"],
   settings: ["系统设置", "部署策略"],
-  updates: ["软件更新", "正式版本"],
   account: ["我的账号", "密码与使用额度"],
 };
 
@@ -95,7 +95,7 @@ function applyRoleChrome() {
     item.hidden = !isAdmin();
   });
   const brand = document.querySelector(".sidebar-brand .brand-copy small");
-  if (brand) brand.textContent = isAdmin() ? t("控制中心", "Control center") : t("我的工作区", "My workspace");
+  if (brand) brand.textContent = "NestLink";
   const sessionCopy = document.querySelector(".sidebar-session small");
   if (sessionCopy) sessionCopy.textContent = isAdmin() ? "权限已验证" : "仅显示你的资源";
 }
@@ -140,6 +140,7 @@ async function navigateTo(view, replace = false) {
     else history.pushState(null, "", hash);
   }
   await renderView(view);
+  void checkUpdates();
 }
 
 async function loadPublicConfig() {
@@ -153,7 +154,6 @@ async function loadPublicConfig() {
     if (typeof value.tunnel_domain !== "string" || !/^[a-z0-9.-]{1,253}$/.test(value.tunnel_domain))
       return;
     state.tunnelDomain = value.tunnel_domain;
-    document.querySelector("#workspace-domain").textContent = state.tunnelDomain;
     state.prefixPolicy =
       value.subdomain_prefix_policy === "off" || value.subdomain_prefix_policy === "enforce"
         ? value.subdomain_prefix_policy
@@ -231,9 +231,6 @@ function showLogin(message = "") {
   state.csrf = "";
   setPendingCurrentPassword(null);
   document.querySelector("#login-password").value = "";
-  document.querySelector("#login-mfa").value = "";
-  document.querySelector("#login-mfa").required = false;
-  document.querySelector("#login-mfa-step").classList.add("hidden");
   loginForm.querySelectorAll("[aria-invalid]").forEach(field => field.removeAttribute("aria-invalid"));
   disconnectRealtime();
   landingScreen.classList.add("hidden");
@@ -249,7 +246,7 @@ function showLogin(message = "") {
 
 async function showApp() {
   document.body.classList.remove("auth-active");
-  state.me = await api("/api/v1/auth/me");
+  state.me = await api("/api/v2/auth/me");
   landingScreen.classList.add("hidden");
   authScreen.classList.add("hidden");
   appShell.classList.remove("hidden");
@@ -285,7 +282,6 @@ function renderPageActions(view) {
     connections: `<button class="button button-primary" data-action="create-connection">创建连接</button>`,
     audit: `<button class="button button-secondary" data-action="refresh-view">刷新事件</button>`,
     settings: `<button class="button button-secondary" data-action="refresh-view">刷新设置</button>`,
-    updates: `<button class="button button-secondary" data-action="refresh-view">检查更新</button>`,
   };
   pageActions.innerHTML = actions[view] ?? "";
 }
@@ -347,7 +343,6 @@ async function renderView(view, { background = false } = {}) {
     if (view === "connections") await renderConnections(renderId);
     if (view === "audit") await renderAudit(renderId);
     if (view === "settings") await renderSettings(renderId);
-    if (view === "updates") await renderUpdates(renderId);
     if (view === "account") await renderAccount(renderId);
     if (renderId !== state.renderId) return;
     viewContent.setAttribute("aria-busy", "false");
@@ -540,15 +535,15 @@ async function renderUsers(renderId = state.renderId) {
     return;
   }
   const data = await api(
-    "/api/v1/admin/users" +
-      (state.userSearch ? `?search=${encodeURIComponent(state.userSearch)}` : ""),
+    "/api/v1/admin/users?" + new URLSearchParams({ page: String(state.userPage ?? 1), page_size: "20", search: state.userSearch ?? "" }),
   );
   if (renderId !== state.renderId) return;
   state.users = data.items;
-  viewContent.innerHTML = `<form id="user-search-form" class="connection-filter panel"><div class="field"><label for="user-search">查找用户</label><input id="user-search" type="search" value="${escapeHtml(state.userSearch ?? "")}" placeholder="用户名或显示名称"></div><button class="button button-secondary" type="submit">搜索</button></form><div class="section-intro"><span>最多显示 100 位用户，使用搜索查找更多账号。</span></div><div class="notice"><span>此部署保留一名管理员。普通用户独立管理自己的设备与连接。</span></div><div class="people-list">${state.users.length ? state.users.map((user) => `<article class="person-row panel"><div class="person-profile"><span class="person-avatar" aria-hidden="true" data-no-translate>${escapeHtml(user.display_name.slice(0, 1))}</span><div><h3 data-no-translate>${escapeHtml(user.display_name)}</h3><span class="cell-secondary" data-no-translate>@${escapeHtml(user.username)}</span><span class="status-badge ${user.role === "admin" ? "ok" : "neutral"}">${user.role === "admin" ? "唯一管理员" : "普通用户"}</span> ${statusBadge(user.status)} ${user.password_state === "must_change" ? statusBadge("must_change") : ""}</div></div><div class="person-metrics"><div><strong>${user.device_count} / ${user.connection_count}</strong><small>设备 / 连接</small></div><div><strong>${formatBytes(user.month_to_date_bytes)}</strong><small>本月流量</small></div><div><strong>${formatBps(user.bandwidth_limit_bps)}</strong><small>账号上限</small></div></div><div class="actions"><button class="button button-secondary button-small" data-action="user-policy" data-id="${user.id}">限速</button>${user.role !== "admin" ? `<details class="more-actions"><summary aria-label="更多用户操作">管理账号</summary><div><button class="button button-quiet" data-action="reset-password" data-id="${user.id}">重置密码</button><button class="button button-quiet" data-action="toggle-user" data-id="${user.id}" data-status="${user.status}">${user.status === "active" ? "禁用" : "恢复"}</button><button class="button button-danger" data-action="delete-user" data-id="${user.id}">删除用户</button></div></details>` : `<button class="button button-quiet button-small" data-action="change-password">修改密码</button>`}</div></article>`).join("") : emptyState("还没有用户", "创建普通用户，让家人使用自己的账号接入。", "create-user", "创建普通用户")}</div>`;
+  viewContent.innerHTML = `<form id="user-search-form" class="connection-filter panel"><div class="field"><label for="user-search">查找用户</label><input id="user-search" type="search" value="${escapeHtml(state.userSearch ?? "")}" placeholder="用户名或显示名称"></div><button class="button button-secondary" type="submit">搜索</button></form><div class="people-list">${state.users.length ? state.users.map((user) => `<article class="person-row panel"><div class="person-profile"><span class="person-avatar" aria-hidden="true" data-no-translate>${escapeHtml(user.display_name.slice(0, 1))}</span><div><h3 data-no-translate>${escapeHtml(user.display_name)}</h3><span class="cell-secondary" data-no-translate>@${escapeHtml(user.username)}</span><span class="status-badge ${user.role === "admin" ? "ok" : "neutral"}">${user.role === "admin" ? "唯一管理员" : "普通用户"}</span> ${statusBadge(user.status)} ${user.password_state === "must_change" ? statusBadge("must_change") : ""}</div></div><div class="person-metrics"><div><strong>${user.device_count} / ${user.connection_count}</strong><small>设备 / 连接</small></div><div><strong>${formatBytes(user.month_to_date_bytes)}</strong><small>本月流量</small></div><div><strong>${formatBps(user.bandwidth_limit_bps)}</strong><small>账号上限</small></div></div><div class="actions"><button class="button button-secondary button-small" data-action="user-policy" data-id="${user.id}">限速</button>${user.role !== "admin" ? `<details class="more-actions"><summary aria-label="更多用户操作">管理账号</summary><div><button class="button button-quiet" data-action="reset-password" data-id="${user.id}">重置密码</button><button class="button button-quiet" data-action="toggle-user" data-id="${user.id}" data-status="${user.status}">${user.status === "active" ? "禁用" : "恢复"}</button><button class="button button-danger" data-action="delete-user" data-id="${user.id}">删除用户</button></div></details>` : `<button class="button button-quiet button-small" data-action="change-password">修改密码</button>`}</div></article>`).join("") : emptyState("还没有用户", "创建普通用户，让家人使用自己的账号接入。", "create-user", "创建普通用户")}</div>${pagination({page:data.page,pages:data.total_pages,total:data.total,pageSize:20,action:"user-page",label:"用户分页"})}`;
   document.querySelector("#user-search-form").addEventListener("submit", (event) => {
     event.preventDefault();
     state.userSearch = document.querySelector("#user-search").value.trim();
+    state.userPage = 1;
     void renderView("users");
   });
 }
@@ -567,19 +562,41 @@ function accessBadges(connection) {
   return badges.length ? badges.join(" ") : '<span class="cell-secondary">开放</span>';
 }
 
-async function renderUpdates(renderId = state.renderId) {
-  const capabilities = await api("/api/v1/public/capabilities");
-  if (renderId !== state.renderId) return;
-  let release = null;
-  let message = "当前无法获取 GitHub 正式 Release，请稍后再试。";
+async function checkUpdates() {
   try {
-    const result = await api("/api/v1/public/updates/server");
-    release = result.latest;
-    message = "检查完成。只显示正式发布，私有候选包不会作为公开更新。";
-  } catch {}
-  if (renderId !== state.renderId) return;
-  viewContent.innerHTML = `<div class="update-grid"><section class="panel"><div class="version-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 18v3h16v-3" /></svg></div><h2>更新由你决定。</h2><p>${message}</p><dl><dt>当前服务端</dt><dd>${escapeHtml(capabilities.server_version ?? "未知")}</dd><dt>最新正式版本</dt><dd>${release ? escapeHtml(release.version) : "暂不可用"}</dd></dl>${release ? `<a class="button button-primary" href="${escapeHtml(release.url)}" target="_blank" rel="noopener noreferrer">查看正式 Release ↗</a>` : ""}</section><section class="panel"><h2>升级说明</h2><p>网站只负责检查版本，不会自动替换服务端镜像或修改数据库。升级前请先验证备份，再按部署文档操作。</p><a href="https://github.com/ZHanry/home-tunnel-server/releases" target="_blank" rel="noopener noreferrer">查看服务端发布记录 →</a></section></div>`;
+    const result = await api("/api/v2/public/updates/server", {}, false);
+    document.querySelector("#current-version").textContent = result.current_version;
+    document.querySelector("#update-indicator").classList.toggle("hidden", !result.update_available);
+    document.querySelector("#mobile-update-indicator").classList.toggle("hidden", !result.update_available);
+    return result;
+  } catch { return null; }
 }
+
+async function openUpdates() {
+  openModal({
+    title: "版本与更新",
+    body: '<p role="status">正在检查版本…</p>',
+    submitLabel: "关闭",
+    onSubmit: () => modal.close("done"),
+  });
+  const opening = state.renderId;
+  try {
+    const capabilities = await api("/api/v2/public/capabilities");
+    let release = null;
+    release = (await checkUpdates())?.latest ?? null;
+    if (!modal.open || opening !== state.renderId) return;
+    const version = capabilities.server_version ?? "12.0.0-RC1";
+    document.querySelector("#current-version").textContent = version;
+    modalBody.innerHTML = `<div class="update-summary"><img src="/NestLink.svg" width="48" height="48" alt=""><div><strong>栖云桥 / NestLink</strong><p data-no-translate>${escapeHtml(version)}</p></div></div>
+      <dl><dt>当前版本</dt><dd data-no-translate>${escapeHtml(version)}</dd><dt>可用版本</dt><dd data-no-translate>${release ? escapeHtml(release.version) : "暂时无法检查"}</dd></dl>
+      <p class="release-notes">${escapeHtml(release?.notes ?? "管理自建服务、家庭设备、P2P 远控与内网穿透。")}</p>
+      <a class="button button-secondary" href="${escapeHtml(release?.url ?? "https://github.com/ZHanry/home-tunnel-server/releases")}" target="_blank" rel="noopener noreferrer">发布说明与下载</a>`;
+  } catch (error) {
+    if (modal.open) modalBody.textContent = error.message;
+  }
+}
+document.querySelector("#version-button").addEventListener("click", openUpdates);
+document.querySelector("#mobile-version-button").addEventListener("click", openUpdates);
 
 async function renderSettings(renderId = state.renderId) {
   if (!isAdmin()) {
@@ -633,7 +650,7 @@ async function renderSettings(renderId = state.renderId) {
       </div>
     </section>
     <p id="settings-error" class="form-error" role="alert"></p>
-    <div class="actions"><button class="button button-primary" type="submit">保存设置</button><span class="helper">端口范围的修改同时适用于管理员和普通用户。</span></div>
+    <div class="actions settings-save"><button class="button button-primary" type="submit">保存设置</button></div>
     </form>`;
   for (const type of ["tcp", "udp"]) {
     const start = document.querySelector(`#${type}-port-start`);
@@ -663,8 +680,6 @@ async function renderAudit(renderId = state.renderId) {
   const total = Number(data.total ?? data.items.length);
   const totalPages = total === 0 ? 1 : Math.max(1, Number(data.total_pages ?? 1));
   state.audit.page = Math.max(1, Math.min(state.audit.page, totalPages));
-  const first = total === 0 ? 0 : (state.audit.page - 1) * state.audit.pageSize + 1;
-  const last = total === 0 ? 0 : Math.min(total, first + data.items.length - 1);
   const targetTypes = ["", "User", "Device", "Connection", "Session", "TrafficPolicy"];
   viewContent.innerHTML = `
     <section class="panel audit-filter-panel">
@@ -677,7 +692,7 @@ async function renderAudit(renderId = state.renderId) {
       </form>
     </section>
     <section class="panel table-panel audit-table-panel">${data.items.length ? `<table class="data-table"><thead><tr><th>时间</th><th>动作</th><th>操作者</th><th>目标</th><th>Request ID</th></tr></thead><tbody>${data.items.map((item) => `<tr><td data-label="时间">${formatDate(item.created_at)}</td><td data-label="动作"><span class="cell-primary" data-no-translate>${escapeHtml(item.action)}</span><span class="cell-secondary">${escapeHtml(item.actor_type)}</span></td><td data-label="操作者" class="mono">${escapeHtml(item.actor_id?.slice(0, 8) ?? "system")}</td><td data-label="目标"><span class="cell-primary" data-no-translate>${escapeHtml(item.target_type)}</span><span class="cell-secondary mono" data-no-translate>${escapeHtml(item.target_id?.slice(0, 16) ?? "—")}</span></td><td data-label="Request ID" class="mono">${escapeHtml(item.request_id)}</td></tr>`).join("")}</tbody></table>` : emptyState("没有匹配的审计事件", "调整筛选条件后重试。")}
-      <footer class="pagination" aria-label="审计事件分页"><span>显示 ${first}–${last}，共 ${total.toLocaleString(localeTag())} 条</span><div><button class="button button-quiet button-small" data-action="audit-page" data-page="${state.audit.page - 1}" ${state.audit.page <= 1 ? "disabled" : ""}>上一页</button><span class="pagination-current">第 ${state.audit.page} / ${totalPages} 页</span><button class="button button-quiet button-small" data-action="audit-page" data-page="${state.audit.page + 1}" ${state.audit.page >= totalPages ? "disabled" : ""}>下一页</button></div></footer>
+      ${pagination({page:state.audit.page,pages:totalPages,total,pageSize:state.audit.pageSize,action:"audit-page",label:"审计分页"})}
     </section>`;
 }
 
@@ -901,28 +916,27 @@ function connectionDiagnostic(connection) {
 }
 
 async function renderAccount(renderId) {
-  const me = await api("/api/v1/auth/me");
+  const me = await api("/api/v2/auth/me");
   if (renderId !== state.renderId) return;
   state.me = me;
-  viewContent.innerHTML = `<section class="panel account-panel"><div class="panel-header"><div><h3 data-no-translate>${escapeHtml(me.display_name)}</h3><p class="panel-subtle">我的账号与使用额度</p></div><button class="button button-secondary" data-action="change-password">修改密码</button></div><div class="account-metrics"><div><span>本月 Web 流量</span><strong>${formatBytes(me.month_to_date_bytes)}</strong></div><div><span>月度配额</span><strong>${me.monthly_quota_bytes == null ? "不限额" : formatBytes(me.monthly_quota_bytes)}</strong></div><div><span>账号共享带宽</span><strong>${formatBps(me.bandwidth_limit_bps)}</strong></div></div><p class="helper">每月按 UTC 自然月重置。下次重置：${formatDate(me.quota_resets_at)}。TCP/UDP 不经过 Web 网关，不包含在这里的流量与配额统计中。</p><div class="account-appearance"><div><strong id="account-theme-label">外观</strong><p class="helper">界面主题跟随系统，或固定为浅色、深色。</p></div><select id="account-theme" class="theme-select" data-theme-select data-no-translate aria-labelledby="account-theme-label">${["system", "light", "dark"].map((value) => `<option value="${value}" ${currentThemePreference() === value ? "selected" : ""}>${{ system: t("跟随系统", "System"), light: t("浅色", "Light"), dark: t("深色", "Dark") }[value]}</option>`).join("")}</select></div><div class="actions account-signout"><button class="button button-danger" data-action="logout">退出登录</button></div></section>`;
+  viewContent.innerHTML = `<section class="panel account-panel"><div class="panel-header"><div><h3 data-no-translate>${escapeHtml(me.display_name)}</h3><p class="panel-subtle">我的账号与使用额度</p></div><button class="button button-secondary" data-action="change-password">修改密码</button></div><div class="account-metrics"><div><span>本月 Web 流量</span><strong>${formatBytes(me.month_to_date_bytes)}</strong></div><div><span>月度配额</span><strong>${me.monthly_quota_bytes == null ? "不限额" : formatBytes(me.monthly_quota_bytes)}</strong></div><div><span>账号共享带宽</span><strong>${formatBps(me.bandwidth_limit_bps)}</strong></div></div><p class="helper">每月按 UTC 自然月重置。下次重置：${formatDate(me.quota_resets_at)}。TCP/UDP 不经过 Web 网关，不包含在这里的流量与配额统计中。</p><div class="actions account-signout"><button class="button button-danger" data-action="logout">退出登录</button></div></section>`;
   await renderSecurity(renderId);
 }
 
 function changePassword() {
   openModal({
     title: "修改密码",
-    body: `<p class="helper">密码修改后所有账号会话会退出，请使用新密码重新登录。</p>${field("current_password", "当前密码", "", { type: "password" })}${field("new_password", "新密码", "", { type: "password", minlength: 12, helper: "至少 12 个字符，且不能包含用户名" })}${field("confirm_password", "确认新密码", "", { type: "password", minlength: 12 })}${field("mfa_code", "动态码或恢复码（已启用时必填）", "", { type: "password", required: false })}`,
+    body: `<p class="helper">密码修改后所有账号会话会退出，请使用新密码重新登录。</p>${field("current_password", "当前密码", "", { type: "password" })}${field("new_password", "新密码", "", { type: "password", minlength: 12, helper: "至少 12 个字符，且不能包含用户名" })}${field("confirm_password", "确认新密码", "", { type: "password", minlength: 12 })}`,
     onSubmit: async (form) => {
       if (form.get("new_password") !== form.get("confirm_password"))
         throw new Error("两次输入的新密码不一致");
       await api(
-        "/api/v1/auth/password/change",
+        "/api/v2/auth/password/change",
         {
           method: "POST",
           body: JSON.stringify({
             current_password: form.get("current_password"),
             new_password: form.get("new_password"),
-            mfa_code: form.get("mfa_code") || undefined,
           }),
         },
         false,
@@ -1472,6 +1486,8 @@ appShell.addEventListener("click", async (event) => {
       await renderView("connections");
     }
     if(action==="device-page") {state.deviceQuery.page=Math.max(1,Number(button.dataset.page));await renderView("devices");}
+    if (action === "remote-page") { state.remoteQuery.page = Math.max(1, Number(button.dataset.page)); await renderView("remote"); }
+    if (action === "user-page") { state.userPage = Math.max(1, Number(button.dataset.page)); await renderView("users"); }
     if(action==="device-metadata") {
       const device=state.devices.find(item=>item.id===button.dataset.id);if(!device)return;
       openModal({title:`标签与收藏 · ${device.name}`,draftId:`metadata:${device.id}`,
@@ -1728,7 +1744,7 @@ document.addEventListener("focusin", (event) => {
 });
 window.matchMedia("(max-width: 600px)").addEventListener("change", () => closeMoreNavigation());
 
-document.querySelectorAll(".nav-item").forEach((button) =>
+document.querySelectorAll("[data-view]").forEach((button) =>
   button.addEventListener("click", () => {
     void navigateTo(button.dataset.view);
   }),
@@ -1774,13 +1790,12 @@ loginForm.addEventListener("submit", async (event) => {
   try {
     const form = new FormData(loginForm);
     const result = await api(
-      "/api/v1/auth/login",
+      "/api/v2/auth/login",
       {
         method: "POST",
         body: JSON.stringify({
           username: form.get("username"),
           password: form.get("password"),
-          mfa_code: form.get("mfa_code") || undefined,
           client_type: "web",
         }),
       },
@@ -1788,9 +1803,6 @@ loginForm.addEventListener("submit", async (event) => {
     );
     state.csrf = result.csrf_token;
     document.querySelector("#login-password").value = "";
-    document.querySelector("#login-mfa").value = "";
-    document.querySelector("#login-mfa-step").classList.add("hidden");
-    document.querySelector("#login-mfa").required = false;
     if (result.password_change_required) {
       loginForm.classList.add("hidden");
       passwordForm.classList.remove("hidden");
@@ -1800,16 +1812,9 @@ loginForm.addEventListener("submit", async (event) => {
       await showApp();
     }
   } catch (error) {
-    errorNode.textContent = error.code === "MFA_REQUIRED" ? "" : error.message;
-    if (error.code === "MFA_REQUIRED" || error.code === "MFA_INVALID") {
-      document.querySelector("#login-mfa-step").classList.remove("hidden");
-      document.querySelector("#login-mfa").required = true;
-      if (error.code === "MFA_INVALID") document.querySelector("#login-mfa").setAttribute("aria-invalid", "true");
-      document.querySelector("#login-mfa").focus();
-    } else {
-      document.querySelector("#login-username").setAttribute("aria-invalid", "true");
-      document.querySelector("#login-password").setAttribute("aria-invalid", "true");
-    }
+    errorNode.textContent = error.message;
+    document.querySelector("#login-username").setAttribute("aria-invalid", "true");
+    document.querySelector("#login-password").setAttribute("aria-invalid", "true");
   } finally {
     button.disabled = false;
     button.removeAttribute("aria-busy");
@@ -1818,16 +1823,10 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
-loginForm.addEventListener("input", (event) => {
+loginForm.addEventListener("input", () => {
   document.querySelector("#login-username").removeAttribute("aria-invalid");
   document.querySelector("#login-password").removeAttribute("aria-invalid");
-  document.querySelector("#login-mfa").removeAttribute("aria-invalid");
   document.querySelector("#login-error").textContent = "";
-  if (event.target.id === "login-username" || event.target.id === "login-password") {
-    document.querySelector("#login-mfa").value = "";
-    document.querySelector("#login-mfa").required = false;
-    document.querySelector("#login-mfa-step").classList.add("hidden");
-  }
 });
 
 passwordForm.addEventListener("submit", async (event) => {
@@ -1853,12 +1852,11 @@ passwordForm.addEventListener("submit", async (event) => {
   button.textContent = "正在保存…";
   try {
     await api(
-      "/api/v1/auth/password/change",
+      "/api/v2/auth/password/change",
       {
         method: "POST",
         body: JSON.stringify({
           current_password: pendingCurrentPassword ?? form.get("current_password"),
-          mfa_code: form.get("mfa_code") || undefined,
           new_password: form.get("new_password"),
         }),
       },
@@ -1868,7 +1866,7 @@ passwordForm.addEventListener("submit", async (event) => {
     showLogin("密码已修改，请使用新密码重新登录");
   } catch (error) {
     errorNode.textContent = error.message;
-    const failedField = document.querySelector(error.code === "MFA_REQUIRED" || error.code === "MFA_INVALID" ? "#password-mfa" : "#new-password");
+    const failedField = document.querySelector("#new-password");
     failedField.setAttribute("aria-invalid", "true");
     failedField.focus();
   } finally {
@@ -1882,7 +1880,6 @@ passwordForm.addEventListener("submit", async (event) => {
 passwordForm.addEventListener("input", () => {
   document.querySelector("#new-password").removeAttribute("aria-invalid");
   document.querySelector("#confirm-password").removeAttribute("aria-invalid");
-  document.querySelector("#password-mfa").removeAttribute("aria-invalid");
   document.querySelector("#password-error").textContent = "";
 });
 
@@ -1894,7 +1891,7 @@ function confirmLogout() {
     async () => {
       closeRemote();
       try {
-        await api(state.me?.native_remote ? "/api/v1/auth/session/close" : "/api/v1/auth/logout", { method: "POST", body: "{}" }, false);
+        await api(state.me?.native_remote ? "/api/v2/auth/session/close" : "/api/v2/auth/logout", { method: "POST", body: "{}" }, false);
       } catch {}
       modal.close("done");
       disconnectRealtime();

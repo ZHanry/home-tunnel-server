@@ -1,5 +1,5 @@
-import { localizedApiError, localizedText } from "./locale.js?v=11.0.0-rc.2-hearth.1";
-import { state } from "./state.js?v=11.0.0-rc.2";
+import { localizedApiError, localizedText } from "./locale.js?v=12.0.0-RC1";
+import { state } from "./state.js?v=12.0.0-RC1";
 
 let refreshInFlight = null;
 const sessionChannel = typeof window.BroadcastChannel === "function"
@@ -48,7 +48,7 @@ async function parseResponse(response) {
 async function performSessionRefresh() {
   // An authenticated read restores per-session CSRF after reload and lets a
   // waiting tab reuse cookies already refreshed by another tab.
-  const existing = await request("/api/v1/auth/session", { credentials: "same-origin" });
+  const existing = await request("/api/v2/auth/session", { credentials: "same-origin" });
   if (existing.ok) {
     const data = await existing.json();
     state.csrf = data.csrf_token;
@@ -56,7 +56,7 @@ async function performSessionRefresh() {
     return data;
   }
   if (existing.status !== 401) throw new ApiError("暂时无法验证会话，请稍后重试", "SERVICE_UNAVAILABLE", existing.status);
-  const response = await request("/api/v1/auth/refresh", {
+  const response = await request("/api/v2/auth/refresh", {
     method: "POST",
     credentials: "same-origin",
     headers: { "content-type": "application/json" },
@@ -95,7 +95,7 @@ export async function api(path, options = {}, canRefresh = true) {
   const data = await parseResponse(response);
   const sessionFailure = response.status === 401 && ["SESSION_REVOKED", "AUTH_REQUIRED"].includes(data?.error_code);
   const staleCsrf = response.status === 403 && data?.error_code === "CSRF_INVALID";
-  if (canRefresh && (sessionFailure || staleCsrf) && !["/api/v1/auth/refresh", "/api/v1/auth/session", "/api/v1/auth/login", "/api/v1/auth/device", "/api/v1/auth/enroll"].includes(path)) {
+  if (canRefresh && (sessionFailure || staleCsrf) && !["/api/v2/auth/refresh", "/api/v2/auth/session", "/api/v2/auth/login", "/api/v2/auth/device", "/api/v2/auth/enroll"].includes(path)) {
     try {
       await refreshSession();
     } catch (error) {
@@ -107,9 +107,9 @@ export async function api(path, options = {}, canRefresh = true) {
   }
   if (!response.ok) {
     const reauthFailure = path === "/api/v1/rd/reauth" &&
-      ["AUTH_INVALID", "MFA_REQUIRED", "MFA_INVALID"].includes(data?.error_code);
+      data?.error_code === "AUTH_INVALID";
     const code =
-      response.status === 401 && !path.startsWith("/api/v1/auth/") && !reauthFailure
+      response.status === 401 && !path.startsWith("/api/v2/auth/") && !reauthFailure
         ? "SESSION_REVOKED"
         : data?.error_code;
     if (code === "SESSION_REVOKED" && window.dispatchEvent)

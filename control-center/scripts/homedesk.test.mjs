@@ -1,6 +1,35 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { homeDeskUrl, createHomeDeskView } from "../public/modules/homedesk.js";
+const fakeElement = {
+  classList: { contains: () => true },
+  dataset: { theme: "light" },
+  style: {},
+  matches: () => false,
+  querySelectorAll: () => [],
+  hasAttribute: () => false,
+  setAttribute: () => undefined,
+};
+globalThis.Node = { TEXT_NODE: 3, ELEMENT_NODE: 1 };
+globalThis.NodeFilter = { SHOW_TEXT: 4, FILTER_REJECT: 2, FILTER_ACCEPT: 1 };
+globalThis.document = {
+  nodeType: 9,
+  body: {},
+  documentElement: fakeElement,
+  title: "",
+  querySelector: (selector) => (selector === "#app-shell" ? fakeElement : null),
+  querySelectorAll: () => [],
+  createTreeWalker: () => ({ nextNode: () => null }),
+};
+globalThis.location = { pathname: "/admin" };
+globalThis.window = {
+  localStorage: { getItem: () => null, setItem: () => undefined },
+  addEventListener: () => undefined,
+  matchMedia: () => ({ matches: false, addEventListener: () => undefined }),
+};
+globalThis.MutationObserver = class {
+  observe() {}
+};
+const { homeDeskUrl, createNestLinkView } = await import("../public/modules/homedesk.js");
 
 test("native launch never embeds credentials, config or a relay switch", () => {
   assert.equal(homeDeskUrl("123456789"), "homedesk://123456789");
@@ -16,7 +45,7 @@ test("native launch never embeds credentials, config or a relay switch", () => {
     assert.equal(homeDeskUrl(id), null);
   }
 });
-test("directory pagination completes and a stale render cannot replace another view", async () => {
+test("a paged directory request cannot replace a closed view", async () => {
   const state = { renderId: 1 };
   const requests = [];
   const content = { innerHTML: "existing", querySelectorAll: () => [] };
@@ -27,7 +56,7 @@ test("directory pagination completes and a stale render cannot replace another v
     if (path.endsWith("homedesk/devices")) return { items: [] };
     return { items: [], total_pages: 2 };
   };
-  const view = createHomeDeskView({
+  const view = createNestLinkView({
     api,
     state,
     viewContent: content,
@@ -37,5 +66,6 @@ test("directory pagination completes and a stale render cannot replace another v
   view.closeRemote();
   await rendering;
   assert.equal(content.innerHTML, "existing");
-  assert.ok(requests.some((path) => path.includes("page=2")));
+  assert.ok(requests.some((path) => path.includes("page=1") && path.includes("page_size=6")));
+  assert.equal(requests.length, 3);
 });

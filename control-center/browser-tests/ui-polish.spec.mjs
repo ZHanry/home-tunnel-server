@@ -76,7 +76,7 @@ test("sidebar theme control matches the desktop toolbar and toggles light and da
 test("sign-out lives in the sidebar user card and still asks for confirmation", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   let signOutRequests = 0;
-  page.on("request", (request) => { if (request.method() === "POST" && new URL(request.url()).pathname === "/api/v1/auth/logout") signOutRequests++; });
+  page.on("request", (request) => { if (request.method() === "POST" && new URL(request.url()).pathname === "/api/v2/auth/logout") signOutRequests++; });
   await ready(page);
   const card = page.locator(".sidebar .user-chip");
   const logout = card.locator("#logout-button");
@@ -127,7 +127,7 @@ for (const theme of ["light", "dark"]) {
         active: css(".nav-item.active").backgroundColor, activeText: css(".nav-item.active").color,
         name: css("#current-user").color, chip: css(".user-chip").backgroundColor };
     });
-    expect(colors.side).toBe(theme === "light" ? "rgb(239, 235, 228)" : "rgb(29, 26, 23)");
+    expect(colors.side).toBe(theme === "light" ? "rgb(255, 255, 255)" : "rgb(23, 35, 56)");
     expect(contrast(colors.item, colors.side)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(colors.activeText, colors.active)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(colors.name, colors.chip)).toBeGreaterThanOrEqual(4.5);
@@ -142,7 +142,7 @@ test("main pages have no horizontal overflow at 390px and 2000px in both themes"
     await page.emulateMedia({ colorScheme: theme });
     for (const width of [390, 2000]) {
       await page.setViewportSize({ width, height: 900 });
-      for (const view of ["dashboard", "remote", "devices", "connections", "users", "audit", "settings", "updates", "account"]) {
+      for (const view of ["dashboard", "remote", "devices", "connections", "users", "audit", "settings", "account"]) {
         await ready(page, `/admin#${view}`);
         const overflow = await page.evaluate(() => {
           const limit = document.documentElement.clientWidth + 1;
@@ -164,7 +164,7 @@ test("the native remote directory fits wide and phone layouts", async ({ page })
   for (const width of [2000, 390]) {
     await page.setViewportSize({ width, height: 1000 });
     await ready(page, "/admin#remote");
-    const launch = page.getByRole("link", { name: "用 HomeDesk 连接" });
+    const launch = page.getByRole("link", { name: "连接设备", exact: true });
     await expect(launch).toHaveAttribute("href", "homedesk://123456789");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
     expect(overflow).toBe(false);
@@ -179,7 +179,7 @@ test("the native remote directory keeps authentication in the app", async ({ pag
   await ready(page, "/admin#remote");
   await expect(page.locator("#view-content input[type=password]")).toHaveCount(0);
   await expect(page.locator(".remote-assist-preview")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "用 HomeDesk 连接" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "连接设备", exact: true })).toBeVisible();
 });
 
 for (const width of [1280, 390]) {

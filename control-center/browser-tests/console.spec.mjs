@@ -17,7 +17,7 @@ test("an empty audit result clears stale page counts and disables pagination", a
     items: [], total: 0, page: 3, page_size: 25, total_pages: 3,
   } }));
   await ready(page, "/admin#audit");
-  await expect(page.locator(".pagination-current")).toHaveText("第 1 / 1 页");
+  await expect(page.locator(".pagination-current")).toHaveText("1 / 1");
   await expect(page.locator('[data-action="audit-page"]').first()).toBeDisabled();
   await expect(page.locator('[data-action="audit-page"]').last()).toBeDisabled();
   await expect(page.locator(".audit-table-panel")).toContainText("显示 0–0，共 0 条");
@@ -26,7 +26,7 @@ test("an empty audit result clears stale page counts and disables pagination", a
 test("a phone user can cancel sign-out or confirm it from the account page", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   let signOutRequests = 0;
-  page.on("request", request => { if (request.method() === "POST" && new URL(request.url()).pathname === "/api/v1/auth/logout") signOutRequests++; });
+  page.on("request", request => { if (request.method() === "POST" && new URL(request.url()).pathname === "/api/v2/auth/logout") signOutRequests++; });
   await ready(page, "/admin?role=user#account");
   const action = page.locator('[data-action="logout"]');
   await action.click();
@@ -41,7 +41,7 @@ test("a phone user can cancel sign-out or confirm it from the account page", asy
 });
 
 test("public home and return link work without a session", async ({ page }) => {
-  await page.route("**/api/v1/auth/refresh", (route) =>
+  await page.route("**/api/v2/auth/refresh", (route) =>
     route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }),
   );
   await page.goto("/");
@@ -57,13 +57,13 @@ test("public home keeps prototype artwork, features and language on narrow scree
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await expect(page.locator(".marketing-brand .brand-mark svg")).toBeVisible();
-  await expect(page.locator(".marketing-brand")).toContainText("HomeDesk");
+  await expect(page.locator(".marketing-brand .brand-mark img")).toBeVisible();
+  await expect(page.locator(".marketing-brand")).toContainText("栖云桥");
   await expect(page.locator(".hero-art .art-server")).toBeVisible();
   await expect(page.locator(".landing-features article")).toHaveCount(3);
   await expect(page.locator("#hero-download")).toHaveAttribute(
     "href",
-    "https://github.com/ZHanry/home-tunnel-client/releases/tag/v11.0.0-rc.1",
+    "https://github.com/ZHanry/home-tunnel-client/releases/tag/v12.0.0-RC1",
   );
   await page.locator(".marketing-footer [data-locale-toggle]").click();
   await expect(page.locator("#hero-title")).toContainText("Bring your home services");
@@ -80,83 +80,47 @@ test("dashboard uses the shared header and navigation actions and fits a phone",
   await expect(page).toHaveURL(/#remote$/);
 });
 
-test("login asks for MFA only after the server requires it", async ({ page }) => {
-  await page.route("**/api/v1/auth/refresh", (route) =>
-    route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }),
-  );
+test("password failures never expose obsolete authentication inputs or auto-retry", async ({ page }) => {
+  await page.route("**/api/v2/auth/refresh", route => route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }));
   const attempts = [];
-  await page.route("**/api/v1/auth/login", (route) => {
+  await page.route("**/api/v2/auth/login", route => {
     attempts.push(route.request().postDataJSON());
-    return route.fulfill({
-      status: 401,
-      json: {
-        error_code: attempts.length === 1 ? "MFA_REQUIRED" : "MFA_INVALID",
-        message: "请输入动态码",
-      },
-    });
+    return route.fulfill({ status: 401, json: { error_code: "AUTH_INVALID", message: "账号或密码错误" } });
   });
   await page.goto("/admin");
-  await expect(page.locator("#login-mfa-step")).toBeHidden();
-  await page.locator("#login-username").fill("mfa-user");
-  await page.locator("#login-password").fill("example-password");
+  await page.locator("#login-username").fill("test-user");
+  await page.locator("#login-password").fill("wrong-password");
   await page.locator("#login-form button[type=submit]").click();
-  await expect(page.locator("#login-mfa-step")).toBeVisible();
-  await expect(page.locator("#login-mfa")).toBeFocused();
-  await expect(page.locator("#login-mfa-help")).toBeVisible();
+  await expect(page.locator("#login-error")).not.toBeEmpty();
+  expect(attempts).toHaveLength(1);
+  expect(Object.keys(attempts[0]).sort()).toEqual(["client_type", "password", "username"]);
+  await expect(page.locator("#login-mfa-step,#login-mfa,[name=mfa_code]")).toHaveCount(0);
+  await page.locator("#login-password").fill("new-password");
   await expect(page.locator("#login-error")).toBeEmpty();
-  await expect(page.locator("#login-mfa")).not.toHaveAttribute("aria-invalid", "true");
-  expect(attempts[0].mfa_code).toBeUndefined();
-  await page.locator(".auth-locale-toggle").click();
-  await expect(page.locator("#login-mfa-help")).toHaveText("Enter an authenticator code or a one-time recovery code to finish signing in.");
-  await page.locator("#login-mfa").fill("123456");
+  expect(attempts).toHaveLength(1);
   await page.locator("#login-form button[type=submit]").click();
-  expect(attempts[1].mfa_code).toBe("123456");
-  await expect(page.locator("#login-mfa-step")).toBeVisible();
-  await expect(page.locator("#login-mfa")).toBeFocused();
-  await expect(page.locator("#login-mfa")).toHaveAttribute("aria-invalid", "true");
-  await expect(page.locator("#login-error")).toHaveText("The authenticator or recovery code is invalid; try again");
-  await page.locator("#login-mfa").fill("654321");
-  await expect(page.locator("#login-error")).toBeEmpty();
-  await expect(page.locator("#login-mfa")).not.toHaveAttribute("aria-invalid", "true");
-  await page.locator("#login-username").fill("another-user");
-  await expect(page.locator("#login-mfa-step")).toBeHidden();
-  await expect(page.locator("#login-mfa")).toHaveValue("");
-  await expect(page.locator("#login-mfa")).not.toHaveAttribute("required");
+  await expect.poll(() => attempts.length).toBe(2);
 });
 
 test("remote page launches the native app with only a device ID", async ({ page }) => {
   const requests = [];
   page.on("request", request => requests.push(new URL(request.url()).pathname));
   await ready(page, "/admin#remote");
-  const launch = page.getByRole("link", { name: "用 HomeDesk 连接" });
+  const launch = page.getByRole("link", { name: "连接设备", exact: true });
   await expect(launch).toHaveAttribute("href", "homedesk://123456789");
-  await expect(page.locator("#view-content")).toContainText("远控必须 P2P 直连");
+  await expect(page.locator("#view-content")).toContainText("发起连接");
   expect(requests.some(path => path.startsWith("/api/v1/rd/"))).toBe(false);
   await expect(page.locator(".remote-dialog")).toHaveCount(0);
 });
 
-test("updates page displays only official server release metadata", async ({ page }) => {
-  await page.route("**/api/v1/public/capabilities", (route) =>
-    route.fulfill({ json: { server_version: "10.0.0" } }),
-  );
-  await page.route("**/api/v1/public/updates/server", (route) =>
-    route.fulfill({
-      json: {
-        current_version: "10.0.0",
-        latest: {
-          version: "8.0.0",
-          url: "https://github.com/ZHanry/home-tunnel-server/releases/tag/v8.0.0",
-        },
-      },
-    }),
-  );
-  await ready(page, "/admin#updates");
-  await expect(page.locator(".update-grid")).toContainText("8.0.0");
-  await expect(page.locator(".update-grid")).toContainText("正式发布");
-  await expect(page.locator(".update-grid a.button-primary")).toHaveAttribute(
-    "href",
-    "https://github.com/ZHanry/home-tunnel-server/releases/tag/v8.0.0",
-  );
+test("sidebar version opens official release details in a dialog", async ({ page }) => {
+  await ready(page, "/admin#connections");
+  await expect(page.locator('[data-view="updates"]')).toHaveCount(0);
+  await page.locator("#version-button").click();
+  await expect(page.locator("#modal[open]")).toBeVisible();
+  await expect(page.locator("#modal")).toContainText("12.0.0-RC1");
+  await expect(page.locator("#modal .update-summary")).toContainText("NestLink");
+  await expect(page.locator('#modal a[href*="github.com/ZHanry/home-tunnel-server/releases"]')).toBeVisible();
 });
 
 test("account deletion describes affected resources, supports cancellation and sends its version", async ({
@@ -201,45 +165,21 @@ test("theme and locale preferences persist without translating resource names", 
   await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
 });
 
-test("system theme follows OS changes and can be restored after an explicit choice", async ({ page }) => {
-  await page.emulateMedia({ colorScheme: "light" });
-  await ready(page, "/admin#account");
-  const theme = page.locator("#account-theme");
-  await expect(theme).toHaveValue("system");
-  await page.emulateMedia({ colorScheme: "dark" });
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await page.locator(".sidebar [data-locale-toggle]").click();
-  await expect(theme).toHaveValue("system");
-  await expect(theme).toHaveAccessibleName("Appearance");
-  await expect(theme.locator("option")).toHaveText(["System", "Light", "Dark"]);
-  await theme.selectOption("light");
-  await page.emulateMedia({ colorScheme: "light" });
-  await page.emulateMedia({ colorScheme: "dark" });
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await theme.selectOption("system");
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await page.reload();
-  await expect(theme).toHaveValue("system");
-  await page.emulateMedia({ colorScheme: "light" });
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-});
-
-test("theme choices and clearing preferences synchronize across open tabs", async ({ page, context }) => {
-  await page.emulateMedia({ colorScheme: "dark" });
+test("system theme and sidebar preferences synchronize across open tabs", async ({ page, context }) => {
+  await page.emulateMedia({colorScheme: "dark"});
   await ready(page);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("#account-theme")).toHaveCount(0);
   const second = await context.newPage();
-  await second.emulateMedia({ colorScheme: "dark" });
+  await second.emulateMedia({colorScheme: "dark"});
   await ready(second, "/admin#account");
   await page.locator(".sidebar [data-theme-toggle]").click();
   await expect(second.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(second.locator("#account-theme")).toHaveValue("light");
   await expect(second.locator(".sidebar [data-theme-toggle]")).toHaveAccessibleName("切换至深色主题");
   await page.evaluate(() => localStorage.removeItem("ht_theme"));
   await expect(second.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(second.locator("#account-theme")).toHaveValue("system");
-  await second.locator("#account-theme").selectOption("light");
+  await page.emulateMedia({colorScheme: "light"});
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(page.locator("html")).toHaveAttribute("data-theme-preference", "light");
   await second.close();
 });
 
@@ -291,17 +231,17 @@ test("background config events preserve input and focus", async ({ page }) => {
       new MessageEvent("message", { data: JSON.stringify({ event: "config.version.changed" }) }),
     ),
   );
-  await expect(page.locator("#sync-status")).toContainText("有新状态");
+  await expect(page.locator("#sync-status")).toHaveCount(0);
   await expect(page.locator("#audit-query")).toHaveValue("我的草稿");
   await expect(page.locator("#audit-query")).toBeFocused();
 });
 
 test("expired refresh returns to login", async ({ page }) => {
   await ready(page);
-  await page.route("**/api/v1/admin/users", (route) =>
+  await page.route(/\/api\/v1\/admin\/users(?:\?|$)/, (route) =>
     route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }),
   );
-  await page.route("**/api/v1/auth/refresh", (route) =>
+  await page.route("**/api/v2/auth/refresh", (route) =>
     route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }),
   );
   await page.locator('[data-view="users"]').click();
@@ -358,7 +298,7 @@ test("unknown backup and degraded queue are never called normal", async ({ page 
 test("creation draft survives dismissal and owner without devices cannot submit", async ({
   page,
 }) => {
-  await page.route("**/api/v1/admin/users", async (route) => {
+  await page.route(/\/api\/v1\/admin\/users(?:\?|$)/, async (route) => {
     const data = await (await route.fetch()).json();
     data.items.push({
       id: "empty-owner",
@@ -501,10 +441,10 @@ test("mobile navigation exposes labelled tabs and a keyboard accessible More pan
   await page.setViewportSize({ width: 375, height: 812 });
   await ready(page);
   for (const view of ["dashboard", "remote", "devices", "connections"]) {
-    await expect(page.locator(`[data-view="${view}"]`)).toBeVisible();
-    await expect(page.locator(`[data-view="${view}"]`)).toHaveAccessibleName(/\S/);
+    await expect(page.locator(`.nav-item[data-view="${view}"]`)).toBeVisible();
+    await expect(page.locator(`.nav-item[data-view="${view}"]`)).toHaveAccessibleName(/\S/);
     await expect(page.locator(`[data-view="${view}"] .nav-mobile-label`)).toBeVisible();
-    const box = await page.locator(`[data-view="${view}"]`).boundingBox();
+    const box = await page.locator(`.nav-item[data-view="${view}"]`).boundingBox();
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(375);
   }
@@ -512,9 +452,9 @@ test("mobile navigation exposes labelled tabs and a keyboard accessible More pan
   await page.locator("#nav-more").focus();
   await page.keyboard.press("Enter");
   await expect(page.locator('[data-view="users"]')).toBeFocused();
-  for (const view of ["users", "audit", "settings", "updates", "account"]) {
-    await expect(page.locator(`[data-view="${view}"]`)).toBeVisible();
-    await expect(page.locator(`[data-view="${view}"]`)).toHaveAccessibleName(/\S/);
+  for (const view of ["users", "audit", "settings", "account"]) {
+    await expect(page.locator(`.nav-item[data-view="${view}"]`)).toBeVisible();
+    await expect(page.locator(`.nav-item[data-view="${view}"]`)).toHaveAccessibleName(/\S/);
   }
   await page.keyboard.press("Escape");
   await expect(page.locator("#nav-more")).toBeFocused();
@@ -537,15 +477,16 @@ test("mobile More hides admin routes and closes when focus leaves or the layout 
   await page.setViewportSize({ width: 320, height: 700 });
   await ready(page, "/admin?role=user#account");
   await page.locator("#nav-more").click();
-  for (const view of ["users", "audit", "settings"]) await expect(page.locator(`[data-view="${view}"]`)).toBeHidden();
-  await expect(page.locator('[data-view="updates"]')).toBeFocused();
-  await expect(page.locator('[data-view="account"]')).toHaveAttribute("aria-current", "page");
+  for (const view of ["users", "audit", "settings"]) await expect(page.locator(`.nav-item[data-view="${view}"]`)).toBeHidden();
+  await expect(page.locator('.nav-item[data-view="account"]')).toBeFocused();
+  await expect(page.locator('#mobile-version-button')).toBeVisible();
+  await expect(page.locator('.nav-item[data-view="account"]')).toHaveAttribute("aria-current", "page");
   await page.locator(".mobile-preferences [data-locale-toggle]").focus();
   await expect(page.locator("#nav-secondary")).toBeHidden();
   await page.locator("#nav-more").click();
   await page.setViewportSize({ width: 1440, height: 960 });
   await expect(page.locator("#nav-more")).toBeHidden();
-  await expect(page.locator('[data-view="account"]')).toBeVisible();
+  await expect(page.locator('.nav-item[data-view="account"]')).toBeVisible();
   await page.setViewportSize({ width: 320, height: 700 });
   await expect(page.locator("#nav-secondary")).toBeHidden();
 });
@@ -553,10 +494,10 @@ test("mobile More hides admin routes and closes when focus leaves or the layout 
 test("native remote instructions translate in both directions", async ({ page }) => {
   await ready(page, "/admin#remote");
   await page.locator(".sidebar [data-locale-toggle]").click();
-  await expect(page.locator("#view-content")).toContainText("P2P direct connection is required");
-  await expect(page.getByRole("link", { name: "Connect with HomeDesk" })).toHaveAttribute("href", "homedesk://123456789");
+  await expect(page.locator("#view-content")).toContainText("Connect to a device");
+  await expect(page.getByRole("link", { name: "Connect", exact: true })).toHaveAttribute("href", "homedesk://123456789");
   await page.locator(".sidebar [data-locale-toggle]").click();
-  await expect(page.getByRole("link", { name: "用 HomeDesk 连接" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "连接设备", exact: true })).toBeVisible();
 });
 
 test("realtime startup preserves foreground loading failures and an explicit retry", async ({ page }) => {
@@ -570,14 +511,15 @@ test("realtime startup preserves foreground loading failures and an explicit ret
   });
   try {
     await page.goto("/admin#users");
-    await expect(page.locator("#sync-status")).toContainText("实时连接已恢复");
+    await expect.poll(() => requests).toBe(1);
+    await expect(page.locator("#sync-status")).toHaveCount(0);
     await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "true");
     expect(requests).toBe(1);
     release();
     await expect(page.locator("#view-content")).toContainText("无法加载数据");
-    await expect(page.locator("#sync-status")).toHaveText("同步失败，点击重试");
+    await expect(page.locator("#view-content")).toContainText("重试");
     await page.locator(".sidebar [data-locale-toggle]").click();
-    await expect(page.locator("#sync-status")).toHaveText("Sync failed. Select to retry");
+    await expect(page.locator("#view-content")).toContainText("Retry");
     await page.locator(".sidebar [data-locale-toggle]").click();
     await expect(page.locator("#view-content .skeleton")).toHaveCount(0);
     await page.locator("#view-content").getByRole("button", { name: "重试", exact: true }).click();
@@ -603,7 +545,7 @@ test("standard user can access account limits and edit raw targets without error
   await expect(page.locator("#modal")).toBeVisible();
   expect(errors).toEqual([]);
   await page.keyboard.press("Escape");
-  await page.locator('[data-view="account"]').click();
+  await page.locator('.nav-item[data-view="account"]').click();
   await expect(page.locator("#view-content")).toContainText("月度配额");
 });
 
@@ -670,7 +612,9 @@ test("same-named connections have separate drafts and retain only the user's cha
   await page.keyboard.press("Escape");
   fixture.items[0].local_port = 9001;
   fixture.items[0].version++;
-  await page.locator("#sync-status").click();
+  const refreshed = page.waitForResponse(response => response.url().includes('/api/v1/admin/connections?'));
+  await page.locator('.nav-primary[data-view="connections"]').click();
+  await refreshed;
   await page.locator('[data-action="edit-connection"]').first().click();
   await expect(page.locator("#modal-name")).toHaveValue("我正在修改的连接");
   await expect(page.locator("#modal-local_port")).toHaveValue("9001");

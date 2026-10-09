@@ -1,4 +1,4 @@
-// 暖居的几何验收：真实预览数据，所有指定尺寸均保存原始全页截图。
+// 栖云桥的几何验收：真实预览数据，所有指定尺寸均保存原始全页截图。
 import { test, expect } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -12,7 +12,6 @@ const views = [
   "users",
   "audit",
   "settings",
-  "updates",
   "account",
 ];
 
@@ -168,7 +167,7 @@ async function geometry(page, scope = "#app-shell") {
 // 弹窗用真实组件打开；安全功能仅使用测试响应，不登记设备或修改真实账号。
 for (const theme of ["light", "dark"]) {
   for (const width of [1920, 390]) {
-    test(`Hearth dialogs ${theme} ${width}px`, async ({ page, request }) => {
+    test(`NestLink dialogs ${theme} ${width}px`, async ({ page, request }) => {
       test.setTimeout(120_000);
       const output = resolve(artifactRoot, "dialogs", `${theme}-${width}`);
       await mkdir(output, { recursive: true });
@@ -238,21 +237,10 @@ for (const theme of ["light", "dark"]) {
       }
       await ready("account");
       await action("change-password"); await capture("change-password"); await close();
-      await page.locator('[data-security="enrollment"]').click();
-      await capture("enrollment"); await close();
-      await page.route("**/api/v1/auth/mfa/setup", (route) => route.fulfill({ json: { secret: "PREVIEW-ONLY-NOT-A-VALID-KEY" } }));
-      await page.locator('[data-security="setup"]').click();
-      await capture("mfa-setup");
-      await page.locator('#modal [name="password"]').fill("Preview-Only-A7!safe");
-      await page.locator('#modal button[type="submit"]').click();
-      await expect(page.locator("#modal-title")).toHaveText("确认双重验证");
-      await capture("mfa-confirm"); await close();
-      await page.route("**/api/v1/auth/mfa", (route) => route.fulfill({ json: { enabled: true, recovery_codes_remaining: 8 } }));
-      await ready("account");
-      for (const value of ["recovery-codes", "disable"]) {
-        await page.locator(`[data-security="${value}"]`).click();
-        await capture(`mfa-${value}`); await close();
-      }
+      await expect(page.locator('[data-security]')).toHaveCount(0);
+      await page.locator(width === 390 ? '#nav-more' : '#version-button').click();
+      if (width === 390) await page.locator('#mobile-version-button').click();
+      await capture('version-update'); await close();
       await action("logout"); await capture("logout"); await close();
       await ready("users");
       await action("create-user");
@@ -281,7 +269,7 @@ for (const theme of ["light", "dark"]) {
 
 for (const theme of ["light", "dark"]) {
   for (const width of [1280, 1440, 1920, 2560, 390]) {
-    test(`Hearth ${theme} ${width}px geometry and full-page screenshots`, async ({
+    test(`NestLink ${theme} ${width}px geometry and full-page screenshots`, async ({
       page,
       request,
     }) => {
@@ -296,26 +284,6 @@ for (const theme of ["light", "dark"]) {
         localStorage.setItem("ht_locale", "zh");
       }, theme);
       const results = [];
-      // 上游预览脚本尚未模拟远控/更新接口：先保留其错误态，再用现有设备样例验证正常态。
-      for (const view of ["remote", "updates"]) {
-        await page.goto(`/admin#${view}`);
-        await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
-        await page.screenshot({ path: resolve(output, `${view}-error.png`), fullPage: true, animations: "disabled" });
-        results.push({ view: `${view}-error`, ...await geometry(page) });
-      }
-      const deviceExamples = (await (await request.get("/api/v1/admin/devices")).json()).items;
-      await page.route("**/api/v1/public/capabilities", (route) => route.fulfill({ json: {
-        server_version: "10.1.0", contract_version: "1.5.0",
-        remote_desktop: { enabled: true, stun_urls: [] },
-      } }));
-      await page.route("**/api/v1/rd/endpoints?**", (route) => route.fulfill({ json: { items: deviceExamples.map((device) => ({
-        id: device.id, name: device.name, role: "host", platform: "windows", status: device.status,
-        online: device.online, local_enabled: true,
-        capabilities: { status: "ready", permissions: ["view"], displays: [{ id: "display-1", name: "Main", width: 1920, height: 1080 }] },
-      })) } }));
-      await page.route("**/api/v1/public/updates/server", (route) => route.fulfill({ json: { latest: {
-        version: "10.1.0", url: "https://github.com/ZHanry/home-tunnel-server/releases/tag/v10.1.0",
-      } } }));
       for (const view of views) {
         await page.goto(`/admin#${view}`);
         await expect(page.locator("#app-shell")).toBeVisible();
@@ -338,7 +306,7 @@ for (const theme of ["light", "dark"]) {
       results.push({ view: "wizard-step-1", ...(await geometry(page, "#modal")) });
       await page.keyboard.press("Escape");
       for (const endpoint of ["session", "refresh"]) {
-        await page.route(`**/api/v1/auth/${endpoint}`, (route) =>
+        await page.route(`**/api/v2/auth/${endpoint}`, (route) =>
           route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }),
         );
       }

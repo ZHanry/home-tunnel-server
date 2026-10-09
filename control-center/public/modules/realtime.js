@@ -1,4 +1,4 @@
-import { state } from "./state.js?v=11.0.0-rc.2";
+import { state } from "./state.js?v=12.0.0-RC1";
 
 const refreshEvents = new Set([
   "config.version.changed",
@@ -28,7 +28,7 @@ export function connectRealtime(onRefresh = refreshCurrentView) {
   const protocol = location.protocol === "https:" ? "wss:" : "ws:";
   let socket;
   try {
-    socket = new WebSocket(`${protocol}//${location.host}/api/v1/ws`);
+    socket = new WebSocket(`${protocol}//${location.host}/api/v2/ws`);
   } catch {
     scheduleRealtimeReconnect();
     return;
@@ -45,15 +45,24 @@ export function connectRealtime(onRefresh = refreshCurrentView) {
     if (state.socket !== socket) return;
     try {
       const message = JSON.parse(event.data);
+      if (message.event === "account.session.revoked") {
+        disconnectRealtime();
+        window.dispatchEvent(new CustomEvent("session-expired"));
+        return;
+      }
       if (refreshEvents.has(message.event)) {
         window.clearTimeout(state.refreshTimer);
         state.refreshTimer = window.setTimeout(() => refreshCurrentView(), 700);
       }
     } catch {}
   });
-  socket.addEventListener("close", () => {
+  socket.addEventListener("close", (event) => {
     if (state.socket !== socket) return;
     state.socket = null;
+    if (event.code === 4001) {
+      window.dispatchEvent(new CustomEvent("session-expired"));
+      return;
+    }
     window.dispatchEvent(
       new CustomEvent("realtime-status", { detail: "实时连接中断，显示上次同步的数据；正在重连…" }),
     );

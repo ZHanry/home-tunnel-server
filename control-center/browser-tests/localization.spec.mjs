@@ -39,15 +39,15 @@ test("quota policies and applied tunnel versions localize on a phone", async ({ 
   await expect(page.locator("#modal")).toContainText("Applied 12 / Target 12");
 });
 
-test("forced password change localizes MFA and focuses the code when verification fails", async ({ page }) => {
+test("forced password change localizes errors and focuses the new password", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
-  for (const endpoint of ["session", "refresh"]) await page.route(`**/api/v1/auth/${endpoint}`, route => route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }));
-  await page.route("**/api/v1/auth/login", route => route.fulfill({ json: { password_change_required: true, csrf_token: "fixture" } }));
+  for (const endpoint of ["session", "refresh"]) await page.route(`**/api/v2/auth/${endpoint}`, route => route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }));
+  await page.route("**/api/v2/auth/login", route => route.fulfill({ json: { password_change_required: true, csrf_token: "fixture" } }));
   let passwordRequests = 0;
-  await page.route("**/api/v1/auth/password/change", route => {
+  await page.route("**/api/v2/auth/password/change", route => {
     passwordRequests++;
-    return route.fulfill({ status: 401, json: { error_code: "MFA_INVALID", message: "动态码无效" } });
+    return route.fulfill({ status: 401, json: { error_code: "AUTH_INVALID", message: "账号认证失败" } });
   });
   await page.goto("/admin");
   await page.locator("#login-username").fill("review-member");
@@ -64,17 +64,14 @@ test("forced password change localizes MFA and focuses the code when verificatio
   expect(passwordRequests).toBe(0);
   await page.locator("#confirm-password").fill("New-Review-Password!1234");
   await page.keyboard.press("Tab");
-  await expect(page.locator("#password-mfa")).toBeFocused();
-  await page.locator("#password-mfa").fill("123456");
-  await page.keyboard.press("Tab");
+  await expect(page.locator('#password-mfa,[name="mfa_code"]')).toHaveCount(0);
   await expect(page.locator("#password-form button[type=submit]")).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.locator("#password-mfa")).toBeFocused();
-  await expect(page.locator("#password-mfa")).toHaveAttribute("aria-invalid", "true");
-  await expect(page.locator("#new-password")).not.toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#new-password")).toBeFocused();
+  await expect(page.locator("#new-password")).toHaveAttribute("aria-invalid", "true");
   await expect(page.locator("#confirm-password")).not.toHaveAttribute("aria-invalid", "true");
   expect(passwordRequests).toBe(1);
-  await expect(page.locator("#password-error")).toHaveText("The authenticator or recovery code is invalid; try again");
+  await expect(page.locator("#password-error")).toHaveText("Authentication failed");
 });
 
 test("confirmation dialogs localize their consequences and preserve the selected resource", async ({ page }) => {
@@ -82,7 +79,7 @@ test("confirmation dialogs localize their consequences and preserve the selected
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
   // Exercise an initially idle container while session restoration is pending.
-  await page.route("**/api/v1/auth/session", async route => {
+  await page.route("**/api/v2/auth/session", async route => {
     await new Promise(resolve => setTimeout(resolve, 500));
     await route.continue();
   });
@@ -105,7 +102,7 @@ test("confirmation dialogs localize their consequences and preserve the selected
     });
     expect(geometry, `${action} readable confirmation`).toBe(true);
     for (const locale of ["zh-CN", "en"]) {
-      await page.evaluate(async locale => (await import("/modules/locale.js?v=10.1.0")).applyLocale(locale), locale);
+      await page.evaluate(async locale => (await import("/modules/locale.js?v=12.0.0-RC1")).applyLocale(locale), locale);
       await expect(page.locator(".confirmation-notice [data-no-translate]")).toHaveText(subject);
     }
     await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
@@ -113,7 +110,7 @@ test("confirmation dialogs localize their consequences and preserve the selected
   }
 });
 
-test("batch confirmations and one-time credentials remain legible in English", async ({ page }) => {
+test("batch confirmations remain legible in English", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
   for (const enabled of [false, true]) {
@@ -125,22 +122,7 @@ test("batch confirmations and one-time credentials remain legible in English", a
     await expect(page.locator("#modal-body li[data-no-translate]")).toContainText("NAS 控制台");
     await page.keyboard.press("Escape");
   }
-  const code = "Review-Only-1234-5678";
-  await page.route("**/api/v1/client/enrollment-codes", async route => {
-    if (route.request().method() === "POST") return route.fulfill({ json: { id: "fixture", code, expires_at: "2026-09-27T12:10:00Z" } });
-    return route.continue();
-  });
-  await page.goto("/admin?role=user#account");
-  await page.locator('[data-security="enrollment"]').click();
-  await page.locator('#modal button[type="submit"]').click();
-  await expect(page.locator(".secret-value")).toHaveText(code);
-  const geometry = await page.locator(".secret-box").evaluate(element => {
-    const label = element.querySelector("strong").getBoundingClientRect();
-    const secret = element.querySelector(".secret-value").getBoundingClientRect();
-    return label.bottom < secret.top && secret.right <= element.getBoundingClientRect().right;
-  });
-  expect(geometry, "credential is distinct from its advisory label").toBe(true);
-  await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
+
 });
 
 test("public landing copy and footer translate in both directions", async ({ page }) => {
@@ -186,45 +168,34 @@ test("audit events keep labels and action identifiers readable on phones and tab
 test("English navigation pages localize product text while preserving user content", async ({ page }) => {
   test.setTimeout(60_000);
   await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
-  await page.route("**/api/v1/auth/mfa", (route) => route.fulfill({ json: { enabled: true, recovery_codes_remaining: 7 } }));
-  await page.route("**/api/v1/auth/sessions", (route) => route.fulfill({ json: { items: [{
+  await page.route("**/api/v2/auth/sessions", (route) => route.fulfill({ json: { items: [{
     id: "current", client_type: "web", user_agent: "用户定义的客户端名称", current: true,
     created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-27T00:00:00Z",
   }], has_more: true } }));
-  await page.route("**/api/v1/client/enrollment-codes", (route) => route.fulfill({ json: { items: [{
-    id: "personal-note", name: "添加验证器", expires_at: "2026-10-01T00:00:00Z",
-  }] } }));
-  for (const role of ["admin", "user"]) for (const view of ["dashboard", "users", "devices", "connections", "remote", "audit", "settings", "updates", "account"]) {
+  for (const role of ["admin", "user"]) for (const view of ["dashboard", "users", "devices", "connections", "remote", "audit", "settings", "account"]) {
     if (role === "user" && ["users", "audit", "settings"].includes(view)) continue;
     await page.goto(`/admin?role=${role}#${view}`);
     await expect(page.locator("#app-shell")).toBeVisible();
     await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
     await expect.poll(() => untranslated(page), { message: `${role}/${view} product copy` }).toEqual([]);
   }
-  await expect(page.locator("#view-content")).toContainText("Recovery codes remaining: 7");
-  await expect(page.locator("#view-content [data-no-translate]", { hasText: "添加验证器" })).toHaveText("添加验证器");
+  await expect(page.locator('[data-security]')).toHaveCount(0);
+  await expect(page.locator('#view-content [data-no-translate]', { hasText: '用户定义的客户端名称' })).toContainText('用户定义的客户端名称');
   await page.locator(".sidebar [data-locale-toggle]").click();
-  await expect(page.locator("#view-content")).toContainText("剩余恢复码 7 个");
   await expect(page.locator("#view-content")).toContainText("每月按 UTC 自然月重置");
   await expect(page.locator("#view-content")).toContainText("管理会话");
   await page.locator(".sidebar [data-locale-toggle]").click();
   await expect.poll(() => untranslated(page)).toEqual([]);
 });
 
-test("account enrollment and authenticator dialogs use the selected language", async ({ page }) => {
+test("account password dialog uses the selected language and retired security controls are absent", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("ht_locale", "en"));
   await page.goto("/admin?role=user#account");
   await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
   await page.getByRole("button", { name: "Change password", exact: true }).click();
   await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Add authenticator", exact: true }).click();
-  await expect(page.locator("#modal")).toBeVisible();
-  await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
-  await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Generate enrollment code", exact: true }).click();
-  await expect(page.locator("#modal")).toBeVisible();
-  await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
+  await expect(page.locator('[data-security]')).toHaveCount(0);
 });
 
 test("empty collection pages localize their onboarding and recovery instructions", async ({ page }) => {

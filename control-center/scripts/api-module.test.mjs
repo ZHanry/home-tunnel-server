@@ -36,7 +36,7 @@ globalThis.MutationObserver = class {
 
 const [{ api }, { state }] = await Promise.all([
   import("../public/modules/api.js"),
-  import("../public/modules/state.js?v=11.0.0-rc.2"),
+  import("../public/modules/state.js?v=12.0.0-RC1"),
 ]);
 
 function jsonResponse(status, body) {
@@ -63,9 +63,9 @@ test("concurrent 401 responses share one refresh-token rotation", async () => {
   let refreshCalls = 0;
 
   globalThis.fetch = async (path, options = {}) => {
-    if (path === "/api/v1/auth/session")
+    if (path === "/api/v2/auth/session")
       return jsonResponse(401, { error_code: "SESSION_REVOKED" });
-    if (path === "/api/v1/auth/refresh") {
+    if (path === "/api/v2/auth/refresh") {
       refreshCalls += 1;
       refreshStarted.resolve();
       await releaseRefresh.promise;
@@ -115,9 +115,9 @@ test("native remote account renewal refreshes expired access and preserves windo
     refreshes = 0;
   globalThis.fetch = async (path, options) => {
     assert.equal(new Headers(options.headers).get("x-native-window-id"), "native-window-sample");
-    if (path === "/api/v1/auth/session")
+    if (path === "/api/v2/auth/session")
       return jsonResponse(401, { error_code: "SESSION_REVOKED" });
-    if (path === "/api/v1/auth/refresh") {
+    if (path === "/api/v2/auth/refresh") {
       refreshes++;
       return jsonResponse(200, { csrf_token: "native-csrf-after" });
     }
