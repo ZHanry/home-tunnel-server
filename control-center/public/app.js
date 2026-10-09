@@ -94,8 +94,6 @@ function applyRoleChrome() {
   document.querySelectorAll("[data-admin-only]").forEach((item) => {
     item.hidden = !isAdmin();
   });
-  const brand = document.querySelector(".sidebar-brand .brand-copy small");
-  if (brand) brand.textContent = "nestlink";
   const sessionCopy = document.querySelector(".sidebar-session small");
   if (sessionCopy) sessionCopy.textContent = isAdmin() ? "权限已验证" : "仅显示你的资源";
 }

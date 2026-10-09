@@ -58,8 +58,8 @@ const devices = [
     name: "书房主机",
     status: "active",
     online: true,
-    client_version: "8.0.0",
-    agent_version: "8.0.0",
+    client_version: "13.0.0",
+    agent_version: "13.0.0",
     applied_config_version: 12,
     config_version: 12,
     last_seen_at: new Date(now - 12_000).toISOString(),
@@ -72,8 +72,8 @@ const devices = [
     name: "家庭服务器",
     status: "active",
     online: false,
-    client_version: "8.0.0",
-    agent_version: "8.0.0",
+    client_version: "13.0.0",
+    agent_version: "13.0.0",
     applied_config_version: 4,
     config_version: 5,
     last_seen_at: new Date(now - 3_600_000).toISOString(),
@@ -305,8 +305,29 @@ app.get("/api/v2/homedesk/devices", (request, response) =>
         ],
   }),
 );
+function devicePage(request, source) {
+  const search = String(request.query.search ?? "").toLowerCase();
+  const items = (isEmpty(request) ? [] : source).filter((device) =>
+    `${device.name} ${device.username}`.toLowerCase().includes(search),
+  );
+  const pageSize = Math.min(100, Math.max(1, Number(request.query.page_size ?? 20)));
+  const pages = Math.max(1, Math.ceil(items.length / pageSize));
+  const page = Math.min(pages, Math.max(1, Number(request.query.page ?? 1)));
+  return {
+    items: items.slice((page - 1) * pageSize, page * pageSize),
+    total: items.length,
+    total_pages: pages,
+    page,
+    page_size: pageSize,
+  };
+}
 app.get("/api/v1/client/devices", (request, response) =>
-  response.json({ items: isEmpty(request) ? [] : devices.filter((d) => d.user_id === ids.user) }),
+  response.json(
+    devicePage(
+      request,
+      devices.filter((device) => device.user_id === ids.user),
+    ),
+  ),
 );
 app.get("/api/v1/client/traffic/summary", (_request, response) => response.json({ items: [] }));
 app.post("/api/v2/auth/password/change", (_request, response) => response.sendStatus(204));
@@ -397,7 +418,9 @@ app.delete("/api/v1/admin/users/:id", (request, response) => {
   return response.status(204).end();
 });
 app.get("/api/v1/admin/users", (_request, response) => response.json({ items: users }));
-app.get("/api/v1/admin/devices", (_request, response) => response.json({ items: devices }));
+app.get("/api/v1/admin/devices", (request, response) =>
+  response.json(devicePage(request, devices)),
+);
 for (const role of ["admin", "client"]) {
   const root = `/api/v1/${role}/connections`;
   app.get(root, (request, response) => {
@@ -559,7 +582,7 @@ app.use((request, response, next) => {
 });
 
 const server = app.listen(port, "127.0.0.1", () => {
-  console.log(`Home Tunnel UI preview: http://127.0.0.1:${port}`);
+  console.log(`nestlink UI preview: http://127.0.0.1:${port}`);
 });
 const webSockets = new WebSocketServer({ noServer: true });
 server.on("upgrade", (request, socket, head) => {

@@ -1,7 +1,7 @@
 {
   "repository": "ZHanry/home-tunnel-client",
   "version": "13.0.0",
-  "revision": "dae45e423ee66639397f2f756c4358f7c975901e",
+  "revision": "0d6f27388c269d809e4e8c794aa94c26bcd2d5f3",
   "source_build": true,
   "scope": "Internal managed Agent built from the exact nestlink desktop source for the retained FRP regression."
 }
