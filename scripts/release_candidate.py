@@ -127,7 +127,8 @@ def validate_candidate_request(event, ref, sha, version):
     branch = validate_branch(ref.removeprefix("refs/heads/"))
     if SHA40.fullmatch(str(sha)) is None or len(set(str(sha))) == 1:
         raise SystemExit("candidate SHA is invalid")
-    if not isinstance(version, str) or re.fullmatch(r"\d+\.\d+\.\d+", version) is None:
+    modern_rc = isinstance(version, str) and re.fullmatch(r"(?:1[2-9]|[2-9]\d|\d{3,})\.\d+\.\d+-RC[1-9]\d*", version)
+    if not isinstance(version, str) or (re.fullmatch(r"\d+\.\d+\.\d+", version) is None and not modern_rc):
         raise SystemExit("candidate source version must stay the final stable version, not an rc")
     return branch
 
