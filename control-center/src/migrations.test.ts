@@ -11,6 +11,99 @@ const migrations = readdirSync(migrationsDirectory)
   .filter((name) => /^\d+_.*\.sql$/.test(name))
   .sort();
 
+test("v2 upgrade clears old authentication secrets and management sessions while preserving background tunnels", () => {
+  const database = new DatabaseSync(":memory:", { enableForeignKeyConstraints: true });
+  try {
+    const index = migrations.findIndex((name) => name.startsWith("024_"));
+    apply(database, migrations.slice(0, index));
+    database.exec(`INSERT INTO users(id,username,display_name,password_hash,password_state,role,mfa_secret,mfa_pending_secret)
+      VALUES('owner','owner','Owner','password-hash','normal','user','old-enabled-secret','old-pending-secret');
+      INSERT INTO mfa_recovery_codes(user_id,code_hash) VALUES('owner','old-recovery-hash');
+      INSERT INTO enrollment_codes(id,user_id,code_hash,name,expires_at) VALUES('code','owner','old-code-hash','old code','2099-01-01');
+      INSERT INTO devices(id,user_id,name,install_id,fingerprint_hash,credential_hash,lease_expires_at)
+      VALUES('nas','owner','NAS','old-install','old-fingerprint','old-credential-hash','2099-01-01');
+      INSERT INTO connections(id,user_id,device_id,name,subdomain,local_scheme,local_host,local_port)
+      VALUES('tunnel','owner','nas','NAS photos','nas-photos','http','127.0.0.1',8080);
+      INSERT INTO sessions(id,user_id,device_id,token_family,token_version,access_token_hash,refresh_token_hash,csrf_token_hash,access_expires_at,refresh_expires_at,client_type)
+      VALUES('web','owner',NULL,'web-family',1,'web-access','web-refresh','web-csrf','2099-01-01','2099-01-01','web'),
+      ('background','owner','nas','nas-family',1,'nas-access','nas-refresh','nas-csrf','2099-01-01','2099-01-01','device'),
+      ('remote-window','owner','nas','window-family',1,'window-access','window-refresh','window-csrf','2099-01-01','2099-01-01','native_remote');`);
+    apply(database, migrations.slice(index));
+    assert.equal(
+      database.prepare("SELECT token_version FROM users WHERE id='owner'").get()?.token_version,
+      1,
+    );
+    assert.ok(database.prepare("SELECT revoked_at FROM sessions WHERE id='web'").get()?.revoked_at);
+    assert.ok(
+      database.prepare("SELECT revoked_at FROM sessions WHERE id='remote-window'").get()
+        ?.revoked_at,
+    );
+    assert.equal(
+      database.prepare("SELECT revoked_at FROM sessions WHERE id='background'").get()?.revoked_at,
+      null,
+    );
+    const device = database.prepare("SELECT * FROM devices WHERE id='nas'").get();
+    assert.equal(device?.credential_hash, "old-credential-hash");
+    assert.equal(device?.install_id, "old-install");
+    assert.equal(device?.lease_expires_at, "2099-01-01");
+    assert.equal(device?.credential_purpose, "background");
+    assert.equal(
+      database.prepare("SELECT local_port FROM connections WHERE id='tunnel'").get()?.local_port,
+      8080,
+    );
+    assert.equal(
+      database.prepare("SELECT password_hash FROM users WHERE id='owner'").get()?.password_hash,
+      "password-hash",
+    );
+    assert.ok(
+      !database
+        .prepare("PRAGMA table_info(users)")
+        .all()
+        .some((column) => String(column.name).startsWith("mfa_")),
+    );
+    assert.equal(
+      database
+        .prepare(
+          "SELECT count(*) AS count FROM sqlite_master WHERE name IN ('mfa_recovery_codes','enrollment_codes')",
+        )
+        .get()?.count,
+      0,
+    );
+    assert.deepEqual(database.prepare("PRAGMA foreign_key_check").all(), []);
+  } finally {
+    database.close();
+  }
+});
+
+test("an interrupted v2 upgrade rolls back its secret removal and session changes atomically", () => {
+  const database = new DatabaseSync(":memory:", { enableForeignKeyConstraints: true });
+  try {
+    const index = migrations.findIndex((name) => name.startsWith("024_"));
+    apply(database, migrations.slice(0, index));
+    database.exec(`INSERT INTO users(id,username,display_name,password_hash,password_state,role,mfa_secret)
+      VALUES('owner','owner','Owner','hash','normal','user','secret');`);
+    database.exec("BEGIN IMMEDIATE");
+    database.exec(readFileSync(new URL(migrations[index]!, migrationsDirectory), "utf8"));
+    assert.throws(() => database.exec("INSERT INTO nonexistent_table VALUES(1)"));
+    database.exec("ROLLBACK");
+    assert.equal(
+      database.prepare("SELECT mfa_secret FROM users WHERE id='owner'").get()?.mfa_secret,
+      "secret",
+    );
+    assert.ok(
+      database.prepare("SELECT name FROM sqlite_master WHERE name='enrollment_codes'").get(),
+    );
+    assert.ok(
+      !database
+        .prepare("PRAGMA table_info(devices)")
+        .all()
+        .some((column) => column.name === "credential_purpose"),
+    );
+  } finally {
+    database.close();
+  }
+});
+
 function apply(database: DatabaseSync, names: string[]): void {
   database.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
     version INTEGER PRIMARY KEY,

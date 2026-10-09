@@ -191,7 +191,7 @@ test("current-device rename is authenticated, isolated and persistent", async (t
             ?.name,
           "Foreign",
         );
-        assert.equal((await rename({ name: "Unauthorized" }, mismatched.access)).status, 423);
+        assert.equal((await rename({ name: "Unauthorized" }, mismatched.access)).status, 401);
         assert.equal(
           (await rename({ name: "Other account's own computer" }, foreign.access)).status,
           200,
@@ -208,7 +208,7 @@ test("current-device rename is authenticated, isolated and persistent", async (t
         "UPDATE devices SET status='revoked',revoked_at=home_tunnel_now() WHERE id=?",
         [currentId],
       );
-      assert.equal((await rename({ name: "No" }, bound.access)).status, 423);
+      assert.equal((await rename({ name: "No" }, bound.access)).status, 401);
       await db.query("UPDATE devices SET status='active',revoked_at=NULL WHERE id=?", [currentId]);
       await db.query("UPDATE sessions SET revoked_at=home_tunnel_now() WHERE id=?", [bound.id]);
       assert.equal((await rename({ name: "No" }, bound.access)).status, 401);

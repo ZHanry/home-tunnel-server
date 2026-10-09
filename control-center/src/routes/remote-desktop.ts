@@ -11,7 +11,6 @@ import {
   requireCsrf,
   requirePasswordNormal,
 } from "../http.js";
-import { verifyMfa } from "../mfa.js";
 import { FixedWindowLimiter, verifyPassword } from "../security.js";
 import type { AuthenticatedRequest } from "../types.js";
 import { parseBody, uuid } from "../validation.js";
@@ -181,7 +180,6 @@ router.post(
       body = parseBody(
         z.strictObject({
           password: z.string().min(1).max(256),
-          mfa_code: z.string().max(128).optional(),
         }),
         request.body,
       );
@@ -200,7 +198,6 @@ router.post(
         !(await verifyPassword(user.password_hash, body.password))
       )
         rd.fail(401, "AUTH_INVALID", "账号验证失败");
-      await verifyMfa(db, actor.userId, body.mfa_code);
       await db.query(
         "UPDATE sessions SET rd_verified_at=home_tunnel_now() WHERE id=? AND revoked_at IS NULL",
         [actor.sessionId],
@@ -834,9 +831,6 @@ admin.patch(
       request.body,
     );
     await transaction(async (db) => {
-      const user = (await db.query("SELECT mfa_secret FROM users WHERE id=?", [actor.userId]))
-        .rows[0];
-      if (!user?.mfa_secret) rd.fail(403, "RD_MFA_REQUIRED", "修改远程桌面策略需要 TOTP");
       const current = (
         await db.query<{ version: number }>(
           "SELECT version FROM rd_policy WHERE scope_type='global' AND scope_id='global'",

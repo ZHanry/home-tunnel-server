@@ -1,3 +1,5 @@
+import { deviceSessionLiveFor } from "./account-session.js";
+
 // Used wherever account sessions authorize HTTP, refresh, RD tokens or leases.
 // The device and originating desktop session must remain live for the entire
 // lifetime of a delegated remote window, including after cookie refresh.
@@ -8,6 +10,7 @@ export const nativeSessionLive = `(s.native_parent_session_id IS NULL OR (
       AND native_parent.client_type='device' AND native_parent.user_id=s.user_id
       AND native_parent.device_id=s.device_id AND native_parent.token_version=s.token_version
       AND native_parent.revoked_at IS NULL AND native_parent.refresh_expires_at>home_tunnel_now()
+      AND ${deviceSessionLiveFor("native_parent")}
       AND native_device.user_id=s.user_id AND native_device.status='active' AND native_device.revoked_at IS NULL
   )
 ))`;

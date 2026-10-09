@@ -23,17 +23,11 @@ export async function recoverAdministrator(): Promise<{
     const user = users.rows[0]!;
     await client.query(
       `UPDATE users SET password_hash=?,password_state='must_change',temporary_password_expires_at=?,
-      status='active',token_version=token_version+1,version=version+1,mfa_secret=NULL,mfa_pending_secret=NULL,
-      mfa_pending_expires_at=NULL,mfa_last_counter=-1,updated_at=home_tunnel_now() WHERE id=?`,
+      status='active',token_version=token_version+1,version=version+1,updated_at=home_tunnel_now() WHERE id=?`,
       [hash, expiresAt, user.id],
     );
-    await client.query("DELETE FROM mfa_recovery_codes WHERE user_id=?", [user.id]);
     await client.query(
       "UPDATE sessions SET revoked_at=COALESCE(revoked_at,home_tunnel_now()) WHERE user_id=?",
-      [user.id],
-    );
-    await client.query(
-      "UPDATE enrollment_codes SET revoked_at=COALESCE(revoked_at,home_tunnel_now()) WHERE user_id=? AND consumed_at IS NULL",
       [user.id],
     );
     await client.query(
@@ -42,7 +36,6 @@ export async function recoverAdministrator(): Promise<{
         user.id,
         JSON.stringify({
           sessions_revoked: true,
-          mfa_reset: true,
           temporary_password_expires_at: expiresAt,
         }),
         randomUUID(),

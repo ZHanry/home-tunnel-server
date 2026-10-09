@@ -4,7 +4,7 @@ import { once } from "node:events";
 import test from "node:test";
 import { validateApiResponse } from "./api-contract-test-helper.js";
 
-test("7.0 session races, enrollment, MFA and optimistic policy writes", async (t) => {
+test("v2 account sessions, removed authentication APIs and optimistic policy writes", async (t) => {
   Object.assign(process.env, {
     NODE_ENV: "test",
     SQLITE_PATH: ":memory:",
@@ -16,8 +16,6 @@ test("7.0 session races, enrollment, MFA and optimistic policy writes", async (t
   });
   const { createApplication } = await import("./server.js");
   const db = await import("./db.js");
-  const { totpCode } = await import("./mfa.js");
-  const { sealSecret, openSecret } = await import("./protected-secrets.js");
   const server = (await createApplication()).listen(0, "127.0.0.1");
   await once(server, "listening");
   const address = server.address();
@@ -32,7 +30,7 @@ test("7.0 session races, enrollment, MFA and optimistic policy writes", async (t
     cookie?: string,
     csrf?: string,
   ) {
-    const response = await fetch(origin + "/api/v1" + path, {
+    const response = await fetch(origin + (path.startsWith("/api/") ? path : "/api/v1" + path), {
       method,
       headers: {
         "content-type": "application/json",
@@ -45,7 +43,8 @@ test("7.0 session races, enrollment, MFA and optimistic policy writes", async (t
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const data = response.status === 204 ? null : await response.json();
-    validateApiResponse(method, "/api/v1" + path, response.status, data);
+    if (!path.startsWith("/api/v2") && response.status !== 404)
+      validateApiResponse(method, "/api/v1" + path, response.status, data);
     return {
       status: response.status,
       data,
@@ -112,8 +111,15 @@ test("7.0 session races, enrollment, MFA and optimistic policy writes", async (t
         assert.equal(rotations[0]!.data.csrf_token, web.data.csrf_token);
         const write = await call(
           "POST",
-          "/client/enrollment-codes",
-          { name: "tab one" },
+          "/api/v2/auth/devices",
+          {
+            name: "tab one",
+            install_id: randomUUID(),
+            fingerprint_hash: "cd".repeat(32),
+            client_version: "12.0.0-RC1",
+            client_type: "windows",
+            credential_purpose: "gui",
+          },
           undefined,
           rotations[0]!.cookie,
           web.data.csrf_token,
@@ -161,36 +167,46 @@ test("7.0 session races, enrollment, MFA and optimistic policy writes", async (t
     });
     let deviceToken = "",
       deviceId = "";
-    await t.test("enrollment is single use, device scoped and supports revocation", async () => {
-      const code = await call("POST", "/client/enrollment-codes", { name: "new computer" }, token);
-      assert.equal(code.status, 201);
-      const body = {
-        code: code.data.code,
-        name: "NAS",
-        install_id: randomUUID(),
-        fingerprint_hash: "ab".repeat(32),
-        client_version: "7.0.0",
-        client_type: "linux",
-      };
-      const results = await Promise.all([1, 2].map(() => call("POST", "/auth/enroll", body)));
-      assert.deepEqual(results.map((r) => r.status).sort(), [201, 401]);
-      const enrolled = results.find((r) => r.status === 201)!;
+    await t.test("account login registers an independent background device", async () => {
+      const enrolled = await call(
+        "POST",
+        "/api/v2/auth/devices",
+        {
+          name: "NAS",
+          install_id: randomUUID(),
+          fingerprint_hash: "ab".repeat(32),
+          client_version: "12.0.0-RC1",
+          client_type: "nas",
+          credential_purpose: "background",
+        },
+        token,
+      );
+      assert.equal(enrolled.status, 201, JSON.stringify(enrolled.data));
       deviceToken = enrolled.data.access_token;
       deviceId = enrolled.data.device_id;
       assert.equal((await call("GET", "/auth/sessions", undefined, deviceToken)).status, 403);
       assert.equal(
-        (await call("POST", "/client/enrollment-codes", { name: "denied" }, deviceToken)).status,
-        403,
+        (
+          await call(
+            "POST",
+            "/api/v2/auth/devices",
+            {
+              name: "NAS",
+              install_id: randomUUID(),
+              fingerprint_hash: "ab".repeat(32),
+              client_version: "12.0.0-RC1",
+              client_type: "nas",
+              credential_purpose: "background",
+            },
+            token,
+          )
+        ).status,
+        409,
       );
-      const revoked = await call("POST", "/client/enrollment-codes", { name: "revoked" }, token);
+      assert.equal((await call("POST", "/auth/enroll", { code: "old-code" })).status, 404);
       assert.equal(
-        (await call("DELETE", `/client/enrollment-codes/${revoked.data.id}`, undefined, token))
-          .status,
-        204,
-      );
-      assert.equal(
-        (await call("POST", "/auth/enroll", { ...body, code: revoked.data.code })).status,
-        401,
+        (await call("POST", "/client/enrollment-codes", { name: "old code" }, token)).status,
+        404,
       );
     });
     await t.test("ACL conflicts cannot overwrite a policy or restart the device", async () => {
@@ -266,85 +282,28 @@ test("7.0 session races, enrollment, MFA and optimistic policy writes", async (t
       );
     });
     await t.test(
-      "TOTP uses authenticated encryption, one-use factors and recovery codes",
+      "management sessions can be revoked without revoking independent device credentials",
       async () => {
-        assert.equal(totpCode("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", 1), "287082");
-        const sealed = sealSecret("private", "mfa:a");
-        assert.equal(openSecret(sealed, "mfa:a"), "private");
-        assert.throws(() => openSecret(sealed, "mfa:b"));
-        const setup = await call("POST", "/auth/mfa/setup", { password }, token);
-        assert.equal(setup.status, 200, JSON.stringify(setup.data));
-        const counter = Math.floor(Date.now() / 30_000);
-        const confirm = await call(
-          "POST",
-          "/auth/mfa/confirm",
-          { password, code: totpCode(setup.data.secret, counter) },
-          token,
-        );
-        assert.equal(confirm.status, 200);
-        assert.equal(confirm.data.recovery_codes.length, 8);
-        const body = { username: "admin", password, client_type: "linux" };
-        assert.equal((await call("POST", "/auth/login", body)).data.error_code, "MFA_REQUIRED");
-        assert.equal(
-          (
-            await call("POST", "/auth/login", {
-              ...body,
-              mfa_code: totpCode(setup.data.secret, counter),
-            })
-          ).data.error_code,
-          "MFA_INVALID",
-        );
-        const recovered = await call("POST", "/auth/login", {
-          ...body,
-          mfa_code: confirm.data.recovery_codes[0],
+        for (const route of ["setup", "confirm", "disable"]) {
+          assert.equal((await call("POST", "/auth/mfa/" + route, { password }, token)).status, 404);
+        }
+        const second = await call("POST", "/auth/login", {
+          username: "admin",
+          password,
+          client_type: "linux",
         });
-        assert.equal(recovered.status, 200);
-        assert.ok(
-          (
-            await db.one<{ rd_verified_at: Date }>(
-              "SELECT rd_verified_at FROM sessions WHERE access_token_hash=?",
-              [(await import("./security.js")).tokenHash(recovered.data.access_token)],
-            )
-          )?.rd_verified_at,
-        );
+        const sessions = await call("GET", "/auth/sessions", undefined, second.data.access_token);
+        assert.ok(sessions.data.items.some((item: { current: boolean }) => item.current));
+        const current = sessions.data.items.find((item: { current: boolean }) => item.current);
         assert.equal(
-          (
-            await db.one<{ count: number }>(
-              "SELECT count(*) AS count FROM sessions WHERE device_id IS NOT NULL AND rd_verified_at IS NOT NULL",
-            )
-          )?.count,
-          0,
-        );
-        assert.equal(
-          (await call("POST", "/auth/login", { ...body, mfa_code: confirm.data.recovery_codes[0] }))
-            .data.error_code,
-          "MFA_INVALID",
-        );
-        const sessions = await call(
-          "GET",
-          "/auth/sessions",
-          undefined,
-          recovered.data.access_token,
-        );
-        assert.ok(sessions.data.items.some((s: { current: boolean }) => s.current));
-        assert.equal(
-          (
-            await call(
-              "POST",
-              "/auth/mfa/disable",
-              { password, mfa_code: confirm.data.recovery_codes[1] },
-              recovered.data.access_token,
-            )
-          ).status,
+          (await call("DELETE", "/auth/sessions/" + current.id, undefined, token)).status,
           204,
         );
-        assert.equal((await call("GET", "/auth/session", undefined, token)).status, 401);
-        const rows = await db.query<{ after_value: unknown }>(
-          "SELECT after_value FROM audit_events",
+        assert.equal(
+          (await call("GET", "/auth/me", undefined, second.data.access_token)).status,
+          401,
         );
-        const audit = JSON.stringify(rows);
-        assert.ok(!audit.includes(setup.data.secret));
-        assert.ok(!audit.includes(confirm.data.recovery_codes[0]));
+        assert.equal((await call("GET", "/auth/me", undefined, deviceToken)).status, 200);
       },
     );
   } finally {

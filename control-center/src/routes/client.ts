@@ -209,7 +209,7 @@ router.post(
         created_at: Date;
       }>(
         `SELECT id,user_id,status,config_version,created_at
-           FROM devices WHERE user_id=? AND fingerprint_hash=? AND revoked_at IS NULL`,
+           FROM devices WHERE user_id=? AND fingerprint_hash=? AND revoked_at IS NULL AND credential_purpose='background'`,
         [actor.userId, body.fingerprint_hash.toLowerCase()],
       );
       let deviceId: string;

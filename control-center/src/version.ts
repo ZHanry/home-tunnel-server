@@ -1,3 +1,3 @@
-export const APP_VERSION = "11.0.0-rc.2";
+export const APP_VERSION = "12.0.0-RC1";
 // Change this token whenever immutable browser assets change.
-export const ASSET_VERSION = "11.0.0-rc.2";
+export const ASSET_VERSION = "12.0.0-RC1";

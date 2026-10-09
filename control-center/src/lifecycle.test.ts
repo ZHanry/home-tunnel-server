@@ -194,7 +194,7 @@ test("device sessions stay local and deleting an account revokes its complete re
           device_credential: credential,
         })
       ).status,
-      423,
+      401,
     );
     assert.equal((await call("GET", `/admin/users/${userId}`, admin)).status, 404);
     assert.equal((await call("POST", `/admin/users/${userId}/enable`, admin, {})).status, 404);

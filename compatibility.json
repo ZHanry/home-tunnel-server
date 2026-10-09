@@ -1,25 +1,25 @@
 {
   "component": "server",
   "stage": "internal-testing",
-  "api_major": 1,
-  "contract_ref": "api-v1.6.0",
+  "api_major": 2,
+  "contract_ref": "api-v2.0.0",
   "contract_status": "frozen",
-  "frozen_tag": "api-v1.6.0",
-  "support_policy": "11.0.0-rc.2 candidate: existing HTTP/HTTPS and governed TCP/UDP tunnels remain supported; native HomeDesk remote sessions require authenticated encrypted direct P2P with hbbs signaling only. No relay fallback. Full NAT and physical-device acceptance pending. Back up SQLite, deployment secrets and hbbs identity before upgrade. Release notes distinguish verified and unverified coverage.",
-  "version": "11.0.0-rc.2",
-  "minimum_server": "7.0.0",
+  "frozen_tag": "api-v2.0.0",
+  "support_policy": "NestLink self-hosted account authentication and signed native P2P permits use API v2. Existing tunnel sync and independent background credentials retain API v1 compatibility. Release notes distinguish verified and unverified coverage.",
+  "version": "12.0.0-RC1",
+  "minimum_server": "12.0.0-RC1",
   "tested_combination": {
     "server": "10.0.0",
     "client": "10.0.0",
     "android": "10.0.0",
     "agent": "10.0.0"
   },
-  "tested_combination_scope": "Historical 10.0.0 identity retained. Candidate unit, integration and build checks are recorded separately; target versions are not evidence of full cross-network or physical-device acceptance. Complete cross-product runtime acceptance pending.",
-  "previous_immutable_tag": "api-v1.5.0",
+  "tested_combination_scope": "Historical 10.0.0 baseline retained; 12.0.0-RC1 acceptance pending its own build and integration evidence.",
+  "previous_immutable_tag": "api-v1.6.0",
   "target_combination": {
-    "server": "11.0.0-rc.2",
-    "client": "11.0.0-rc.1",
-    "android": "11.0.0-rc.1",
-    "agent": "10.1.0"
+    "server": "12.0.0-RC1",
+    "client": "12.0.0-RC1",
+    "android": "12.0.0-RC1",
+    "agent": "12.0.0-RC1"
   }
 }

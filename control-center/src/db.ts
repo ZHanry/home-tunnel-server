@@ -48,7 +48,7 @@ class Mutex {
 }
 
 const dateColumns = new Set(["bucket_start"]);
-const jsonColumns = new Set(["before_value", "after_value", "payload"]);
+const jsonColumns = new Set(["before_value", "after_value", "payload", "claims_json"]);
 const booleanColumns = new Set(["enabled", "device_lease_valid"]);
 
 function asIsoDate(value: string): Date | string {
@@ -173,7 +173,10 @@ function prepareQuery(text: string): PreparedQuery {
   const entry: PreparedQuery = {
     statement,
     hasRows: statement.columns().length > 0,
-    touchesOutbox: /\bINSERT\s+INTO\s+outbox_events\b/i.test(text),
+    // Session revocation also publishes an outbox event through the v2 trigger.
+    touchesOutbox:
+      /\bINSERT\s+INTO\s+outbox_events\b/i.test(text) ||
+      (/\bUPDATE\s+sessions\b/i.test(text) && /\brevoked_at\b/i.test(text)),
   };
   if (statementCache.size >= statementCacheLimit) statementCache.clear();
   statementCache.set(text, entry);

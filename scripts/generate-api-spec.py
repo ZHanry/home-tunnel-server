@@ -52,12 +52,7 @@ schemas["Session"]["description"]="Native clients receive bearer tokens. Web cli
 define("Refresh",session_props,["csrf_token","access_expires_at","refresh_expires_at"])
 define("Error",{"error_code":S,"message":S,"request_id":S,"field_errors":obj({},additionalProperties=S),"current_version":V,"current_access_policy_version":V,"current":obj({}),"suggestions":array(S)},["error_code","message"])
 define("ManagementSession",{"id":ID,"client_type":S,"user_agent":S,"created_at":DATE,"updated_at":DATE,"refresh_expires_at":DATE,"current":B},["id","client_type","created_at","current"])
-define("MfaStatus",{"enabled":B,"recovery_codes_remaining":I},["enabled","recovery_codes_remaining"])
-define("MfaSetup",{"secret":S,"otpauth_uri":S,"expires_at":DATE},["secret","otpauth_uri","expires_at"])
-define("RecoveryCodes",{"recovery_codes":array(S,8,8),"enabled":B},["recovery_codes"])
-define("EnrollmentCode",{"id":ID,"name":S,"code":S,"created_at":DATE,"expires_at":DATE,"consumed_at":nullable(DATE),"revoked_at":nullable(DATE)},["id","name","expires_at"])
 define("Registration",{"device_id":ID,"device_credential":S,"config_version":V,"name":S,"status":S,"created_at":DATE},["device_id","device_credential","config_version"])
-define("EnrolledSession",{**schemas["Registration"]["properties"],**session_props},["device_id","device_credential","access_token","refresh_token","access_expires_at"])
 define("Device",{"id":ID,"user_id":ID,"username":S,"name":S,"status":S,"config_version":V,"applied_config_version":I,"client_version":nullable(S),"agent_version":nullable(S),"last_seen_at":nullable(DATE),"lease_expires_at":nullable(DATE),"created_at":DATE,"online":B,"tags":array(string(32,1),12),"favorite":B,"metadata_version":V},["id","name","status","online","tags","favorite","metadata_version"])
 define("RemoteDevice",{"id":ID,"name":S,"status":enum("active"),"online":B},["id","name","status","online"])
 define("AccessPolicyInput",{"ip_allowlist":nullable(array(string(64,1),64,1)),"basic_auth":nullable(obj({"username":string(64,1),"password":string(128,8)},["username","password"]))})
@@ -97,17 +92,17 @@ define("Release",{"version":S,"platform":S,"architecture":S,"file_name":S,"size_
 define("OfficialServerRelease",{"version":S,"url":S},["version","url"])
 define("ServerUpdate",{"current_version":S,"latest":ref("OfficialServerRelease")},["current_version","latest"])
 traffic_item=obj({"user_id":ID,"connection_id":ID,"username":S,"name":S,"subdomain":S,**{k:I for k in ["upload_bytes","download_bytes","request_count","requests","errors"]}})
-credentials=obj({"password":SECRET,"mfa_code":string(128)},["password"])
+credentials=obj({"password":SECRET},["password"])
 
 def op(method,path,response=None,body=None,status=200,params=(),description=""):
-    full=path if path.startswith('/internal/') else '/api/v1'+path
+    full=path if path.startswith(('/internal/', '/api/')) else '/api/v1'+path
     path_parameters=[{"name":name,"in":"path","required":True,"schema":S} for name in re.findall(r'\{([^}]+)\}',full)]
-    public=path.startswith('/public/') or path in ('/auth/login','/auth/device','/auth/refresh','/auth/enroll','/auth/native-remote-handoff/redeem')
+    public=path.startswith(('/public/', '/api/v2/public/')) or path in ('/auth/login','/auth/device','/auth/refresh','/auth/enroll','/auth/native-remote-handoff/redeem')
     internal=path.startswith('/internal/')
     security=[] if public or path in ('/internal/tls/allow','/internal/frps/plugin/{token}') else ([{"internalKey":[]}] if internal else [{"bearerAuth":[]},{"sessionCookie":[]}])
     responses={str(status):{"description":"Success"}}
     if response is not None: responses[str(status)]["content"]={"application/json":{"schema":response}}
-    for code,label in [(400,"Invalid request"),(401,"Authentication or MFA failure"),(403,"Permission or CSRF failure"),(404,"Resource absent or not owned"),(409,"Version, policy or state conflict"),(423,"Account or device locked"),(429,"Rate or resource limit"),(503,"Dependency unavailable")]:
+    for code,label in [(400,"Invalid request"),(401,"Authentication failure"),(403,"Permission or CSRF failure"),(404,"Resource absent or not owned"),(409,"Version, policy or state conflict"),(423,"Account or device locked"),(429,"Rate or resource limit"),(503,"Dependency unavailable")]:
         responses[str(code)]={"description":label,"content":{"application/json":{"schema":ref("Error")}}}
     value={"operationId":method+'_'+re.sub(r'[^a-zA-Z0-9]+','_',path).strip('_'),"summary":method.upper()+' '+path,
       "tags":[path.split('/')[1]],"security":security,"parameters":path_parameters+list(params),"responses":responses,
@@ -129,12 +124,12 @@ op('get','/public/capabilities',ref('Capabilities'),description="Feature and res
 op('get','/public/updates/server',ref('ServerUpdate'),description="Latest official stable GitHub Release for this server; excludes drafts and prereleases. Lookup can be temporarily unavailable.")
 op('get','/public/releases/latest',ref('Release'),description="Legacy Windows download metadata. Prefer component GitHub releases for all supported platforms.")
 paths['/api/v1/public/releases/latest']['get']['responses']['304']={"description":"ETag unchanged"}
-op('post','/auth/login',ref('Session'),obj({"username":string(128,1),"password":SECRET,"mfa_code":string(128),"client_type":client_type},['username','password']))
+op('post','/auth/login',ref('Session'),obj({"username":string(128,1),"password":SECRET,"client_type":client_type},['username','password']))
 op('post','/auth/device',ref('Session'),obj({"device_id":ID,"device_credential":SECRET},['device_id','device_credential']))
 op('post','/auth/refresh',ref('Refresh'),obj({"refresh_token":SECRET,"client_type":client_type}),description="Web reads ht_refresh cookie. Native refresh replay revokes the family. Web retries reuse the same rotation for 30 seconds only with matching IP and user agent.")
 op('post','/auth/logout',status=204,description="Revokes current management session; for a device-bound session also revokes that device credential.")
 op('post','/auth/session/close',status=204,description="Closes only this session. Device credential remains valid; useful for diagnostic sessions.")
-op('post','/auth/password/change',body=obj({"current_password":SECRET,"new_password":{**SECRET,"minLength":12},"mfa_code":string(128)},['current_password','new_password']),status=204)
+op('post','/auth/password/change',body=obj({"current_password":SECRET,"new_password":{**SECRET,"minLength":12}},['current_password','new_password']),status=204)
 op('post','/auth/native-remote-handoff',obj({"code":string(43,43),"window_id":ID,"expires_at":DATE},['code','window_id','expires_at']),obj({"origin":string(512,1)},['origin']),description="Native device bearer only. Issues a 30-second single-use code bound to this device, parent session and the configured origin. Never place code in a URL or logs.")
 op('post','/auth/native-remote-handoff/redeem',obj({"csrf_token":S,"device_id":ID,"expires_at":DATE},['csrf_token','device_id','expires_at']),obj({"code":string(43,43)},['code']),description="Same-origin JSON browser POST only (Origin and Sec-Fetch-Site required). Consumes code atomically and sets HttpOnly remote-controller-only cookies bound to the originating native device/session. Does not grant management authority.")
 op('patch','/devices/current/name',obj({"device_id":ID,"device_name":S},['device_id','device_name']),obj({"name":string(120,1)},['name']),description="Rename only the currently authenticated active device. Control characters are rejected; updates linked remote host names.")
@@ -142,18 +137,9 @@ op('get','/auth/me',ref('Identity'))
 op('get','/auth/session',obj({"csrf_token":S,"session_id":ID,"native_window_id":nullable(ID)},['csrf_token','session_id']))
 op('get','/auth/sessions',obj({"items":array(ref('ManagementSession'),100),"has_more":B},['items','has_more']))
 op('delete','/auth/sessions/{id}',status=204)
-op('get','/auth/mfa',ref('MfaStatus'))
-op('post','/auth/mfa/setup',ref('MfaSetup'),credentials)
-op('post','/auth/mfa/confirm',ref('RecoveryCodes'),obj({**credentials['properties'],"code":{"type":"string","pattern":"^[0-9]{6}$"}},['password','code']))
-op('post','/auth/mfa/recovery-codes',ref('RecoveryCodes'),credentials)
-op('post','/auth/mfa/disable',body=credentials,status=204)
 registration={"name":string(120,1),"install_id":string(128,8),"fingerprint_hash":{"type":"string","pattern":"^[a-fA-F0-9]{64}$"},"client_version":string(64)}
 op('post','/devices/register',ref('Registration'),obj(registration,['name','install_id','fingerprint_hash']),201)
 op('post','/devices/current/credential/rotate',obj({'device_id':ID,'device_credential':S},['device_id','device_credential']),obj({}))
-op('post','/auth/enroll',ref('EnrolledSession'),obj({**registration,"code":string(128,24),"client_type":enum('windows','macos','linux')},['code','name','install_id','fingerprint_hash','client_version','client_type']),201)
-op('post','/client/enrollment-codes',ref('EnrollmentCode'),obj({"name":string(120,1)},['name']),201)
-op('get','/client/enrollment-codes',obj({"items":array(ref('EnrollmentCode'),100)},['items']))
-op('delete','/client/enrollment-codes/{id}',status=204)
 pagination=[query('page',V),query('page_size',{"type":"integer","minimum":1,"maximum":100}),query('search',string(120))]
 for scope in ('client','admin'):
     admin=scope=='admin'
@@ -210,18 +196,21 @@ op('post','/internal/frps/plugin/{token}',obj({"reject":B,"reject_reason":S,"unc
 op('post','/internal/monitoring/alerts',obj({'accepted':I}),obj({'alerts':array(obj({'status':enum('firing','resolved'),'fingerprint':string(128),'labels':obj({'alertname':string(120,1),'severity':string(32)},['alertname']),'annotations':obj({'summary':string(500),'description':string(2000)},['summary'])},['status','fingerprint','labels','annotations']),100)},['alerts']),description='Authenticated Alertmanager receiver. Relays to deployment-configured Webhook/Telegram destinations only; retries failed delivery.')
 
 install_remote_api(globals())
+from api_v2_spec import install as install_v2
+install_v2(globals())
 
 # Every concrete router operation must be represented. Dynamic route paths must
 # add an explicit entry and extend this scanner; they must never silently vanish.
 source_routes=set()
 for source in (ROOT/'control-center/src/routes').rglob('*.ts'):
-    prefix='/admin' if source.parent.name=='admin' else {'auth.ts':'/auth','native-remote.ts':'/auth','account-security.ts':'/auth','public.ts':'/public','internal.ts':'/internal'}.get(source.name,'')
+    prefix='/admin' if source.parent.name=='admin' else {'auth.ts':'/auth','native-remote.ts':'/auth','account-security.ts':'/auth','public.ts':'/public','internal.ts':'/internal','account-devices.ts':'/auth','remote-permits.ts':'/remote','public-v2.ts':'/public'}.get(source.name,'')
+    versions=('v1','v2') if source.name in ('auth.ts','account-security.ts','homedesk.ts') else ('v2',) if source.name in ('account-devices.ts','remote-permits.ts','public-v2.ts') else ('v1',)
     for match in re.finditer(r'(router|publicRouter|admin|nativeRemoteRouter|nativeRemotePublicRouter)\.(get|post|put|patch|delete)\(\s*("[^"]+"|\[[^\]]+\])',source.read_text(encoding='utf-8')):
-        for path in re.findall(r'"([^"]+)"',match[3]):
+        for route in re.findall(r'"([^"]+)"',match[3]):
             route_prefix = ('/admin/rd' if match[1] == 'admin' else '/rd') if source.name == 'remote-desktop.ts' else prefix
-            path=re.sub(r':([a-zA-Z]+)',r'{\1}',route_prefix+path)
-            full=path if path.startswith('/internal/') else '/api/v1'+path
-            source_routes.add((match[2],full))
+            route=re.sub(r':([a-zA-Z]+)',r'{\1}',route_prefix+route)
+            for version in versions:
+                source_routes.add((match[2],route if route.startswith('/internal/') else '/api/'+version+route))
 health=obj({'status':enum('healthy','unhealthy'),'version':S,'at':DATE},['status','version','at'])
 paths['/healthz']={'get':{'operationId':'healthz','summary':'Public readiness check','security':[],
     'responses':{str(code):{'description':'Ready' if code==200 else 'Database unavailable','content':{'application/json':{'schema':health}}} for code in (200,503)}}}
@@ -231,11 +220,11 @@ documented={(method,path) for path,methods in paths.items() for method in method
 assert source_routes==documented, f"Route drift: missing={source_routes-documented}, removed={documented-source_routes}"
 errors=sorted(set(re.findall(r'new HttpError\(\s*\d+,\s*"([A-Z0-9_]+)"', '\n'.join(p.read_text(encoding='utf-8') for p in (ROOT/'control-center/src').rglob('*.ts') if not p.name.endswith('.test.ts')))))
 schemas['Error']['properties']['error_code']['description']='Known codes (consumers must handle unknown codes): '+', '.join(errors)
-document={"openapi":"3.1.0","info":{"title":"Home Tunnel API","version":"1.6.0","description":"Home Tunnel 11.0.0-rc.1 API 1.6.0 adds HomeDesk account/device directory and authenticated hbbs discovery. Built-in remote control requires encrypted peer-to-peer sessions; no relay fallback. The legacy browser RD API is retired in production. Full HTTP/TCP/UDP tunneling and its management contracts remain available. See docs/API.md.","license":{"name":"Apache-2.0"}},"servers":[{"url":"https://console.example.com"}],"security":[{"bearerAuth":[]},{"sessionCookie":[]}],"paths":paths,"components":{"securitySchemes":{"bearerAuth":{"type":"http","scheme":"bearer"},"sessionCookie":{"type":"apiKey","in":"cookie","name":"ht_access"},"internalKey":{"type":"apiKey","in":"header","name":"x-home-tunnel-key"},"dpopAuth":{"type":"http","scheme":"DPoP","description":"Short-lived endpoint token; requires a matching DPoP proof."},"dpopProof":{"type":"apiKey","in":"header","name":"DPoP","description":"ES256 proof binds token hash, nonce, HTTP method, canonical URL, timestamp and unique jti."}},"schemas":schemas},"x-contract-ref":"api-v1.6.0","x-contract-status":"frozen"}
+document={"openapi":"3.1.0","info":{"title":"NestLink API","version":"2.0.0","description":"NestLink 12.0.0-RC1 self-hosted account authentication and signed native P2P permits under /api/v2. API v1 tunnel sync and background Agent compatibility are retained. Remote media requires authenticated encrypted direct P2P; no relay fallback.","license":{"name":"Apache-2.0"}},"servers":[{"url":"https://console.example.com"}],"security":[{"bearerAuth":[]},{"sessionCookie":[]}],"paths":paths,"components":{"securitySchemes":{"bearerAuth":{"type":"http","scheme":"bearer"},"sessionCookie":{"type":"apiKey","in":"cookie","name":"ht_access"},"internalKey":{"type":"apiKey","in":"header","name":"x-home-tunnel-key"},"dpopAuth":{"type":"http","scheme":"DPoP","description":"Short-lived endpoint token; requires a matching DPoP proof."},"dpopProof":{"type":"apiKey","in":"header","name":"DPoP","description":"ES256 proof binds token hash, nonce, HTTP method, canonical URL, timestamp and unique jti."}},"schemas":schemas},"x-contract-ref":"api-v2.0.0","x-contract-status":json.loads((ROOT/"compatibility.json").read_text(encoding="utf-8"))["contract_status"]}
 encoded=json.dumps(document,ensure_ascii=False,indent=2)+'\n'
-json_schema={"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://zhanry.github.io/home-tunnel/schemas/api-v1.6.0.json","$defs":schemas}
+json_schema={"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://zhanry.github.io/home-tunnel/schemas/api-v2.0.0.json","$defs":schemas}
 schema_encoded=json.dumps(json_schema,ensure_ascii=False,indent=2).replace('#/components/schemas/','#/$defs/')+'\n'
-outputs={'contracts/openapi.v1.json':encoded,'contracts/api.schema.json':schema_encoded,'control-center/public/openapi.json':encoded,'control-center/public/api-schema.json':schema_encoded}
+outputs={'contracts/openapi.v2.json':encoded,'contracts/api.v2.schema.json':schema_encoded,'control-center/public/openapi.v2.json':encoded,'control-center/public/api-schema.v2.json':schema_encoded,'control-center/public/openapi.json':encoded,'control-center/public/api-schema.json':schema_encoded}
 for name,content in outputs.items():
     target=ROOT/name
     if '--check' in sys.argv: assert target.read_text(encoding='utf-8')==content, f'Regenerate {name}'

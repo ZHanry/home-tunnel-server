@@ -27,7 +27,7 @@ import {
 import { parseBody } from "../validation.js";
 import { derivedToken, sessionCsrf } from "../protected-secrets.js";
 import { nativeSessionLive } from "../native-session.js";
-import { verifyMfa } from "../mfa.js";
+import { deviceSessionLive } from "../account-session.js";
 
 type UserRow = {
   id: string;
@@ -61,7 +61,16 @@ const deviceLoginLimiter = new FixedWindowLimiter(20, 60_000);
 const refreshLimiter = new FixedWindowLimiter(30, 60_000);
 const passwordChangeLimiter = new FixedWindowLimiter(5, 10 * 60_000);
 const dummyHashPromise = hashPassword("Dummy timing password 2026!");
-const clientTypeSchema = z.enum(["web", "windows", "linux", "macos", "android", "mobile"]);
+const clientTypeSchema = z.enum([
+  "web",
+  "windows",
+  "linux",
+  "macos",
+  "android",
+  "mobile",
+  "cli",
+  "nas",
+]);
 
 function publicUser(user: UserRow) {
   return {
@@ -80,10 +89,9 @@ router.post(
   loginIpLimiter,
   asyncHandler(async (request, response) => {
     const body = parseBody(
-      z.object({
+      z.strictObject({
         username: z.string().min(1).max(128),
         password: z.string().min(1).max(256),
-        mfa_code: z.string().max(128).optional(),
         client_type: clientTypeSchema.default("windows"),
       }),
       request.body,
@@ -119,7 +127,6 @@ router.post(
       throw new HttpError(423, "TEMPORARY_PASSWORD_EXPIRED", "临时密码已过期，请联系管理员重置");
     }
     const session = await transaction(async (client) => {
-      await verifyMfa(client, user.id, body.mfa_code);
       const issued = await issueSession(
         client,
         user,
@@ -127,7 +134,7 @@ router.post(
         body.client_type,
         request.header("user-agent"),
       );
-      // Password and the configured second factor were verified in this transaction.
+      // The account password was verified in this transaction.
       // A fresh account login is already recent RD verification; device login below
       // intentionally never receives this marker.
       if (user.password_state === "normal")
@@ -152,6 +159,7 @@ router.post(
     if (body.client_type === "web")
       setSessionCookies(response, session.accessToken, session.refreshToken);
     response.json({
+      session_id: session.sessionId,
       user: publicUser(user),
       password_change_required: user.password_state === "must_change",
       access_token: body.client_type !== "web" ? session.accessToken : undefined,
@@ -167,7 +175,11 @@ router.post(
   "/device",
   asyncHandler(async (request, response) => {
     const body = parseBody(
-      z.object({ device_id: z.string().uuid(), device_credential: z.string().min(32).max(256) }),
+      z.strictObject({
+        device_id: z.string().uuid(),
+        device_credential: z.string().min(32).max(256),
+        management_token: z.string().min(32).max(256).optional(),
+      }),
       request.body,
     );
     const limit = deviceLoginLimiter.take(`${request.ip}:${body.device_id}`);
@@ -176,10 +188,15 @@ router.post(
       throw new HttpError(429, "RATE_LIMITED", "设备认证尝试过多，请稍后重试");
     }
     const device = await one<
-      UserRow & { device_id: string; device_status: "active" | "revoked"; credential_hash: string }
+      UserRow & {
+        device_id: string;
+        device_status: "active" | "revoked";
+        credential_hash: string;
+        credential_purpose: "gui" | "background";
+      }
     >(
-      `SELECT u.*, d.id AS device_id, d.status AS device_status, d.credential_hash
-         FROM devices d JOIN users u ON u.id=d.user_id WHERE d.id=?`,
+      `SELECT u.*, d.id AS device_id, d.status AS device_status, d.credential_hash, d.credential_purpose
+         FROM devices d JOIN users u ON u.id=d.user_id WHERE d.id=? AND u.deleted_at IS NULL AND d.revoked_at IS NULL`,
       [body.device_id],
     );
     if (
@@ -191,6 +208,20 @@ router.post(
     if (device.status !== "active") throw new HttpError(423, "USER_DISABLED", "账号已禁用");
     if (device.device_status !== "active") throw new HttpError(423, "DEVICE_REVOKED", "设备已撤销");
     const session = await transaction(async (client) => {
+      let managementParent: string | null = null;
+      if (device.credential_purpose === "gui") {
+        const parent = body.management_token
+          ? (
+              await client.query<{ id: string }>(
+                "SELECT s.id FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.access_token_hash=? AND s.user_id=? AND s.device_id IS NULL AND s.client_type<>'native_remote' AND s.revoked_at IS NULL AND s.access_expires_at>home_tunnel_now() AND s.token_version=u.token_version AND u.status='active' AND u.password_state='normal'",
+                [tokenHash(body.management_token), device.id],
+              )
+            ).rows[0]
+          : null;
+        if (!parent)
+          throw new HttpError(401, "ACCOUNT_SESSION_REQUIRED", "GUI 设备必须同时保持账号登录");
+        managementParent = parent.id;
+      }
       const issued = await issueSession(
         client,
         device,
@@ -198,6 +229,11 @@ router.post(
         "device",
         request.header("user-agent"),
       );
+      if (managementParent)
+        await client.query("UPDATE sessions SET management_parent_session_id=? WHERE id=?", [
+          managementParent,
+          issued.sessionId,
+        ]);
       await client.query(
         "UPDATE devices SET last_seen_at=home_tunnel_now(),updated_at=home_tunnel_now() WHERE id=?",
         [device.device_id],
@@ -267,7 +303,7 @@ router.post(
                 u.token_version AS user_token_version,s.refresh_token_hash,
                 s.previous_refresh_token_hash,s.refresh_expires_at,s.revoked_at,u.status,
                 s.client_type,s.access_token_hash,s.access_expires_at,s.refresh_retry_until_at,s.refresh_fingerprint,
-                ${nativeSessionLive} AS native_live
+                (${nativeSessionLive} AND ${deviceSessionLive}) AS native_live
            FROM sessions s JOIN users u ON u.id=s.user_id
           WHERE s.refresh_token_hash=? OR s.previous_refresh_token_hash=?`,
         [presentedHash, presentedHash],
@@ -450,7 +486,6 @@ router.post(
       z.object({
         current_password: z.string().min(1).max(256),
         new_password: z.string().min(12).max(256),
-        mfa_code: z.string().max(128).optional(),
       }),
       request.body,
     );
@@ -466,7 +501,6 @@ router.post(
     }
     const newHash = await hashPassword(body.new_password);
     await transaction(async (client) => {
-      await verifyMfa(client, actor.userId, body.mfa_code);
       await client.query(
         `UPDATE users SET password_hash=?,password_state='normal',temporary_password_expires_at=NULL,
              token_version=token_version+1,version=version+1,updated_at=home_tunnel_now() WHERE id=?`,

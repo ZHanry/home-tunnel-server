@@ -1,3 +1,18 @@
+# 栖云桥 / NestLink API contracts
+
+`api-v2.0.0` freezes account/password login, refresh and revocation, separate GUI/background device credentials, and short-lived signed native P2P permits. New authentication and remote authorization use `/api/v2`.
+
+- `home-tunnel.v2.json`: product and compatibility contract.
+- `openapi.v2.json`, `api.v2.schema.json`: complete current HTTP contract and shared schemas.
+- `nestlink-auth.v2-vectors.json`: Ed25519 vectors consumed by the native core.
+- `home-tunnel.v1.json`, `openapi.v1.json`, `api.schema.json`: immutable historical snapshots; only the tunnel synchronization and background Agent compatibility endpoints remain available from that protocol.
+
+MFA, recovery codes and device enrollment codes are removed. Migration 024 removes old authentication secrets and management sessions transactionally, retaining valid background device credentials, IDs and tunnels. Remote authorization requires device presence, identity proof and a 45-second permit. Same-account directory queries remain isolated; assistance by ID can cross accounts within the same self-hosted realm and still requires host approval or a password.
+
+Regenerate with `python scripts/generate-api-spec.py`; verify with `--check`. Consumers lock the exact frozen server commit and SHA-256 of all seven contract files. Historical tags must never be moved.
+
+## Historical protocol documentation
+
 # API contract ownership
 
 The server owns the API contracts. Version **1.5.0** is frozen in source for

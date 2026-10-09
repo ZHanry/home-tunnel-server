@@ -117,10 +117,6 @@ test("offline recovery revokes sessions; paginated 10/100/1000 resource baseline
     assert.equal(limited.data.error_code, "RESOURCE_LIMIT");
     const capabilities = await call("GET", "/public/capabilities");
     assert.equal(capabilities.data.limits.page_size, 100);
-    const code = await call("POST", "/client/enrollment-codes", token, {
-      name: "revoked by recovery",
-    });
-    assert.equal(code.status, 201);
     const recovered = await recoverAdministrator();
     assert.equal(recovered.username, "admin");
     assert.ok(Date.parse(recovered.expires_at) > Date.now());
@@ -146,11 +142,6 @@ test("offline recovery revokes sessions; paginated 10/100/1000 resource baseline
       (await call("GET", "/client/connections", temporary.data.access_token)).status,
       423,
     );
-    const stored = await db.one<{ revoked_at: Date | null }>(
-      "SELECT revoked_at FROM enrollment_codes WHERE id=?",
-      [code.data.id],
-    );
-    assert.ok(stored?.revoked_at);
     const audit = JSON.stringify(
       await db.query("SELECT * FROM audit_events WHERE action='AdministratorRecoveredOffline'"),
     );

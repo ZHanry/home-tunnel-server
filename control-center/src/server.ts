@@ -12,6 +12,9 @@ import { adminRouter } from "./routes/admin.js";
 import { nativeRemoteRouter, nativeRemotePublicRouter } from "./routes/native-remote.js";
 import { authRouter } from "./routes/auth.js";
 import { accountSecurityRouter } from "./routes/account-security.js";
+import { accountDevicesRouter } from "./routes/account-devices.js";
+import { remotePermitsRouter } from "./routes/remote-permits.js";
+import { publicV2Router } from "./routes/public-v2.js";
 import { platformRouter } from "./routes/platform.js";
 import { clientRouter } from "./routes/client.js";
 import { deviceNameRouter } from "./routes/device-name.js";
@@ -69,6 +72,7 @@ export async function createApplication(
   });
 
   app.use("/api/v1/public", publicRouter);
+  app.use("/api/v2/public", publicV2Router);
   app.use("/downloads", publicRequestLimiter, downloadRouter);
 
   const publicDirectory = fileURLToPath(new URL("../public", import.meta.url));
@@ -94,12 +98,14 @@ export async function createApplication(
   app.use("/api/v1/auth", nativeRemotePublicRouter);
   app.use(authenticate);
   app.use("/api/v1/auth", nativeRemoteRouter);
-  app.use("/api/v1/auth", authRouter);
-  app.use("/api/v1/auth", accountSecurityRouter);
+  app.use(["/api/v1/auth", "/api/v2/auth"], authRouter);
+  app.use(["/api/v1/auth", "/api/v2/auth"], accountSecurityRouter);
+  app.use("/api/v2/auth", accountDevicesRouter);
+  app.use("/api/v2/remote", remotePermitsRouter);
   app.use("/api/v1/admin", adminRouter);
   app.use("/api/v1", platformRouter);
   app.use("/api/v1", deviceNameRouter);
-  app.use("/api/v1", homedeskRouter);
+  app.use(["/api/v1", "/api/v2"], homedeskRouter);
   app.use("/api/v1", clientRouter);
   app.use("/internal", internalRouter);
 

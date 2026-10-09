@@ -207,7 +207,7 @@ test("HomeDesk directory enforces deployment, account and device boundaries", as
         [device],
       );
       assert.equal((await call("GET", "devices", account.access)).data.items.length, 0);
-      assert.equal((await call("PUT", "devices/current", bound.access, body)).status, 423);
+      assert.equal((await call("PUT", "devices/current", bound.access, body)).status, 401);
       assert.equal(
         (
           await call("PUT", "devices/current", siblingSession.access, {

@@ -4,6 +4,7 @@ import type { DatabaseClient } from "./db.js";
 import { config } from "./config.js";
 import { one } from "./db.js";
 import { nativeRemoteRouteAllowed, nativeSessionLive } from "./native-session.js";
+import { deviceSessionLive } from "./account-session.js";
 import { sessionCsrf } from "./protected-secrets.js";
 import {
   constantTimeStringEqual,
@@ -138,7 +139,7 @@ export function setSessionCookies(
   );
   response.append(
     "set-cookie",
-    `ht_refresh=${encodeURIComponent(refreshToken)}; Path=/api/v1/auth; HttpOnly; SameSite=Strict; Max-Age=${config.refreshTokenSeconds}${secure}`,
+    `ht_refresh=${encodeURIComponent(refreshToken)}; Path=/api; HttpOnly; SameSite=Strict; Max-Age=${config.refreshTokenSeconds}${secure}`,
   );
 }
 
@@ -151,6 +152,10 @@ export function clearSessionCookies(response: Response): void {
   response.append(
     "set-cookie",
     `ht_refresh=; Path=/api/v1/auth; HttpOnly; SameSite=Strict; Max-Age=0${secure}`,
+  );
+  response.append(
+    "set-cookie",
+    `ht_refresh=; Path=/api; HttpOnly; SameSite=Strict; Max-Age=0${secure}`,
   );
 }
 
@@ -195,7 +200,7 @@ export const authenticate: RequestHandler = asyncHandler(async (request, _respon
             s.csrf_token_hash
        FROM sessions s JOIN users u ON u.id=s.user_id
       WHERE s.access_token_hash=? AND s.revoked_at IS NULL
-        AND s.access_expires_at > home_tunnel_now() AND ${nativeSessionLive}`,
+        AND s.access_expires_at > home_tunnel_now() AND ${nativeSessionLive} AND ${deviceSessionLive}`,
     [tokenHash(token)],
   );
   if (!session) {
@@ -204,7 +209,9 @@ export const authenticate: RequestHandler = asyncHandler(async (request, _respon
         "/api/v1/auth/login",
         "/api/v1/auth/device",
         "/api/v1/auth/refresh",
-        "/api/v1/auth/enroll",
+        "/api/v2/auth/login",
+        "/api/v2/auth/device",
+        "/api/v2/auth/refresh",
       ].includes(request.path)
     ) {
       next();

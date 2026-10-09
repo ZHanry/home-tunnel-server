@@ -83,7 +83,7 @@ test("public landing page stays available while Windows release metadata is abse
     assert.doesNotMatch(landing.body.toString("utf8"), /内部测试|Experimental|Beta/);
     assert.match(
       landing.body.toString("utf8"),
-      /href="https:\/\/github\.com\/ZHanry\/home-tunnel-client\/releases\/tag\/v11\.0\.0-rc\.1"/,
+      /href="https:\/\/github\.com\/ZHanry\/home-tunnel-client\/releases\/tag\/v12\.0\.0-RC1"/,
     );
     assert.match(landing.body.toString("utf8"), /id="features"/);
     assert.doesNotMatch(landing.body.toString("utf8"), /home-tunnel\/releases\/latest\/download/);
@@ -158,7 +158,7 @@ test("public landing page stays available while Windows release metadata is abse
     assert.match(localeModule.body.toString("utf8"), /function updateDocumentMetadata\(\)/);
     assert.match(
       localeModule.body.toString("utf8"),
-      /HomeDesk — Secure access to services at home/,
+      /NestLink — Secure access to services at home/,
     );
     assert.match(localeModule.body.toString("utf8"), /record\.type === "characterData"/);
     assert.equal(localeModule.headers["cache-control"], "no-cache");

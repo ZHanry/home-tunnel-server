@@ -225,14 +225,7 @@ export async function presentEndpoint(endpoint: Endpoint, db?: DatabaseClient) {
         );
     if (profile?.password_hash) modes.push("fixed_password");
     const reported = JSON.parse(endpoint.capability_json) as { unattended_enabled?: unknown };
-    const user = db
-      ? await first<{ mfa_secret: string | null }>(db, "SELECT mfa_secret FROM users WHERE id=?", [
-          endpoint.owner_user_id,
-        ])
-      : await one<{ mfa_secret: string | null }>("SELECT mfa_secret FROM users WHERE id=?", [
-          endpoint.owner_user_id,
-        ]);
-    if (reported.unattended_enabled === true && user?.mfa_secret) modes.push("unattended");
+    if (reported.unattended_enabled === true && profile?.password_hash) modes.push("unattended");
   }
   return { ...endpointView(endpoint), offered_access_modes: modes };
 }
@@ -1767,14 +1760,9 @@ async function storeGrant(
     fail(400, "RD_INVITE_NOT_REQUIRED", "同账号授权不需要协助邀请");
   }
   if (claims.mode === "persistent") {
-    const user = await first<{ mfa_secret: string | null }>(
-      db,
-      "SELECT mfa_secret FROM users WHERE id=?",
-      [host.owner_user_id],
-    );
     const capabilities = JSON.parse(host.capability_json) as Record<string, unknown>;
-    if (!user?.mfa_secret || capabilities.unattended_enabled !== true)
-      fail(403, "RD_UNATTENDED_DENIED", "持久授权需要 TOTP 与本机无人值守开关");
+    if (capabilities.unattended_enabled !== true)
+      fail(403, "RD_UNATTENDED_DENIED", "持久授权需要本机批准与无人值守开关");
   }
   const existing = await first<Grant>(db, "SELECT * FROM rd_grants WHERE id=?", [id]);
   if (
@@ -2068,12 +2056,8 @@ async function liveGrant(db: DatabaseClient, row: Session) {
     fail(403, "RD_INVITE_REQUIRED", "跨账号授权缺少协助邀请");
   }
   if (grant.mode === "persistent") {
-    const user = await first(db, "SELECT mfa_secret FROM users WHERE id=?", [row.owner_user_id]);
     const host = await endpointById(db, row.host_endpoint_id);
-    if (
-      !user?.mfa_secret ||
-      !(JSON.parse(host.capability_json) as Record<string, unknown>).unattended_enabled
-    )
+    if (!(JSON.parse(host.capability_json) as Record<string, unknown>).unattended_enabled)
       fail(403, "RD_UNATTENDED_DENIED", "无人值守授权已关闭");
   }
   const scopes = JSON.parse(grant.scope_json) as Permission[];

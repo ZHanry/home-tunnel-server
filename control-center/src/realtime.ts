@@ -5,8 +5,10 @@ import { databaseEvents, one, transaction } from "./db.js";
 import { parseCookieHeader } from "./http.js";
 import { tokenHash } from "./security.js";
 import { registerUpgrade } from "./upgrades.js";
+import { deviceSessionLive } from "./account-session.js";
 
 type SocketIdentity = {
+  sessionId: string;
   userId: string;
   deviceId: string | null;
   role: "admin" | "user";
@@ -55,10 +57,11 @@ function cookieOriginAllowed(request: IncomingMessage, credential: UpgradeCreden
 
 async function authenticateUpgrade(credential: UpgradeCredential): Promise<SocketIdentity | null> {
   return one<SocketIdentity>(
-    `SELECT s.user_id AS "userId",s.device_id AS "deviceId",u.role
+    `SELECT s.id AS "sessionId",s.user_id AS "userId",s.device_id AS "deviceId",u.role
        FROM sessions s JOIN users u ON u.id=s.user_id
       WHERE s.access_token_hash=? AND s.revoked_at IS NULL AND s.access_expires_at>home_tunnel_now()
         AND s.token_version=u.token_version AND u.status='active'
+        AND ${deviceSessionLive}
         AND s.client_type<>'native_remote' AND s.native_parent_session_id IS NULL`,
     [tokenHash(credential.token)],
   );
@@ -80,9 +83,9 @@ export function attachRealtime(
   const websocketServer = new WebSocketServer(websocketOptions);
   let closing = false;
 
-  const unregisterUpgrade = registerUpgrade(server, "/api/v1/ws", (request, socket, head) => {
+  const handleUpgrade: Parameters<typeof registerUpgrade>[2] = (request, socket, head) => {
     const url = new URL(request.url ?? "/", "http://internal");
-    if (url.pathname !== "/api/v1/ws") {
+    if (!["/api/v1/ws", "/api/v2/ws"].includes(url.pathname)) {
       socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
       socket.destroy();
       return;
@@ -113,7 +116,9 @@ export function attachRealtime(
         });
       })
       .catch(() => socket.destroy());
-  });
+  };
+  const unregisterV1 = registerUpgrade(server, "/api/v1/ws", handleUpgrade);
+  const unregisterV2 = registerUpgrade(server, "/api/v2/ws", handleUpgrade);
 
   websocketServer.on("connection", (socket: LiveSocket) => {
     websocketClientCount += 1;
@@ -135,6 +140,27 @@ export function attachRealtime(
 
   let draining = false;
   let drainAgain = false;
+  const closeRevokedSockets = async () => {
+    for (const clientSocket of websocketServer.clients) {
+      const live = clientSocket as LiveSocket;
+      if (live.readyState !== WebSocket.OPEN || !live.identity) continue;
+      const session = await one<{ id: string }>(
+        `SELECT s.id FROM sessions s JOIN users u ON u.id=s.user_id
+        WHERE s.id=? AND s.revoked_at IS NULL AND s.refresh_expires_at>home_tunnel_now()
+        AND s.token_version=u.token_version AND u.status='active' AND ${deviceSessionLive}`,
+        [live.identity.sessionId],
+      );
+      if (!session) {
+        live.send(
+          JSON.stringify({
+            event: "account.session.revoked",
+            payload: { session_id: live.identity.sessionId },
+          }),
+        );
+        live.close(4001, "Session revoked");
+      }
+    }
+  };
   const drainOutbox = async () => {
     if (draining) {
       drainAgain = true;
@@ -180,7 +206,12 @@ export function attachRealtime(
                 (!live.identity.deviceId ||
                   !event.recipient_device_id ||
                   event.recipient_device_id === live.identity.deviceId);
-              if (isAdmin || isRecipient) {
+              const sessionEvent = event.event_type === "account.session.revoked";
+              if (
+                sessionEvent
+                  ? event.resource_id === live.identity.sessionId
+                  : isAdmin || isRecipient
+              ) {
                 if (live.bufferedAmount > 1024 * 1024) {
                   live.terminate();
                   continue;
@@ -203,6 +234,7 @@ export function attachRealtime(
           }
           return events.rowCount ?? events.rows.length;
         });
+        await closeRevokedSockets();
       } while (!closing && (count === 100 || drainAgain));
     } finally {
       draining = false;
@@ -245,7 +277,8 @@ export function attachRealtime(
   return {
     close: async () => {
       closing = true;
-      unregisterUpgrade();
+      unregisterV1();
+      unregisterV2();
       clearInterval(fallbackTimer);
       clearInterval(pingTimer);
       databaseEvents.off("outbox", onOutbox);

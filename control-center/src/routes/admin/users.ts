@@ -16,6 +16,7 @@ import { generateTemporaryPassword, hashPassword, normalizeUsername } from "../.
 import { nullableBandwidth, parseBody } from "../../validation.js";
 import { config } from "../../config.js";
 import { adminGuard } from "./shared.js";
+import { pagination, pageInfo } from "../../pagination.js";
 
 const router = Router();
 
@@ -77,15 +78,22 @@ router.get(
   asyncHandler(async (request, response) => {
     requireAdmin(request);
     requirePasswordNormal(request);
-    const search = String(request.query.search ?? "").trim();
+    const { search, page, page_size, offset } = pagination(request.query);
+    const count = await one<{ total: number }>(
+      "SELECT count(*) AS total FROM users WHERE deleted_at IS NULL AND (?='' OR username LIKE '%'||?||'%' OR display_name LIKE '%'||?||'%')",
+      [search, search, search],
+    );
     const rows = await query<UserSummary>(
       `SELECT ${userFields}
        FROM users u LEFT JOIN traffic_policies tp ON tp.scope_type='user' AND tp.scope_id=u.id
       WHERE u.deleted_at IS NULL AND (?='' OR u.username LIKE '%'||?||'%' OR u.display_name LIKE '%'||?||'%')
-      ORDER BY u.created_at DESC LIMIT 100`,
-      [search, search, search],
+      ORDER BY u.created_at DESC,u.id DESC LIMIT ? OFFSET ?`,
+      [search, search, search, page_size, offset],
     );
-    response.json({ items: rows.map(publicUser) });
+    response.json({
+      items: rows.map(publicUser),
+      ...pageInfo(page, page_size, Number(count?.total ?? 0)),
+    });
   }),
 );
 

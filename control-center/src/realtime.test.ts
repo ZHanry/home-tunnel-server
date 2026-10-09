@@ -68,6 +68,20 @@ async function connect(token = accessToken): Promise<WebSocket> {
   return socket;
 }
 
+test("v2 realtime uses the authenticated upgrade dispatcher", async () => {
+  const socket = new WebSocket(origin.replace("/api/v1/", "/api/v2/"), {
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  socket.on("error", () => undefined);
+  const connected = once(socket, "message");
+  await once(socket, "open");
+  const [message] = await connected;
+  assert.equal(JSON.parse(message.toString()).event, "realtime.connected");
+  socket.close();
+  await once(socket, "close");
+  await waitForClientCount(0);
+});
+
 async function expectUpgradeRejected(
   headers: Record<string, string>,
   expectedStatus: number,
