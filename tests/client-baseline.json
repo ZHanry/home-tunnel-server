@@ -1,18 +1,7 @@
 {
   "repository": "ZHanry/home-tunnel-client",
-  "tag": "v9.0.0",
-  "version": "9.0.0",
-  "packages": {
-    "amd64": {
-      "file": "home-tunnel-linux-9.0.0-amd64.tar.gz",
-      "sha256": "080d3c8234f1376b246d262e8270caf36460c1de9c2549ba9e81514bb2db89e6",
-      "url": "https://github.com/ZHanry/home-tunnel-client/releases/download/v9.0.0/home-tunnel-linux-9.0.0-amd64.tar.gz"
-    },
-    "arm64": {
-      "file": "home-tunnel-linux-9.0.0-arm64.tar.gz",
-      "sha256": "4282bd85396e4cccde129c6fc74d79ccd13d8634d4c1ad9db11aeeb7ce19b987",
-      "url": "https://github.com/ZHanry/home-tunnel-client/releases/download/v9.0.0/home-tunnel-linux-9.0.0-arm64.tar.gz"
-    }
-  },
-  "revision": "ac48749044c0e761b21650539a0643fbeadb4ff2"
+  "version": "12.0.0-RC1",
+  "revision": "71cf549ed6218cce024a07da2ebc52f6289c7f7a",
+  "source_build": true,
+  "scope": "Build the independent Agent from this exact current Client source. Keep historical releases unchanged."
 }

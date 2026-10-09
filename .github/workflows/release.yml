@@ -3,6 +3,7 @@ name: Release server
   push:
     tags:
     - v*-rc.*
+    - v*-RC*
 permissions:
   contents: write
   checks: read
@@ -116,6 +117,7 @@ jobs:
         merge-multiple: true
     - run: |
         cp contracts/home-tunnel.v1.json contracts/openapi.v1.json contracts/api.schema.json release/
+        cp contracts/home-tunnel.v2.json contracts/openapi.v2.json contracts/api.v2.schema.json contracts/nestlink-auth.v2-vectors.json release/
         cp contracts/remote-desktop.v1.json contracts/remote-authorization-vectors.json contracts/REMOTE_PROTOCOL.md release/
         cp deploy/frps/dependency.json release/frps-dependency.json
         cp deploy/frps/dependency.sigstore.json release/frps-dependency.json.sigstore.json
@@ -155,6 +157,9 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+      with:
+        go-version: 1.27.0
     - name: Run production-path integration with pinned client
       env:
         RC_VERSION: ${{ needs.metadata.outputs.rc-version }}
@@ -208,7 +213,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |-
         python3 scripts/release.py seal
-        python3 scripts/homedesk-release.py pack --component server --input release --select home-tunnel-server-${{ needs.metadata.outputs.version }}.tar.gz --evidence release
+        python3 scripts/homedesk-release.py pack --component server --input release --select NestLink-Server-${{ needs.metadata.outputs.version }}.tar.gz --evidence release
         python3 scripts/homedesk-release.py publish --input release-public
     - name: Preserve release verification evidence
       if: ${{ always() }}

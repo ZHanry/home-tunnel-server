@@ -23,7 +23,7 @@ is_sha256() {
   [ "${#1}" -eq 64 ] && ! printf '%s' "$1" | grep -Eq '[^0-9a-f]'
 }
 
-printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$' || { echo "Invalid version" >&2; exit 1; }
+printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-(RC[1-9][0-9]*|rc\.[1-9][0-9]*))?$' || { echo "Invalid version" >&2; exit 1; }
 source_version="$version"
 is_sha256 "$expected_images_sha" || { echo "Invalid image archive SHA-256" >&2; exit 1; }
 is_sha256 "$expected_caddy_sha" || { echo "Invalid Caddy SHA-256" >&2; exit 1; }

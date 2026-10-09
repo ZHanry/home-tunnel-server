@@ -17,7 +17,7 @@ const {closeDatabase}=await import('./control-center/dist/db.js');
 const app=await createApplication(false); const server=app.listen(0,'127.0.0.1');
 await new Promise(resolve=>server.once('listening',resolve));
 try {
- const response=await fetch(`http://127.0.0.1:${server.address().port}/api/v1/auth/login`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:'admin',password:'Recovery-Test-Password-Q8',client_type:'linux'})});
+ const response=await fetch(`http://127.0.0.1:${server.address().port}/api/v2/auth/login`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:'admin',password:'Recovery-Test-Password-Q8',client_type:'linux'})});
  const result=await response.json();
  if(response.status!==200 || result.user.role!=='admin' || !result.password_change_required)throw new Error('Restored login or first-password flow failed');
  console.log('Restored administrator login passed');

@@ -22,7 +22,7 @@ $gatewayPackage = Get-Content -Raw -LiteralPath (Join-Path $workspaceRoot "traff
 if (-not $Version) {
     $Version = [string]$controlPackage.version
 }
-if ($Version -notmatch '^\d+\.\d+\.\d+(?:-rc\.\d+)?$') { throw "Version must use MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-rc.N format" }
+if ($Version -notmatch '^\d+\.\d+\.\d+(?:-(?:RC[1-9]\d*|rc\.[1-9]\d*))?$') { throw "Version must use MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-RCN format" }
 $sourceVersion = $Version
 if ($controlPackage.version -ne $sourceVersion) { throw "Control-center package version does not match source version $sourceVersion" }
 $version = $Version
@@ -51,7 +51,7 @@ foreach ($required in @($frpcSource, (Join-Path $deployRoot "compose.yaml"))) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Required release input is missing: $required" }
 }
 $composeSource = Get-Content -Raw -LiteralPath (Join-Path $deployRoot "compose.yaml")
-$composeSource = [regex]::Replace($composeSource, '(?m)^(    image: home-tunnel/(?:control-center|traffic-gateway):)\d+\.\d+\.\d+(?:-rc\.\d+)?(-arm64)[ \t]*\r?$', { param($match) $match.Groups[1].Value + $Version + $match.Groups[2].Value })
+$composeSource = [regex]::Replace($composeSource, '(?m)^(    image: home-tunnel/(?:control-center|traffic-gateway):)\d+\.\d+\.\d+(?:-(?:RC[1-9]\d*|rc\.[1-9]\d*))?(-arm64)[ \t]*\r?$', { param($match) $match.Groups[1].Value + $Version + $match.Groups[2].Value })
 foreach ($expectedImage in @("home-tunnel/control-center:$version-arm64", "home-tunnel/traffic-gateway:$version-arm64")) {
     if ($composeSource -notmatch "(?m)^    image: $([regex]::Escape($expectedImage))\s*$") {
         throw "Compose does not reference $expectedImage"

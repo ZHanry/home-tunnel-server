@@ -28,3 +28,9 @@ e91146c853290f1f8bc8981eda8b574d43ce4117:control-center/src/recovery-capacity.te
 # The LF normalization of that same runtime-generated ExportPkcs8PrivateKey PEM template.
 # Exact historical finding only; no encoded private key is embedded in the source.
 ef072a5d88717b42e1e61d8d91d03a368d29b6d6:deploy/scripts/new-selfhost-config.ps1:private-key:95
+
+# Frozen test_only Ed25519 public keys and offline signatures for fixture identities.
+2242354fc10c6681ec0ccf33e91ab96611e60791:contracts/nestlink-auth.v2-vectors.json:generic-api-key:23
+2242354fc10c6681ec0ccf33e91ab96611e60791:contracts/nestlink-auth.v2-vectors.json:generic-api-key:24
+2242354fc10c6681ec0ccf33e91ab96611e60791:contracts/nestlink-auth.v2-vectors.json:generic-api-key:27
+2242354fc10c6681ec0ccf33e91ab96611e60791:contracts/nestlink-auth.v2-vectors.json:generic-api-key:29

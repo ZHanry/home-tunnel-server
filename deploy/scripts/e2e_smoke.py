@@ -452,8 +452,8 @@ def validate_landing_page(page: str) -> None:
     links = Links()
     links.feed(page)
     expected = {
-        "https://github.com/ZHanry/home-tunnel-client/releases/tag/v11.0.0-rc.1",
-        "https://github.com/ZHanry/home-tunnel-android/releases/tag/v11.0.0-rc.1",
+        "https://github.com/ZHanry/home-tunnel-client/releases/tag/v12.0.0-RC1",
+        "https://github.com/ZHanry/home-tunnel-android/releases/tag/v12.0.0-RC1",
     }
     if not expected.issubset(links.links):
         raise RuntimeError("Landing page is missing an official component download destination")
@@ -761,23 +761,23 @@ try {
             else:
                 raise RuntimeError("Console endpoint did not become ready")
 
-            public_get(arguments.origin + "/", "HomeDesk")
+            public_get(arguments.origin + "/", "NestLink")
             _, landing_body = fetch(arguments.origin + "/")
             validate_landing_page(landing_body.decode())
 
             original_admin_hash = str(sqlite_value("SELECT password_hash FROM users WHERE lower(username)='admin' AND role='admin' LIMIT 1") or "")
-            bootstrap_login = api("POST", "/api/v1/auth/login", {"username": "admin", "password": bootstrap_password, "client_type": "windows"})
+            bootstrap_login = api("POST", "/api/v2/auth/login", {"username": "admin", "password": bootstrap_password, "client_type": "windows"})
             if not bootstrap_login.get("password_change_required"):
                 raise RuntimeError("Bootstrap administrator did not require a password change")
-            api("POST", "/api/v1/auth/password/change", {"current_password": bootstrap_password, "new_password": admin_password}, bootstrap_login["access_token"], (204,))
+            api("POST", "/api/v2/auth/password/change", {"current_password": bootstrap_password, "new_password": admin_password}, bootstrap_login["access_token"], (204,))
             Path(arguments.handoff_file).write_text(
-                f"Home Tunnel 管理后台\nURL: {arguments.origin}/admin\n用户名: admin\n初始密码: {bootstrap_password}\n首次登录必须修改密码，改密后请删除本文件。\n",
+                f"栖云桥 / NestLink 管理后台\nURL: {arguments.origin}/admin\n用户名: admin\n初始密码: {bootstrap_password}\n首次登录必须修改密码，改密后请删除本文件。\n",
                 encoding="utf-8",
             )
             os.chmod(arguments.handoff_file, 0o600)
             admin_password_path.unlink(missing_ok=True)
 
-            admin_login = api("POST", "/api/v1/auth/login", {"username": "admin", "password": admin_password, "client_type": "windows"})
+            admin_login = api("POST", "/api/v2/auth/login", {"username": "admin", "password": admin_password, "client_type": "windows"})
             admin_token = admin_login["access_token"]
             created_user = api("POST", "/api/v1/admin/users", {
                 "username": username,
@@ -787,17 +787,20 @@ try {
             }, admin_token, (201,))
             temporary_password = created_user["temporary_password"]
             user_id = created_user["user"]["id"]
-            initial_user = api("POST", "/api/v1/auth/login", {"username": username, "password": temporary_password, "client_type": "windows"})
-            api("POST", "/api/v1/auth/password/change", {"current_password": temporary_password, "new_password": user_password}, initial_user["access_token"], (204,))
-            user_login = api("POST", "/api/v1/auth/login", {"username": username, "password": user_password, "client_type": "windows"})
+            initial_user = api("POST", "/api/v2/auth/login", {"username": username, "password": temporary_password, "client_type": "windows"})
+            api("POST", "/api/v2/auth/password/change", {"current_password": temporary_password, "new_password": user_password}, initial_user["access_token"], (204,))
+            user_login = api("POST", "/api/v2/auth/login", {"username": username, "password": user_password, "client_type": "windows"})
             user_token = user_login["access_token"]
-            registered = api("POST", "/api/v1/devices/register", {
+            registered = api("POST", "/api/v2/auth/devices", {
                 "name": "Deployment Smoke Device",
                 "install_id": f"smoke-{suffix}",
                 "fingerprint_hash": hashlib.sha256(f"smoke-{suffix}".encode()).hexdigest(),
-                "client_version": "2.0.0-deployment-smoke",
+                "client_version": "12.0.0-RC1",
+                "client_type": "cli", "credential_purpose": "background",
             }, user_token, (201,))
             device_id = registered["device_id"]
+            device_login = api("POST", "/api/v2/auth/device", {"device_id": device_id, "device_credential": registered["device_credential"]})
+            user_token = device_login["access_token"]
 
             for scheme, domain, port in [
                 ("http", http_domain, http_server.server_port),
@@ -1239,7 +1242,7 @@ try {
             finally:
                 if admin_token:
                     try:
-                        api("POST", "/api/v1/auth/logout", {}, admin_token, (204,))
+                        api("POST", "/api/v2/auth/logout", {}, admin_token, (204,))
                     except Exception:
                         pass
                 restore_default_administrator()

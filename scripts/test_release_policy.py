@@ -25,14 +25,14 @@ class ReleasePolicyTests(unittest.TestCase):
         trigger = workflow.split("'on':\n", 1)[1].split("permissions:\n", 1)[0]
         # Keep the complete trigger small and explicit: stable publication has a
         # separate acceptance workflow and must not launch an image rebuild.
-        self.assertEqual(trigger, "  push:\n    tags:\n    - v*-rc.*\n")
-        pattern = trigger.split("    - ", 1)[1].strip()
-        for tag in ("v10.0.0-rc.1", "v11.2.3-rc.12"):
+        self.assertEqual(trigger, "  push:\n    tags:\n    - v*-rc.*\n    - v*-RC*\n")
+        patterns = [line.strip()[2:] for line in trigger.splitlines() if line.strip().startswith("- ")]
+        for tag in ("v10.0.0-rc.1", "v11.2.3-rc.12", "v12.0.0-RC1"):
             with self.subTest(tag=tag):
-                self.assertTrue(fnmatchcase(tag, pattern))
+                self.assertTrue(any(fnmatchcase(tag, pattern) for pattern in patterns))
         for tag in ("v10.0.0", "v11.2.3", "api-v1.4.0"):
             with self.subTest(tag=tag):
-                self.assertFalse(fnmatchcase(tag, pattern))
+                self.assertFalse(any(fnmatchcase(tag, pattern) for pattern in patterns))
 
     def test_stable_metadata_still_refuses_an_image_rebuild(self):
         with patch.object(module, "TAG", "v10.0.0"), \

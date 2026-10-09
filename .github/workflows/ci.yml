@@ -212,7 +212,7 @@ jobs:
         $buildServer = Get-Content -Raw -LiteralPath deploy/build-release.ps1
         $deployUi = Get-Content -Raw -LiteralPath deploy/deploy-ui.ps1
         foreach ($source in @($buildUi, $buildServer, $deployUi)) {
-          if ($source -notmatch '\(\?:-rc\\\.\\d\+\)\?') {
+          if (-not $source.Contains('RC[1-9]\d*|rc\.[1-9]\d*')) {
             throw 'An offline PowerShell release path does not accept RC versions'
           }
         }
@@ -225,7 +225,7 @@ jobs:
         set -euo pipefail
         # The grep expressions below intentionally match literal shell/JavaScript source.
         bash -n deploy/scripts/update-ui.sh
-        grep -Fq '(-rc\.[0-9]+)?$' deploy/scripts/update-ui.sh
+        grep -Fq '(-(RC[1-9][0-9]*|rc\.[1-9][0-9]*))?$' deploy/scripts/update-ui.sh
         grep -Fq 'source_version="$version"' deploy/scripts/update-ui.sh
         grep -Fq "b.version!=='\$source_version'" deploy/scripts/update-ui.sh
   repository:

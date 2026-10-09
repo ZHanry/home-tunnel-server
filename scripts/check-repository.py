@@ -8,7 +8,7 @@ import subprocess
 root = Path(__file__).resolve().parents[1]
 compat = json.loads((root / "compatibility.json").read_text(encoding="utf-8"))
 component = compat["component"]
-assert compat["api_major"] == 1
+assert compat["api_major"] == 2
 assert compat["stage"] in ("internal-testing", "public-release")
 for directory in ("linux-client", "windows-agent", "android-client"):
     assert not (root / directory).exists(), f"Legacy component directory: {directory}"
@@ -29,13 +29,13 @@ if component == "server":
     assert target.get("server") == version, "Target server version must name the current source"
     for combination in (target, compat["tested_combination"]):
         assert set(combination) == {"server", "client", "android", "agent"}, "Incomplete component combination"
-        assert all(re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-rc\.[1-9][0-9]*)?", value) for value in combination.values()), "Invalid component version"
+        assert all(re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC[1-9][0-9]*|rc\.[1-9][0-9]*))?", value) for value in combination.values()), "Invalid component version"
     if target != compat["tested_combination"]:
         assert compat.get("tested_combination_scope"), "Historical test versions require an explicit scope; target versions are not proof of testing"
     status = compat.get("contract_status")
     assert status in ("proposed", "frozen"), "Unknown contract status"
     assert compat.get("frozen_tag") == (compat["contract_ref"] if status == "frozen" else None), "frozen_tag must match a frozen contract_ref"
-    for name in ("contracts/openapi.v1.json", "control-center/public/openapi.json"):
+    for name in ("contracts/openapi.v2.json", "control-center/public/openapi.v2.json", "control-center/public/openapi.json"):
         openapi = json.loads((root / name).read_text(encoding="utf-8"))
         assert openapi.get("x-contract-ref") == compat["contract_ref"], f"Contract ref drift: {name}"
         assert openapi.get("x-contract-status") == status, f"Contract status drift: {name}"

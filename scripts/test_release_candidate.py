@@ -538,7 +538,7 @@ class CandidatePolicyTests(unittest.TestCase):
     def test_candidate_target_does_not_relabel_historical_coverage(self):
         compatibility = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
         self.assertEqual(compatibility["target_combination"]["server"], compatibility["version"])
-        self.assertEqual(compatibility["target_combination"]["android"], "11.0.0-rc.1")
+        self.assertEqual(compatibility["target_combination"]["android"], compatibility["version"])
         self.assertEqual(set(compatibility["tested_combination"].values()), {"10.0.0"})
         self.assertIn("acceptance pending", compatibility["tested_combination_scope"])
 

@@ -12,4 +12,4 @@ fi
 docker compose "$@" run --rm --no-deps --entrypoint node control-center \
   dist/recover-admin.js --confirm-service-stopped
 docker compose "$@" up -d --no-deps control-center
-printf '%s\n' 'Use the one-hour temporary password above and change it immediately. Re-enable MFA after recovery.'
+printf '%s\n' 'Use the one-hour temporary password above and change it immediately.'

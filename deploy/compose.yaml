@@ -6,7 +6,7 @@ x-logging: &logging
 
 services:
   control-center:
-    image: home-tunnel/control-center:11.0.0-rc.2-arm64
+    image: home-tunnel/control-center:12.0.0-RC1-arm64
     pull_policy: never
     container_name: home-tunnel-control-center
     restart: unless-stopped
@@ -76,7 +76,7 @@ services:
     logging: *logging
 
   traffic-gateway:
-    image: home-tunnel/traffic-gateway:11.0.0-rc.2-arm64
+    image: home-tunnel/traffic-gateway:12.0.0-RC1-arm64
     pull_policy: never
     container_name: home-tunnel-traffic-gateway
     restart: unless-stopped

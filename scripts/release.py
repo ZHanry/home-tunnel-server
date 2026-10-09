@@ -48,9 +48,9 @@ def local_version():
 def validate_release_tag(tag, source_version, stage):
     if stage not in ("internal-testing", "public-release"):
         raise SystemExit("Unknown release stage; set compatibility.json explicitly")
-    match = re.fullmatch(r"v(\d+\.\d+\.\d+)(?:-rc\.([1-9]\d*))?", tag)
+    match = re.fullmatch(r"v(\d+\.\d+\.\d+)(?:-(?:rc\.|RC)([1-9]\d*))?", tag)
     if not match:
-        raise SystemExit("Release tags must be vX.Y.Z or vX.Y.Z-rc.N")
+        raise SystemExit("Release tags must be vX.Y.Z, vX.Y.Z-RCN or vX.Y.Z-rc.N")
     version, candidate = match.groups()
     if tag.removeprefix("v") != source_version:
         raise SystemExit("Tag does not match this component's source version")
@@ -79,6 +79,11 @@ def metadata():
                            "stable":str(not candidate).lower(),"rc-version":rc_tag.removeprefix('v'),"rc-tag":rc_tag}.items():
             output.write(f"{key}={value}\n")
 
+def server_archive_name(value):
+    prefix = "NestLink-Server" if int(value.split(".", 1)[0]) >= 12 else "home-tunnel-server"
+    return f"{prefix}-{value}.tar.gz"
+
+
 def required_assets(directory):
     version = local_version()
     if COMPONENT == "client":
@@ -89,7 +94,8 @@ def required_assets(directory):
         expected = [f"HomeTunnel-Android-{version}-arm64-v8a.apk", f"HomeTunnel-Android-{version}.aab", "android-release-evidence.json"]
     else:
         expected = ["image-control-center.json", "image-traffic-gateway.json", "home-tunnel.v1.json", "openapi.v1.json", "api.schema.json",
-                    "remote-desktop.v1.json", "remote-authorization-vectors.json", "REMOTE_PROTOCOL.md"]
+                    "remote-desktop.v1.json", "remote-authorization-vectors.json", "REMOTE_PROTOCOL.md",
+                    "home-tunnel.v2.json", "openapi.v2.json", "api.v2.schema.json", "nestlink-auth.v2-vectors.json"]
         for name in ("control-center", "traffic-gateway"):
             record = json.loads((directory / f"image-{name}.json").read_text())
             if record["revision"] != SHA or not re.fullmatch(r"sha256:[a-f0-9]{64}", record["digest"]):
@@ -159,7 +165,7 @@ def require_acceptance(directory):
         raise SystemExit("Stable publication requires a real acceptance record for this candidate")
     acceptance = json.loads(path.read_text(encoding="utf-8"))
     deployment = {}
-    for name in ("compose.release.yaml", f"home-tunnel-server-{local_version()}.tar.gz"):
+    for name in ("compose.release.yaml", server_archive_name(local_version())):
         target = directory / name
         if target.is_file():
             deployment[name] = hashlib.sha256(target.read_bytes()).hexdigest()
@@ -189,7 +195,7 @@ def signing_identity(rc_tag):
 def seal():
     directory = release_dir()
     required_assets(directory)
-    manifest={"component":COMPONENT,"version":local_version(),"repository":REPO,"revision":SHA,"api_major":1,"rc_tag":TAG}
+    manifest={"component":COMPONENT,"version":local_version(),"repository":REPO,"revision":SHA,"api_major":PROJECT["api_major"],"rc_tag":TAG}
     if os.environ.get("HOME_TUNNEL_CANDIDATE") == "1":
         manifest.update({
             "rc_tag": "",
@@ -211,7 +217,7 @@ def seal():
     (directory/'release-manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
     if COMPONENT == 'server':
         import tarfile
-        archive = directory/f'home-tunnel-server-{local_version()}.tar.gz'
+        archive = directory/server_archive_name(local_version())
         with tarfile.open(archive, 'w:gz') as bundle:
             for entry in ['compose.yaml', '.env.example', 'README.md', 'README.en.md', 'LICENSE', 'compatibility.json', 'control-center/package.json', 'control-center/migrations', 'deploy', 'docs', 'contracts']:
                 bundle.add(ROOT/entry, arcname=entry, filter=lambda item: None if '__pycache__' in item.name or item.name.endswith('.pyc') or item.name.startswith(('deploy/turn/', 'deploy/stun/')) or item.name in ('deploy/compose.rd.yaml', 'deploy/compose.turn.yaml', 'deploy/compose.stun.yaml', 'deploy/compose.rd-keyset.yaml') else item)
@@ -251,7 +257,7 @@ def public_asset_names(component, version):
         return [f"HomeTunnel-Setup-{version}-x64.exe", f"HomeTunnel-Windows-{version}-x64.zip"] + [
             f"home-tunnel-{platform}-{version}-{arch}.tar.gz"
             for platform in ("linux", "macos") for arch in ("amd64", "arm64")]
-    return [f"home-tunnel-server-{version}.tar.gz", "compose.release.yaml"]
+    return [server_archive_name(version), "compose.release.yaml"]
 
 def publish(stable=False):
     directory=release_dir()
@@ -354,7 +360,7 @@ def load_release_files(directory):
 
 def deployment_hashes(directory, version):
     hashes = {}
-    for name in ("compose.release.yaml", f"home-tunnel-server-{version}.tar.gz"):
+    for name in ("compose.release.yaml", server_archive_name(version)):
         path = directory / name
         if not path.is_file():
             raise SystemExit(f"Acceptance must bind {name}")
