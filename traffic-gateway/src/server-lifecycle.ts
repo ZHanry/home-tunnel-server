@@ -156,21 +156,13 @@ function handleUpgrade(request: IncomingMessage, client: Socket, head: Buffer): 
         if (client.destroyed) return;
         if (!allowed) {
           metrics.accessDeniedTotal.basic += 1;
-          rejectUpgrade(
-            client,
-            "401 Unauthorized",
-            'WWW-Authenticate: Basic realm="nestlink"\r\n',
-          );
+          rejectUpgrade(client, "401 Unauthorized", 'WWW-Authenticate: Basic realm="nestlink"\r\n');
           return;
         }
         proxyUpgrade(request, client, head, policy, true);
       })
       .catch(() =>
-        rejectUpgrade(
-          client,
-          "401 Unauthorized",
-          'WWW-Authenticate: Basic realm="nestlink"\r\n',
-        ),
+        rejectUpgrade(client, "401 Unauthorized", 'WWW-Authenticate: Basic realm="nestlink"\r\n'),
       );
     return;
   }
