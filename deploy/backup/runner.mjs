@@ -102,7 +102,7 @@ export async function buildBundle(stage,source,configRoot) {
 export async function verifyBundle(bundle) {
   await safeFile(bundle,join(bundle,"manifest.json"));
   const manifest=JSON.parse(await readFile(join(bundle,"manifest.json"),"utf8"));
-  if (manifest.format!==1 || !/^\d+\.\d+\.\d+(?:-rc\.\d+)?$/.test(manifest.version) || !Array.isArray(manifest.files) || manifest.files.length>128) throw new Error("Unsupported backup manifest");
+  if (manifest.format!==1 || !/^\d+\.\d+\.\d+(?:-(?:RC[1-9]\d*|rc\.[1-9]\d*))?$/.test(manifest.version) || !Array.isArray(manifest.files) || manifest.files.length>128) throw new Error("Unsupported backup manifest");
   const paths=new Set();
   for (const item of manifest.files) {
     if (!allowedPaths.has(item.path) || paths.has(item.path) || !/^[a-f0-9]{64}$/.test(item.sha256)) throw new Error("Unsafe or duplicate backup path");
