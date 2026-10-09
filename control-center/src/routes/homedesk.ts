@@ -138,6 +138,10 @@ router.put(
           body.remote_public_key ?? "",
         ],
       );
+      await client.query(
+        "UPDATE devices SET last_seen_at=home_tunnel_now(),updated_at=home_tunnel_now() WHERE id=?",
+        [actor.deviceId],
+      );
     });
     response.json({ device_id: actor.deviceId, registered: true });
   }),

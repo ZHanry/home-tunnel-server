@@ -157,6 +157,39 @@ test("HomeDesk directory enforces deployment, account and device boundaries", as
           assert.equal((await call("PUT", "devices/current", bound.access, value)).status, 400);
       },
     );
+    await t.test(
+      "authenticated remote presence refreshes only its own device in the shared catalog",
+      async () => {
+        await db.query("UPDATE devices SET last_seen_at=? WHERE user_id=?", [
+          new Date(Date.now() - 120_000),
+          owner,
+        ]);
+        async function catalog() {
+          const response = await fetch(`${base}/api/v1/client/devices`, {
+            headers: { authorization: `Bearer ${account.access}` },
+          });
+          assert.equal(response.status, 200);
+          const data = await response.json();
+          validateApiResponse("GET", "/api/v1/client/devices", response.status, data);
+          return data.items as Array<{ id: string; online: boolean }>;
+        }
+        assert.equal((await catalog()).find((item) => item.id === device)?.online, false);
+        assert.equal(
+          (
+            await call("PUT", "devices/current", bound.access, {
+              ...body,
+              key_sha256: "00".repeat(32),
+            })
+          ).status,
+          400,
+        );
+        assert.equal((await catalog()).find((item) => item.id === device)?.online, false);
+        assert.equal((await call("PUT", "devices/current", bound.access, body)).status, 200);
+        const devices = await catalog();
+        assert.equal(devices.find((item) => item.id === device)?.online, true);
+        assert.equal(devices.find((item) => item.id === sibling)?.online, false);
+      },
+    );
     await t.test("global remote-ID uniqueness and account filtering", async () => {
       assert.equal(
         (
