@@ -6,7 +6,7 @@
   "source_revision": "4ccf4a068f7b8353e1ca734918f9e36cc69a39e9",
   "build_run": 37947684952,
   "build_attempt": 2,
-  "recorded_at": "2026-10-09T17:25:38.184484+00:00",
+  "recorded_at": "2026-10-09T17:27:46.315716+00:00",
   "deliverables": {
     "NestLink-Server-13.0.0.tar.gz": "da77831ded3ba0ff0bf6e7f6257dba390f6d4e612eda41f64aced64219c76c7d"
   },
@@ -416,31 +416,100 @@
               "revision": "4ccf4a068f7b8353e1ca734918f9e36cc69a39e9"
             }
           },
-          "verified_sha256": {
-            "NestLink-Server-13.0.0.tar.gz": "da77831ded3ba0ff0bf6e7f6257dba390f6d4e612eda41f64aced64219c76c7d",
-            "REMOTE_PROTOCOL.md": "0b91722f985540c097c9d1ce10674a97abdce184d44b7bdd02d60a11e02382cd",
-            "api.schema.json": "5edd7c53065d8b81fb6cc500015c60246dd4d6c7da3afd7daf33aad22b6272d7",
-            "api.v2.schema.json": "e4fa2ca58847e445423d78cdab6de16e29d67e63ef6daf553c0647054cdf94ed",
-            "compose.release.yaml": "bd94065ecc12711b28f0b0051311a5d84f9b99124c4e28565643b9ab781ece90",
-            "frps-dependency.json": "8b2d5efec6f92a3b0f3ed32656ec560c7f69949194ac4abb54a17520e625c6ae",
-            "frps-dependency.json.sigstore.json": "0c63109724f81e3240e19f98e32c968e8d6c3db1e372dce5723e94ac47508eb9",
-            "home-tunnel.v1.json": "47122e7f75788e0b60efe1f7b5180a6098183ea0310d248a9f96098474a5ef2a",
-            "home-tunnel.v2.json": "9543bafe0c6d5a8f615926c2d8cfa8f2b9f72a744c39e138ea04a9f4b8d254cf",
-            "image-control-center.json": "790e6d28cd83296f1c2c28404350ef15a2ef82f293ad45496373fc735650b360",
-            "image-traffic-gateway.json": "ac17592535f61a9825e8c3720578c1d67dc1a78c1e0018c7a4598734e93c1fb6",
-            "nestlink-auth.v2-vectors.json": "8328d7d3febfea627e5743e577ea22c857687056eebd13e5fc04c0456b6a0ebd",
-            "openapi.v1.json": "8c72baae633157ccd5e7c8e9cf3d5fc24f6f607685744349fa1cb39fe482fae4",
-            "openapi.v2.json": "b7f31f073dc97383314688f728e2cfeae5474f1e2b27e073dfc1990c18dd9e78",
-            "release-manifest.json": "4b83a281a72c8fb6ae75924c3a983ab0e2c5646284734f6576a64a776cdc7de0",
-            "remote-authorization-vectors.json": "6ddafdaeb937cd8500c736e62bc21cb3ee92148173c4ae984d3fb9121a26cece",
-            "remote-desktop.v1.json": "78e1c1d789118b710fa87ce7f1abb9a0b0ac4fa59475a67628ac48245bf3ca4d",
-            "server-port-settings-amd64.json": "59407246450f8d85df07d504a0c8409a4c41c31d8ba44d4628f435c7d1612d7f",
-            "server-port-settings-arm64.json": "9e52c1344a0a7d2338c0fecf0d03f7c2873b1955fc71a31963f382e71a811171",
-            "server-smoke-amd64.json": "723632382feeac0000ad4bc5080c353b1d0a5182befa8024255b3786f4582d63",
-            "server-smoke-arm64.json": "723632382feeac0000ad4bc5080c353b1d0a5182befa8024255b3786f4582d63",
-            "stun-runtime-amd64.json": "eed9575e325d8246bdcf2a33366fd8029b2ccc90a7d44e41771b7614084c82d4",
-            "stun-runtime-arm64.json": "0d29405f4e03386c6a599b3ff45d4cdbab096d5f481ea6c4b45d6676614a577c"
-          }
+          "verified_files": [
+            {
+              "path": "NestLink-Server-13.0.0.tar.gz",
+              "sha256": "da77831ded3ba0ff0bf6e7f6257dba390f6d4e612eda41f64aced64219c76c7d"
+            },
+            {
+              "path": "REMOTE_PROTOCOL.md",
+              "sha256": "0b91722f985540c097c9d1ce10674a97abdce184d44b7bdd02d60a11e02382cd"
+            },
+            {
+              "path": "api.schema.json",
+              "sha256": "5edd7c53065d8b81fb6cc500015c60246dd4d6c7da3afd7daf33aad22b6272d7"
+            },
+            {
+              "path": "api.v2.schema.json",
+              "sha256": "e4fa2ca58847e445423d78cdab6de16e29d67e63ef6daf553c0647054cdf94ed"
+            },
+            {
+              "path": "compose.release.yaml",
+              "sha256": "bd94065ecc12711b28f0b0051311a5d84f9b99124c4e28565643b9ab781ece90"
+            },
+            {
+              "path": "frps-dependency.json",
+              "sha256": "8b2d5efec6f92a3b0f3ed32656ec560c7f69949194ac4abb54a17520e625c6ae"
+            },
+            {
+              "path": "frps-dependency.json.sigstore.json",
+              "sha256": "0c63109724f81e3240e19f98e32c968e8d6c3db1e372dce5723e94ac47508eb9"
+            },
+            {
+              "path": "home-tunnel.v1.json",
+              "sha256": "47122e7f75788e0b60efe1f7b5180a6098183ea0310d248a9f96098474a5ef2a"
+            },
+            {
+              "path": "home-tunnel.v2.json",
+              "sha256": "9543bafe0c6d5a8f615926c2d8cfa8f2b9f72a744c39e138ea04a9f4b8d254cf"
+            },
+            {
+              "path": "image-control-center.json",
+              "sha256": "790e6d28cd83296f1c2c28404350ef15a2ef82f293ad45496373fc735650b360"
+            },
+            {
+              "path": "image-traffic-gateway.json",
+              "sha256": "ac17592535f61a9825e8c3720578c1d67dc1a78c1e0018c7a4598734e93c1fb6"
+            },
+            {
+              "path": "nestlink-auth.v2-vectors.json",
+              "sha256": "8328d7d3febfea627e5743e577ea22c857687056eebd13e5fc04c0456b6a0ebd"
+            },
+            {
+              "path": "openapi.v1.json",
+              "sha256": "8c72baae633157ccd5e7c8e9cf3d5fc24f6f607685744349fa1cb39fe482fae4"
+            },
+            {
+              "path": "openapi.v2.json",
+              "sha256": "b7f31f073dc97383314688f728e2cfeae5474f1e2b27e073dfc1990c18dd9e78"
+            },
+            {
+              "path": "release-manifest.json",
+              "sha256": "4b83a281a72c8fb6ae75924c3a983ab0e2c5646284734f6576a64a776cdc7de0"
+            },
+            {
+              "path": "remote-authorization-vectors.json",
+              "sha256": "6ddafdaeb937cd8500c736e62bc21cb3ee92148173c4ae984d3fb9121a26cece"
+            },
+            {
+              "path": "remote-desktop.v1.json",
+              "sha256": "78e1c1d789118b710fa87ce7f1abb9a0b0ac4fa59475a67628ac48245bf3ca4d"
+            },
+            {
+              "path": "server-port-settings-amd64.json",
+              "sha256": "59407246450f8d85df07d504a0c8409a4c41c31d8ba44d4628f435c7d1612d7f"
+            },
+            {
+              "path": "server-port-settings-arm64.json",
+              "sha256": "9e52c1344a0a7d2338c0fecf0d03f7c2873b1955fc71a31963f382e71a811171"
+            },
+            {
+              "path": "server-smoke-amd64.json",
+              "sha256": "723632382feeac0000ad4bc5080c353b1d0a5182befa8024255b3786f4582d63"
+            },
+            {
+              "path": "server-smoke-arm64.json",
+              "sha256": "723632382feeac0000ad4bc5080c353b1d0a5182befa8024255b3786f4582d63"
+            },
+            {
+              "path": "stun-runtime-amd64.json",
+              "sha256": "eed9575e325d8246bdcf2a33366fd8029b2ccc90a7d44e41771b7614084c82d4"
+            },
+            {
+              "path": "stun-runtime-arm64.json",
+              "sha256": "0d29405f4e03386c6a599b3ff45d4cdbab096d5f481ea6c4b45d6676614a577c"
+            }
+          ]
         }
       }
     }
