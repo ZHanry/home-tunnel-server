@@ -189,21 +189,21 @@ const domains = [];
 app.use(express.json());
 app.use(express.static(publicDirectory, { etag: false, lastModified: false, maxAge: 0 }));
 app.get("/api/v2/public/capabilities", (_request, response) =>
-  response.json({ api_major: 2, server_version: "12.0.0-RC1", contract_version: "2.0.0" }),
+  response.json({ api_major: 2, server_version: "13.0.0", contract_version: "2.0.0" }),
 );
 
 app.get("/api/v2/public/updates/:component", (request, response) =>
   response.json({
-    current_version: "12.0.0-RC1",
+    current_version: "13.0.0",
     update_available: false,
     latest: {
-      version: "12.0.0-RC1",
+      version: "13.0.0",
       notes: "NestLink release preview",
       prerelease: true,
       url:
         "https://github.com/ZHanry/home-tunnel-" +
         request.params.component +
-        "/releases/tag/v12.0.0-RC1",
+        "/releases/tag/v13.0.0",
     },
   }),
 );

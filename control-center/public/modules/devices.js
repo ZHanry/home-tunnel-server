@@ -1,4 +1,4 @@
-import { pagination } from "./pagination.js?v=12.0.0-RC1";
+import { pagination } from "./pagination.js?v=13.0.0";
 export function createDevicesView({api,state,devicesPath,viewContent,escapeHtml,statusBadge,configState,formatDate,emptyState,isAdmin}) {
   async function renderDevices(renderId=state.renderId) {
     state.deviceQuery ??= {page:1,search:""};

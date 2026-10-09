@@ -1,7 +1,7 @@
-import { createConnectionsView } from "./modules/connections.js?v=12.0.0-RC1";
-import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=12.0.0-RC1";
-import { tunnelVerification } from "./modules/tunnel-model.js?v=12.0.0-RC1";
-import { createAccountSecurityView } from "./modules/account-security.js?v=12.0.0-RC1";
+import { createConnectionsView } from "./modules/connections.js?v=13.0.0";
+import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=13.0.0";
+import { tunnelVerification } from "./modules/tunnel-model.js?v=13.0.0";
+import { createAccountSecurityView } from "./modules/account-security.js?v=13.0.0";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -9,10 +9,10 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=12.0.0-RC1";
-import { createDevicesView } from "./modules/devices.js?v=12.0.0-RC1";
-import { createNestLinkView as createRemoteView } from "./modules/homedesk.js?v=12.0.0-RC1";
-import { api, refreshSession, allPages } from "./modules/api.js?v=12.0.0-RC1";
+} from "./modules/forms.js?v=13.0.0";
+import { createDevicesView } from "./modules/devices.js?v=13.0.0";
+import { createNestLinkView as createRemoteView } from "./modules/homedesk.js?v=13.0.0";
+import { api, refreshSession, allPages } from "./modules/api.js?v=13.0.0";
 import {
   componentLabel,
   configState,
@@ -21,11 +21,11 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=12.0.0-RC1";
-import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=12.0.0-RC1";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=12.0.0-RC1";
-import { state } from "./modules/state.js?v=12.0.0-RC1";
-import { pagination } from "./modules/pagination.js?v=12.0.0-RC1";
+} from "./modules/format.js?v=13.0.0";
+import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=13.0.0";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=13.0.0";
+import { state } from "./modules/state.js?v=13.0.0";
+import { pagination } from "./modules/pagination.js?v=13.0.0";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -95,7 +95,7 @@ function applyRoleChrome() {
     item.hidden = !isAdmin();
   });
   const brand = document.querySelector(".sidebar-brand .brand-copy small");
-  if (brand) brand.textContent = "NestLink";
+  if (brand) brand.textContent = "nestlink";
   const sessionCopy = document.querySelector(".sidebar-session small");
   if (sessionCopy) sessionCopy.textContent = isAdmin() ? "权限已验证" : "仅显示你的资源";
 }
@@ -585,9 +585,9 @@ async function openUpdates() {
     let release = null;
     release = (await checkUpdates())?.latest ?? null;
     if (!modal.open || opening !== state.renderId) return;
-    const version = capabilities.server_version ?? "12.0.0-RC1";
+    const version = capabilities.server_version ?? "13.0.0";
     document.querySelector("#current-version").textContent = version;
-    modalBody.innerHTML = `<div class="update-summary"><img src="/NestLink.svg" width="48" height="48" alt=""><div><strong>栖云桥 / NestLink</strong><p data-no-translate>${escapeHtml(version)}</p></div></div>
+    modalBody.innerHTML = `<div class="update-summary"><img src="/NestLink.svg" width="48" height="48" alt=""><div><strong>nestlink</strong><p data-no-translate>${escapeHtml(version)}</p></div></div>
       <dl><dt>当前版本</dt><dd data-no-translate>${escapeHtml(version)}</dd><dt>可用版本</dt><dd data-no-translate>${release ? escapeHtml(release.version) : "暂时无法检查"}</dd></dl>
       <p class="release-notes">${escapeHtml(release?.notes ?? "管理自建服务、家庭设备、P2P 远控与内网穿透。")}</p>
       <a class="button button-secondary" href="${escapeHtml(release?.url ?? "https://github.com/ZHanry/home-tunnel-server/releases")}" target="_blank" rel="noopener noreferrer">发布说明与下载</a>`;

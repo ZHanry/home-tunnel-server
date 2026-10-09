@@ -58,12 +58,12 @@ test("public home keeps prototype artwork, features and language on narrow scree
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator(".marketing-brand .brand-mark img")).toBeVisible();
-  await expect(page.locator(".marketing-brand")).toContainText("栖云桥");
+  await expect(page.locator(".marketing-brand")).toContainText("nestlink");
   await expect(page.locator(".hero-art .art-server")).toBeVisible();
   await expect(page.locator(".landing-features article")).toHaveCount(3);
   await expect(page.locator("#hero-download")).toHaveAttribute(
     "href",
-    "https://github.com/ZHanry/home-tunnel-client/releases/tag/v12.0.0-RC1",
+    "https://github.com/ZHanry/home-tunnel-client/releases/tag/v13.0.0",
   );
   await page.locator(".marketing-footer [data-locale-toggle]").click();
   await expect(page.locator("#hero-title")).toContainText("Bring your home services");
@@ -102,15 +102,26 @@ test("password failures never expose obsolete authentication inputs or auto-retr
   await expect.poll(() => attempts.length).toBe(2);
 });
 
-test("remote page launches the native app with only a device ID", async ({ page }) => {
+test("remote page requests browser control using the account and clears its password", async ({ page }) => {
   const requests = [];
-  page.on("request", request => requests.push(new URL(request.url()).pathname));
+  await page.route("**/api/v2/browser/config", route => route.fulfill({ json: { stun_urls: [] } }));
+  await page.route("**/api/v2/browser/sessions", async route => {
+    requests.push(route.request().postDataJSON());
+    await route.fulfill({ status: 409, json: { error_code: "BROWSER_HOST_OFFLINE", message: "被控设备离线" } });
+  });
   await ready(page, "/admin#remote");
-  const launch = page.getByRole("link", { name: "连接设备", exact: true });
-  await expect(launch).toHaveAttribute("href", "homedesk://123456789");
-  await expect(page.locator("#view-content")).toContainText("发起连接");
-  expect(requests.some(path => path.startsWith("/api/v1/rd/"))).toBe(false);
-  await expect(page.locator(".remote-dialog")).toHaveCount(0);
+  await expect(page.locator('a[href^="homedesk://"]')).toHaveCount(0);
+  await page.locator("#remote-target-id").fill("123456789");
+  await page.locator("#remote-password").fill("test-only-password");
+  await page.locator("#remote-connect-form button[type=submit]").click();
+  await expect(page.locator(".browser-remote-dialog canvas")).toBeVisible();
+  await expect.poll(() => requests.length).toBe(1);
+  expect(requests[0].target_id).toBe("123456789");
+  expect(requests[0].password).toBe("test-only-password");
+  await expect(page.locator("#remote-password")).toHaveValue("");
+  await expect(page.locator(".browser-remote-dialog [data-remote-status]")).toContainText("被控设备离线");
+  await page.locator(".browser-remote-dialog [data-close]").click();
+  await expect(page.locator(".browser-remote-dialog")).toHaveCount(0);
 });
 
 test("sidebar version opens official release details in a dialog", async ({ page }) => {
@@ -118,8 +129,8 @@ test("sidebar version opens official release details in a dialog", async ({ page
   await expect(page.locator('[data-view="updates"]')).toHaveCount(0);
   await page.locator("#version-button").click();
   await expect(page.locator("#modal[open]")).toBeVisible();
-  await expect(page.locator("#modal")).toContainText("12.0.0-RC1");
-  await expect(page.locator("#modal .update-summary")).toContainText("NestLink");
+  await expect(page.locator("#modal")).toContainText("13.0.0");
+  await expect(page.locator("#modal .update-summary")).toContainText("nestlink");
   await expect(page.locator('#modal a[href*="github.com/ZHanry/home-tunnel-server/releases"]')).toBeVisible();
 });
 
@@ -491,13 +502,13 @@ test("mobile More hides admin routes and closes when focus leaves or the layout 
   await expect(page.locator("#nav-secondary")).toBeHidden();
 });
 
-test("native remote instructions translate in both directions", async ({ page }) => {
+test("browser remote controls translate in both directions", async ({ page }) => {
   await ready(page, "/admin#remote");
   await page.locator(".sidebar [data-locale-toggle]").click();
   await expect(page.locator("#view-content")).toContainText("Connect to a device");
-  await expect(page.getByRole("link", { name: "Connect", exact: true })).toHaveAttribute("href", "homedesk://123456789");
+  await expect(page.locator(".remote-device [data-browser-connect]")).toHaveText("Connect");
   await page.locator(".sidebar [data-locale-toggle]").click();
-  await expect(page.getByRole("link", { name: "连接设备", exact: true })).toBeVisible();
+  await expect(page.locator(".remote-device [data-browser-connect]")).toHaveText("连接设备");
 });
 
 test("realtime startup preserves foreground loading failures and an explicit retry", async ({ page }) => {

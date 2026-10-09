@@ -79,15 +79,18 @@ test("public landing page stays available while Windows release metadata is abse
     assert.equal(landing.status, 200);
     assert.equal(landing.headers["cache-control"], "no-cache");
     assert.match(landing.body.toString("utf8"), /桌面图形客户端/);
-    assert.match(landing.body.toString("utf8"), /Linux \/ macOS 无界面服务/);
+    assert.match(landing.body.toString("utf8"), /Linux 图形客户端/);
     assert.doesNotMatch(landing.body.toString("utf8"), /内部测试|Experimental|Beta/);
     assert.match(
       landing.body.toString("utf8"),
-      /href="https:\/\/github\.com\/ZHanry\/home-tunnel-client\/releases\/tag\/v12\.0\.0-RC1"/,
+      /href="https:\/\/github\.com\/ZHanry\/home-tunnel-client\/releases\/tag\/v13\.0\.0"/,
     );
     assert.match(landing.body.toString("utf8"), /id="features"/);
     assert.doesNotMatch(landing.body.toString("utf8"), /home-tunnel\/releases\/latest\/download/);
-    assert.match(landing.body.toString("utf8"), /home-tunnel-client status/);
+    assert.doesNotMatch(
+      landing.body.toString("utf8"),
+      /home-tunnel-client status|macOS|CLI|HEADLESS/,
+    );
     assert.ok(landing.body.toString("utf8").includes(`app.js?v=${ASSET_VERSION}`));
     assert.match(landing.body.toString("utf8"), /type="module"/);
     assert.ok(landing.body.toString("utf8").includes(`console.css?v=${ASSET_VERSION}`));
@@ -158,7 +161,7 @@ test("public landing page stays available while Windows release metadata is abse
     assert.match(localeModule.body.toString("utf8"), /function updateDocumentMetadata\(\)/);
     assert.match(
       localeModule.body.toString("utf8"),
-      /NestLink — Secure access to services at home/,
+      /nestlink — Secure access to services at home/,
     );
     assert.match(localeModule.body.toString("utf8"), /record\.type === "characterData"/);
     assert.equal(localeModule.headers["cache-control"], "no-cache");

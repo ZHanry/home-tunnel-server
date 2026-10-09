@@ -1,4 +1,4 @@
-import { pagination } from "./pagination.js?v=12.0.0-RC1";
+import { pagination } from "./pagination.js?v=13.0.0";
 export function createConnectionsView({
   api,
   allPages,

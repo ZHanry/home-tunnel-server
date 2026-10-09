@@ -50,7 +50,7 @@ test("native permits isolate directories, allow authenticated cross-account assi
       name: username + " computer",
       install_id: randomUUID(),
       fingerprint_hash: username === "admin" ? "ab".repeat(32) : "cd".repeat(32),
-      client_version: "12.0.0-RC1",
+      client_version: "13.0.0",
       client_type: "windows",
       credential_purpose: "gui",
     });

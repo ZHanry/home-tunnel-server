@@ -1,4 +1,4 @@
-/* 栖云桥 / NestLink. Shared blue workbench, accessible scrolling without visible bars. */
+/* NestLink. Shared blue workbench, accessible scrolling without visible bars. */
 :root {
   --page: #f7f9fc; --chrome: #fff; --surface: #fff; --surface-2: #f7f9fc;
   --surface-muted: #f7f9fc; --text: #12233f; --secondary: #445876; --muted: #586b85;
@@ -112,4 +112,17 @@ label:has(> input[type="checkbox"]) { display: flex; align-items: center; gap: 9
 
 .sidebar-toolbar .icon-button { min-height: 44px; height: 44px; }
 .remote-device .button { min-height: 40px; }
+.browser-remote-dialog { width: min(1280px, calc(100vw - 32px)); height: min(840px, calc(100dvh - 32px)); max-width: none; max-height: none; padding: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); }
+.browser-remote-dialog[open] { display: flex; flex-direction: column; }
+.browser-remote-dialog::backdrop { background: rgb(12 23 42 / 60%); }
+.browser-remote-dialog > header, .browser-remote-dialog > footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 18px; flex-shrink: 0; }
+.browser-remote-dialog > header > div { display: flex; gap: 16px; align-items: center; }
+.browser-remote-dialog > footer { font-size: 12px; color: var(--secondary); }
+.browser-remote-tools button { height: 34px; min-width: 34px; border: 0; border-radius: 6px; background: var(--surface-2); color: var(--text); font-size: 22px; cursor: pointer; }
+.browser-remote-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; background: #0c172a; }
+.browser-remote-stage canvas { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; touch-action: none; }
+.browser-remote-stage [data-remote-status] { position: absolute; max-width: calc(100% - 48px); padding: 18px 24px; border-radius: 10px; background: #19273d; color: #eaf1fd; text-align: center; }
+.browser-remote-dialog:fullscreen { width: 100vw; height: 100dvh; border-radius: 0; border: 0; }
+@media (max-width: 600px) { .browser-remote-dialog { width: 100vw; height: 100dvh; border-radius: 0; } .browser-remote-dialog > footer span:last-child { display: none; } }
 @media (max-width: 760px) { .remote-device .button { min-height: 44px; } }
+.remote-connect button[type="submit"] { min-height: 44px; }

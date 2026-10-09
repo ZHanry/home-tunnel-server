@@ -14,6 +14,7 @@ import { authRouter } from "./routes/auth.js";
 import { accountSecurityRouter } from "./routes/account-security.js";
 import { accountDevicesRouter } from "./routes/account-devices.js";
 import { remotePermitsRouter } from "./routes/remote-permits.js";
+import { browserRemoteRouter } from "./routes/browser-remote.js";
 import { publicV2Router } from "./routes/public-v2.js";
 import { platformRouter } from "./routes/platform.js";
 import { clientRouter } from "./routes/client.js";
@@ -102,6 +103,7 @@ export async function createApplication(
   app.use(["/api/v1/auth", "/api/v2/auth"], accountSecurityRouter);
   app.use("/api/v2/auth", accountDevicesRouter);
   app.use("/api/v2/remote", remotePermitsRouter);
+  app.use("/api/v2/browser", browserRemoteRouter);
   app.use("/api/v1/admin", adminRouter);
   app.use("/api/v1", platformRouter);
   app.use("/api/v1", deviceNameRouter);

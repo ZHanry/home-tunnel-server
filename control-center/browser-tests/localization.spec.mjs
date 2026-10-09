@@ -102,7 +102,7 @@ test("confirmation dialogs localize their consequences and preserve the selected
     });
     expect(geometry, `${action} readable confirmation`).toBe(true);
     for (const locale of ["zh-CN", "en"]) {
-      await page.evaluate(async locale => (await import("/modules/locale.js?v=12.0.0-RC1")).applyLocale(locale), locale);
+      await page.evaluate(async locale => (await import("/modules/locale.js?v=13.0.0")).applyLocale(locale), locale);
       await expect(page.locator(".confirmation-notice [data-no-translate]")).toHaveText(subject);
     }
     await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
@@ -132,10 +132,10 @@ test("public landing copy and footer translate in both directions", async ({ pag
   await expect(page.locator("#landing-screen")).toBeVisible();
   await expect.poll(() => untranslated(page, "#landing-screen")).toEqual([]);
   await expect(page.getByRole("heading", { name: "Mobile remote management" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Get started", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Download Android APK →", exact: true })).toBeVisible();
   await page.locator(".marketing-footer [data-locale-toggle]").click();
   await expect(page.getByRole("heading", { name: "手机远程管理" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "开始使用", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "下载 Android APK →", exact: true })).toBeVisible();
 });
 
 test("audit events keep labels and action identifiers readable on phones and tablets", async ({ page }) => {

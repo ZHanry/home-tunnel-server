@@ -12,6 +12,14 @@ test("RC1 spelling is supported without changing the stable channel ordering", a
   });
   const { eligibleRelease } = await import("./routes/public-v2.js");
   assert.ok(parseReleaseVersion("v12.0.0-RC1"));
+  assert.ok(parseReleaseVersion("v13.0.0"));
+  assert.equal(compareReleaseVersions("13.0.0", "12.0.0-RC10"), 1);
+  assert.equal(compareReleaseVersions("13.0.0", "13.0.0-RC1"), 1);
+  const stable = { draft: false, prerelease: false, tag_name: "v13.0.0" };
+  assert.equal(eligibleRelease(stable, "stable")?.version, "13.0.0");
+  assert.equal(eligibleRelease(stable, "rc")?.prerelease, false);
+  assert.equal(eligibleRelease({ ...stable, prerelease: true }, "stable"), null);
+  assert.equal(eligibleRelease({ ...stable, prerelease: true }, "rc"), null);
   assert.equal(compareReleaseVersions("12.0.0-RC10", "12.0.0-RC2"), 1);
   assert.equal(compareReleaseVersions("12.0.0-RC1", "12.0.0-rc.1"), 0);
   assert.equal(compareReleaseVersions("12.0.0", "12.0.0-RC10"), 1);

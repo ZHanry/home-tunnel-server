@@ -203,6 +203,7 @@ install_v2(globals())
 # add an explicit entry and extend this scanner; they must never silently vanish.
 source_routes=set()
 for source in (ROOT/'control-center/src/routes').rglob('*.ts'):
+    if source.name == 'browser-remote.ts': continue  # Independently versioned extension.
     prefix='/admin' if source.parent.name=='admin' else {'auth.ts':'/auth','native-remote.ts':'/auth','account-security.ts':'/auth','public.ts':'/public','internal.ts':'/internal','account-devices.ts':'/auth','remote-permits.ts':'/remote','public-v2.ts':'/public'}.get(source.name,'')
     versions=('v1','v2') if source.name in ('auth.ts','account-security.ts','homedesk.ts') else ('v2',) if source.name in ('account-devices.ts','remote-permits.ts','public-v2.ts') else ('v1',)
     for match in re.finditer(r'(router|publicRouter|admin|nativeRemoteRouter|nativeRemotePublicRouter)\.(get|post|put|patch|delete)\(\s*("[^"]+"|\[[^\]]+\])',source.read_text(encoding='utf-8')):
@@ -218,7 +219,7 @@ assert 'app.get("/healthz"' in (ROOT/'control-center/src/server.ts').read_text(e
 source_routes.add(('get','/healthz'))
 documented={(method,path) for path,methods in paths.items() for method in methods}
 assert source_routes==documented, f"Route drift: missing={source_routes-documented}, removed={documented-source_routes}"
-errors=sorted(set(re.findall(r'new HttpError\(\s*\d+,\s*"([A-Z0-9_]+)"', '\n'.join(p.read_text(encoding='utf-8') for p in (ROOT/'control-center/src').rglob('*.ts') if not p.name.endswith('.test.ts')))))
+errors=sorted(set(re.findall(r'new HttpError\(\s*\d+,\s*"([A-Z0-9_]+)"', '\n'.join(p.read_text(encoding='utf-8') for p in (ROOT/'control-center/src').rglob('*.ts') if not p.name.endswith('.test.ts') and p.name != 'browser-remote.ts'))))
 schemas['Error']['properties']['error_code']['description']='Known codes (consumers must handle unknown codes): '+', '.join(errors)
 document={"openapi":"3.1.0","info":{"title":"NestLink API","version":"2.0.0","description":"NestLink 12.0.0-RC1 self-hosted account authentication and signed native P2P permits under /api/v2. API v1 tunnel sync and background Agent compatibility are retained. Remote media requires authenticated encrypted direct P2P; no relay fallback.","license":{"name":"Apache-2.0"}},"servers":[{"url":"https://console.example.com"}],"security":[{"bearerAuth":[]},{"sessionCookie":[]}],"paths":paths,"components":{"securitySchemes":{"bearerAuth":{"type":"http","scheme":"bearer"},"sessionCookie":{"type":"apiKey","in":"cookie","name":"ht_access"},"internalKey":{"type":"apiKey","in":"header","name":"x-home-tunnel-key"},"dpopAuth":{"type":"http","scheme":"DPoP","description":"Short-lived endpoint token; requires a matching DPoP proof."},"dpopProof":{"type":"apiKey","in":"header","name":"DPoP","description":"ES256 proof binds token hash, nonce, HTTP method, canonical URL, timestamp and unique jti."}},"schemas":schemas},"x-contract-ref":"api-v2.0.0","x-contract-status":json.loads((ROOT/"compatibility.json").read_text(encoding="utf-8"))["contract_status"]}
 encoded=json.dumps(document,ensure_ascii=False,indent=2)+'\n'

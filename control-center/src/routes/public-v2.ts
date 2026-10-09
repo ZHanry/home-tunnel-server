@@ -11,14 +11,14 @@ export const apiCapabilitiesV2 = {
   openapi_url: "/openapi.v2.json",
   schema_url: "/api-schema.v2.json",
   minimum_clients: {
-    desktop: "12.0.0-RC1",
-    android: "12.0.0-RC1",
+    desktop: "13.0.0",
+    android: "13.0.0",
     agent: apiCapabilities.minimum_clients.agent,
   },
   homedesk: {
     ...apiCapabilities.homedesk,
     directory_version: 2,
-    minimum_client: "12.0.0-RC1",
+    minimum_client: "13.0.0",
     config_path: "/api/v2/homedesk/config",
     devices_path: "/api/v2/homedesk/devices",
     online_means: "authenticated_gui_presence",

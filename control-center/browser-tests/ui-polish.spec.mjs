@@ -160,12 +160,12 @@ test("main pages have no horizontal overflow at 390px and 2000px in both themes"
   }
 });
 
-test("the native remote directory fits wide and phone layouts", async ({ page }) => {
+test("the browser remote directory fits wide and phone layouts", async ({ page }) => {
   for (const width of [2000, 390]) {
     await page.setViewportSize({ width, height: 1000 });
     await ready(page, "/admin#remote");
-    const launch = page.getByRole("link", { name: "连接设备", exact: true });
-    await expect(launch).toHaveAttribute("href", "homedesk://123456789");
+    const launch = page.locator("#remote-connect-form button[type=submit]");
+    await expect(launch).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
     expect(overflow).toBe(false);
     const css = await launch.evaluate(button => ({ color: getComputedStyle(button).color,
@@ -175,11 +175,11 @@ test("the native remote directory fits wide and phone layouts", async ({ page })
   }
 });
 
-test("the native remote directory keeps authentication in the app", async ({ page }) => {
+test("the browser directory provides optional host verification after account login", async ({ page }) => {
   await ready(page, "/admin#remote");
-  await expect(page.locator("#view-content input[type=password]")).toHaveCount(0);
+  await expect(page.locator("#remote-password")).toHaveAttribute("type", "password");
   await expect(page.locator(".remote-assist-preview")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "连接设备", exact: true })).toBeVisible();
+  await expect(page.locator(".remote-device [data-browser-connect]")).toBeVisible();
 });
 
 for (const width of [1280, 390]) {

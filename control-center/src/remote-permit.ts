@@ -98,6 +98,12 @@ export function signPermit(claims: PermitClaims): string {
   return `${input}.${sign(null, Buffer.from(input), privateKey).toString("base64url")}`;
 }
 
+export function signBrowserGrant(claims: Record<string, unknown>): string {
+  const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
+  const input = `nlb1.${payload}`;
+  return `${input}.${sign(null, Buffer.from(input), privateKey).toString("base64url")}`;
+}
+
 export function verifyPermit(value: string, now = Math.floor(Date.now() / 1000)): PermitClaims {
   if (value.length > 4096 || !/^nlp2\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{86}$/.test(value))
     throw new HttpError(403, "REMOTE_PERMIT_INVALID", "远控许可无效");

@@ -1,4 +1,4 @@
-// 栖云桥的几何验收：真实预览数据，所有指定尺寸均保存原始全页截图。
+// NestLink的几何验收：真实预览数据，所有指定尺寸均保存原始全页截图。
 import { test, expect } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";

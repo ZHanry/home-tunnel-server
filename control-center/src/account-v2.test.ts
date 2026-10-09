@@ -47,7 +47,7 @@ test("v2 account and device authentication preserve independent background lifet
     name: purpose === "gui" ? "Home computer" : "Home NAS",
     install_id: "installation-stable",
     fingerprint_hash: "ab".repeat(32),
-    client_version: "12.0.0-RC1",
+    client_version: "13.0.0",
     client_type: purpose === "gui" ? "windows" : "nas",
     credential_purpose: purpose,
   });
