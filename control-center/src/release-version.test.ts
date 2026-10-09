@@ -5,6 +5,7 @@ import { compareReleaseVersions, parseReleaseVersion } from "./release-version.j
 test("RC1 spelling is supported without changing the stable channel ordering", async () => {
   Object.assign(process.env, {
     NODE_ENV: "test",
+    SQLITE_PATH: ":memory:",
     INTERNAL_SERVICE_KEY: "11".repeat(32),
     FRPS_PLUGIN_KEY: "22".repeat(32),
     LEASE_SIGNING_KEY: "33".repeat(32),

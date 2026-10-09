@@ -20,7 +20,7 @@ def supported_schema():
 
 def verify(bundle):
     manifest=json.loads((bundle/'manifest.json').read_text(encoding='utf-8'))
-    if manifest.get('format')!=1 or not re.fullmatch(r'\d+\.\d+\.\d+(?:-rc\.\d+)?',str(manifest.get('version',''))):raise ValueError('Unsupported backup manifest version')
+    if manifest.get('format')!=1 or not re.fullmatch(r'\d+\.\d+\.\d+(?:-(?:RC[1-9]\d*|rc\.[1-9]\d*))?',str(manifest.get('version',''))):raise ValueError('Unsupported backup manifest version')
     entries=manifest.get('files',[])
     if not 1<=len(entries)<=128:raise ValueError('Invalid file manifest')
     names=set()
