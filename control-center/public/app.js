@@ -289,6 +289,7 @@ function renderPageActions(view) {
 }
 
 async function renderView(view, { background = false } = {}) {
+  const initialFocus = document.activeElement;
   // Keep the foreground request responsible for its loading/error state. A
   // WebSocket opening during first load must not supersede it with stale data.
   if (background && viewContent.getAttribute("aria-busy") === "true") {
@@ -364,7 +365,9 @@ async function renderView(view, { background = false } = {}) {
     state.lastSync = Date.now();
     state.pendingRefresh = false;
     updateSyncStatus("已同步 · " + new Date(state.lastSync).toLocaleTimeString(localeTag()));
-    if (!background) document.querySelector("#main-content").focus({ preventScroll: true });
+    // A response must not steal focus from a control selected while it loaded.
+    if (!background && (document.activeElement === initialFocus || document.activeElement === document.body))
+      document.querySelector("#main-content").focus({ preventScroll: true });
     if (refreshAfterLoad) void renderView(state.currentView, { background: true });
   } catch (error) {
     if (renderId !== state.renderId) return;

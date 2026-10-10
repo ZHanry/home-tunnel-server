@@ -455,9 +455,19 @@ test("mobile navigation exposes three business destinations and account administ
       const box=await button.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(375);
     }
     await page.locator('.user-chip-name[data-view="account"]').click();
+    let releaseSettings, settingsRequested;
+    const pendingSettings=new Promise(resolve=>{releaseSettings=resolve;});
+    const requestedSettings=new Promise(resolve=>{settingsRequested=resolve;});
+    await page.route('**/api/v1/admin/settings',async route=>{
+      settingsRequested();await pendingSettings;await route.continue();
+    });
     await page.locator('.administration-links [data-view="settings"]').click();
+    await requestedSettings;
     await expect(page.locator("#page-title")).toHaveText("系统设置");
-    await page.locator('[data-view="devices"]').focus();await page.keyboard.press("Enter");
+    const devices=page.locator('[data-view="devices"]');
+    await devices.focus();await expect(devices).toBeFocused();
+    releaseSettings();await expect(page.locator('#view-content')).toHaveAttribute('aria-busy','false');
+    await expect(devices).toBeFocused();await page.keyboard.press("Enter");
     await expect(page.locator("#page-title")).toHaveText("设备管理");
     await expect(page.locator('[data-view="devices"]')).toHaveAttribute("aria-current","page");
     await page.locator('.product-bar [data-locale-toggle]').click();
