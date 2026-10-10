@@ -1,8 +1,8 @@
 {
   "product_version": "14.0.0",
   "source_repository": "https://github.com/ZHanry/home-tunnel-server",
-  "source_base_revision": "9645cf23871d2cb4913239eb9eff520d08c7cb23",
-  "source_state": "working tree; exact UI sources pinned below",
+  "source_base_revision": "de5d66bb630dc698ec42eb249e85906ab5689660",
+  "source_state": "Committed UI source; exact canonical Git blob SHA-256 values pinned below",
   "captured_at": "2026-10-10T11:06:07.657279+00:00",
   "capture_engine": "Playwright Chromium",
   "data_scope": "local UI preview with synthetic account/device/service fixtures; no runtime acceptance claim",
@@ -60,7 +60,7 @@
     },
     {
       "file": "control-center/public/modules/homedesk.js",
-      "sha256": "721854fbe02184d5a9cbd8eec716735374b11fdb764aee978b3922a77837e191"
+      "sha256": "406b1e08c254a52887ae1eaeeca587587dd87a80e5b0bb3cefb0738aaf9b0beb"
     },
     {
       "file": "control-center/public/modules/locale.js",
@@ -140,7 +140,7 @@
     },
     {
       "file": "control-center/public/nestlink.css",
-      "sha256": "c6619269422946748253d7fbf781d22af5f52535075533a15ddea4497c0a1ab0"
+      "sha256": "2776d1135322735e83b33d1be63e29974213ed3c10a3b55eab5711edf4f51d72"
     },
     {
       "file": "control-center/public/NestLink.svg",
@@ -270,5 +270,6 @@
       "page": "/admin",
       "data_scope": "login form with expired preview session"
     }
-  ]
+  ],
+  "ui_source_hash_encoding": "UTF-8 text with CRLF normalized to LF; matches committed Git blobs"
 }
