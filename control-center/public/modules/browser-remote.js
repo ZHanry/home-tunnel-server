@@ -1,4 +1,4 @@
-import { t } from "./locale.js?v=13.0.0";
+import { t } from "./locale.js?v=14.0.0";
 
 // Signaling and authorization use HTTPS. Screen and input travel only over peer DTLS/SCTP.
 export function createBrowserRemote({ api, escapeHtml }) {

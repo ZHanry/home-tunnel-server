@@ -238,6 +238,7 @@ jobs:
     - name: Check release policy
       run: |
         python3 -m unittest discover -s scripts -p "test_release*.py"
+          python3 -m unittest discover -s scripts -p "test_homedesk_release.py"
         python3 -m unittest discover -s scripts -p "test_landing_contract.py"
     - name: Verify documented UI screenshot provenance
       run: python3 -m unittest discover -s scripts -p "test_ui_screenshots.py"
@@ -258,6 +259,7 @@ jobs:
         pnpm --dir control-center install --frozen-lockfile
         pnpm --dir control-center run build
         python3 scripts/generate-api-spec.py --check
+        python3 scripts/check-device-capabilities-contract.py
         python3 -m unittest discover -s deploy/scripts -p 'test_*.py'
     - name: Install checksum-verified Restic
       run: |

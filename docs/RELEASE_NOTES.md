@@ -1,25 +1,9 @@
-# nestlink 13.0.0
+# NestLink 14.0.0
 
-正式版统一英文名称 nestlink、图标与蓝白工作台。Web 提供管理和浏览器内远控；Windows x64、Linux x64/ARM64 提供远控、被控和穿透中枢；Android 通用 APK 提供管理与远控。不再分发独立 CLI/NAS，也不发布 macOS。
+Web 服务端与桌面客户端统一紫色品牌、图标、设备目录、账号与设置名称。登录、设备管理、浏览器远控和穿透服务使用一致的入口与操作语义；账号设备能力提供可远控、已关联和后台服务状态。
 
-桌面主工作台固定为 1120×760，按可用屏幕和 DPI 缩小，禁止自由缩放及最大化；远控窗口保留全屏。各平台隐藏可见滚动条，保留滚动操作。版本和更新入口集中到侧栏底部，设置、分页和空状态统一整理。当前网站和文档仅展示新界面。
+保留原账号鉴权、可撤销设备凭据、短期签名许可和认证加密 P2P 直连。基础 API v2 的冻结身份保持不变；新增能力使用独立版本扩展。026 数据库迁移与现有设备兼容，必须通过迁移、授权、撤销及穿透回归。
 
-客户端必须登录自建 HTTPS 服务，自动获取连接配置。移除 MFA、恢复码与设备接入码；事务迁移撤销旧管理和远控窗口会话，保留有效后台设备凭据、设备身份与穿透配置。冻结认证契约 api-v2.0.0；必要穿透兼容接口保留。远控凭据与后台穿透凭据分别管理，撤销账号会话结束相关远控，撤销后台设备停止其穿透。
+发行包括 14.0.0 部署归档、源码与构建材料 ZIP、SHA256SUMS，以及 control-center/traffic-gateway 双架构镜像。验收通过的镜像按原 digest 复用，稳定发行不重建镜像；FRP 的独立依赖版本保持 0.70.1。
 
-同服务下可按设备 ID 跨账号协助，被控端必须批准或验证密码。原生和浏览器远控使用认证加密的 P2P 直连；直连失败明确结束。服务端处理授权和信令，不转发远控画面。浏览器当前覆盖画面、键盘和鼠标，JPEG 画面上限 1920×1080、约 6.7 fps。
-
-服务端发行复用 [已验证的候选构建 37947684952](https://github.com/ZHanry/home-tunnel-server/actions/runs/37947684952) 的部署包与镜像 digest，未重新构建运行字节。amd64/arm64 部署和穿透联调、旧账号事务迁移及回滚测试通过。实际安装的 Linux x64 客户端与浏览器通过跨账号批准、真实画面、键盘输入、直连、自动续期、拒绝、密码错误、离线和账号撤销检查；关闭远控或撤销前台会话后，HTTP、HTTPS 后端、TCP、UDP 穿透继续运行。
-
-完整记录见 [13.0.0 验收记录](release/acceptance-13.0.0.json)。附件提供实际部署字节、SHA-256、对应源码、许可证与 Sigstore 构建证据。镜像按不可变 digest 核验后同步 13.0.0 标签。本次发布包含 GitHub、镜像和分发站点；生产部署升级另行执行。
-
-尚未验证 Android 真机、运营商 NAT、长期媒体运行、Windows/ARM64 实际远控媒体和 Wayland。音频、文件、剪贴板未纳入本次验收。Windows 安装器没有 Authenticode 发布者签名。Android 保留原 applicationId 和发行证书。历史 Git 标签与发行材料保留。
-
-The following remain unverified for the final release build:
-
-- file transfer from host to viewer
-- fixed-password mode on the final build (wrong-password rejection was verified; successful fixed-password connections were not)
-- Android controlling a Windows host (the installed Android-to-Linux path is recorded separately)
-- 2-hour and 24-hour soaks and the 30-connection repeat
-- IPv6, blocked-UDP and network-recovery matrix
-- backup restore in an upgraded production deployment
-- full Gemini review of the final UI (installed UI captures were reviewed directly)
+最终构建和联调正在验收。发布必须绑定 14.0.0 的原始 CI、最终部署包哈希和镜像 digest，13.0.0 验收证据不代替本次结果。生产部署升级独立于 GitHub 发行。真机、运营商 NAT、长期媒体和未运行功能必须按实际验证范围披露。

@@ -533,6 +533,23 @@
         "metadata_version": {
           "type": "integer",
           "minimum": 1
+        },
+        "credential_purpose": {
+          "type": "string",
+          "enum": [
+            "gui",
+            "background"
+          ]
+        },
+        "client_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -4634,6 +4651,128 @@
         "url",
         "notes",
         "prerelease"
+      ]
+    },
+    "DeviceCapabilityFields": {
+      "type": "object",
+      "properties": {
+        "credential_purpose": {
+          "type": "string",
+          "enum": [
+            "gui",
+            "background"
+          ]
+        },
+        "client_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": []
+    },
+    "LinkedDeviceCapabilities": {
+      "type": "object",
+      "properties": {
+        "physical_device_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "remote_device_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "tunnel_device_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "physical_device_id",
+        "remote_device_id",
+        "tunnel_device_id"
+      ]
+    },
+    "DeviceCapabilities": {
+      "type": "object",
+      "properties": {
+        "physical_device_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "remote_device_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tunnel_device_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "physical_device_id",
+        "remote_device_id",
+        "tunnel_device_id"
+      ]
+    },
+    "AdminDeviceCapabilities": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "physical_device_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "remote_device_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tunnel_device_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "user_id",
+        "physical_device_id",
+        "remote_device_id",
+        "tunnel_device_id"
       ]
     }
   }

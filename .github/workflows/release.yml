@@ -4,7 +4,7 @@ name: Release server
     tags:
     - v*-rc.*
     - v*-RC*
-    - v13.*
+    - v[0-9]*.[0-9]*.[0-9]*
 permissions:
   contents: write
   checks: read
@@ -120,6 +120,7 @@ jobs:
     - run: |
         cp contracts/home-tunnel.v1.json contracts/openapi.v1.json contracts/api.schema.json release/
         cp contracts/home-tunnel.v2.json contracts/openapi.v2.json contracts/api.v2.schema.json contracts/nestlink-auth.v2-vectors.json release/
+        cp contracts/nestlink-device-capabilities.v1.json contracts/nestlink-device-capabilities.v1.schema.json contracts/device-capabilities.lock.json release/
         cp contracts/remote-desktop.v1.json contracts/remote-authorization-vectors.json contracts/REMOTE_PROTOCOL.md release/
         cp deploy/frps/dependency.json release/frps-dependency.json
         cp deploy/frps/dependency.sigstore.json release/frps-dependency.json.sigstore.json
@@ -227,7 +228,7 @@ jobs:
         retention-days: 90
 
   publish-stable:
-    name: Publish accepted nestlink 13.0.0 bytes
+    name: Publish accepted NestLink stable bytes
     needs: metadata
     if: ${{ needs.metadata.outputs.stable == 'true' }}
     runs-on: ubuntu-latest
@@ -254,5 +255,5 @@ jobs:
       run: |
         set -euo pipefail
         python3 scripts/homedesk-release.py verify-server --input release
-        python3 scripts/homedesk-release.py pack --component server --input release --select NestLink-Server-13.0.0.tar.gz --evidence release
+        python3 scripts/homedesk-release.py pack --component server --input release --select NestLink-Server-${{ needs.metadata.outputs.version }}.tar.gz --evidence release
         python3 scripts/homedesk-release.py publish --input release-public

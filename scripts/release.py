@@ -96,6 +96,8 @@ def required_assets(directory):
         expected = ["image-control-center.json", "image-traffic-gateway.json", "home-tunnel.v1.json", "openapi.v1.json", "api.schema.json",
                     "remote-desktop.v1.json", "remote-authorization-vectors.json", "REMOTE_PROTOCOL.md",
                     "home-tunnel.v2.json", "openapi.v2.json", "api.v2.schema.json", "nestlink-auth.v2-vectors.json"]
+        if int(version.split(".", 1)[0]) >= 14:
+            expected += ["nestlink-device-capabilities.v1.json", "nestlink-device-capabilities.v1.schema.json", "device-capabilities.lock.json"]
         for name in ("control-center", "traffic-gateway"):
             record = json.loads((directory / f"image-{name}.json").read_text())
             if record["revision"] != SHA or not re.fullmatch(r"sha256:[a-f0-9]{64}", record["digest"]):

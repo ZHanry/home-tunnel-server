@@ -11,6 +11,10 @@ MFA, recovery codes and device enrollment codes are removed. Migration 024 remov
 
 Regenerate with `python scripts/generate-api-spec.py`; verify with `--check`. Consumers lock the exact frozen server commit and SHA-256 of all seven contract files. Historical tags must never be moved.
 
+## Physical-device extension
+
+`nestlink-device-capabilities-v1` independently versions migration 026, explicit GUI/background links, account atomic revocation, optional directory capability/platform fields and read-only administrator associations. The original `api-v2.0.0` tag and consumer authentication snapshots remain immutable. `device-capabilities.lock.json` pins the extension and its standalone schema. The current aggregated OpenAPI declares `x-extensions` and operation `x-extension-ref` metadata; the frozen authentication tag does not include this extension. Run `python scripts/check-device-capabilities-contract.py` after the generator check.
+
 ## Historical protocol documentation
 
 # API contract ownership

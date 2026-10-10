@@ -1,0 +1,737 @@
+{
+  "contract_version": "nestlink-device-capabilities-v1",
+  "authentication_contract": "api-v2.0.0",
+  "version": 1,
+  "migration": 26,
+  "operations": {
+    "POST /api/v2/auth/device-capabilities/link": {
+      "operationId": "post_api_v2_auth_device_capabilities_link",
+      "summary": "POST /api/v2/auth/device-capabilities/link",
+      "tags": [
+        "api"
+      ],
+      "security": [
+        {
+          "bearerAuth": []
+        },
+        {
+          "sessionCookie": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "x-csrf-token",
+          "in": "header",
+          "schema": {
+            "type": "string",
+            "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ACCOUNT_SESSION_REQUIRED, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_REGISTERED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DEVICE_SCOPE, DEVICE_SESSION_REQUIRED, DNS_VERIFICATION_FAILED, FORBIDDEN, GUI_SESSION_REQUIRED, HOMEDESK_REALM_MISMATCH, HOMEDESK_UNCONFIGURED, NATIVE_DEVICE_REQUIRED, NATIVE_HANDOFF_INVALID, NATIVE_ORIGIN_INVALID, NATIVE_REMOTE_SCOPE, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, REMOTE_ID_CONFLICT, REMOTE_KEY_INVALID, REMOTE_PEER_EXPIRED, REMOTE_PERMIT_EXPIRED, REMOTE_PERMIT_INVALID, REMOTE_PERMIT_REVOKED, REMOTE_PERMIT_SCOPE, REMOTE_PERMIT_UNKNOWN, REMOTE_PERMIT_USED, REMOTE_PROOF_INVALID, REMOTE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT"
+          },
+          "description": "Required with cookie authentication. Obtain from auth/session. Not required with Bearer authentication."
+        }
+      ],
+      "responses": {
+        "201": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/LinkedDeviceCapabilities"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication failure",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission or CSRF failure",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource absent or not owned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Version, policy or state conflict",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "423": {
+          "description": "Account or device locked",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Rate or resource limit",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Dependency unavailable",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "200": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/LinkedDeviceCapabilities"
+              }
+            }
+          }
+        }
+      },
+      "description": "Account management session and cookie CSRF required. Explicitly link active same-account GUI and background subjects one-to-one. Never infer identity from names. Repeating the same pair returns 200; conflicting associations return 409. No credentials, services or scopes are moved.",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "remote_device_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "tunnel_device_id": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "required": [
+                "remote_device_id",
+                "tunnel_device_id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "x-extension-ref": "nestlink-device-capabilities-v1"
+    },
+    "GET /api/v2/auth/device-capabilities": {
+      "operationId": "get_api_v2_auth_device_capabilities",
+      "summary": "GET /api/v2/auth/device-capabilities",
+      "tags": [
+        "api"
+      ],
+      "security": [
+        {
+          "bearerAuth": []
+        },
+        {
+          "sessionCookie": []
+        }
+      ],
+      "parameters": [],
+      "responses": {
+        "200": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "const": 1
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/schemas/DeviceCapabilities"
+                    }
+                  }
+                },
+                "required": [
+                  "version",
+                  "items"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication failure",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission or CSRF failure",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource absent or not owned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Version, policy or state conflict",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "423": {
+          "description": "Account or device locked",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Rate or resource limit",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Dependency unavailable",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        }
+      },
+      "description": "Live account management session required. Return only account-owned IDs. Revoked capabilities are null. The physical identity remains the original GUI UUID while either capability is active. Old device/service requests continue using subject UUIDs.",
+      "x-extension-ref": "nestlink-device-capabilities-v1"
+    },
+    "DELETE /api/v2/auth/device-capabilities/{remoteId}": {
+      "operationId": "delete_api_v2_auth_device_capabilities_remoteId",
+      "summary": "DELETE /api/v2/auth/device-capabilities/{remoteId}",
+      "tags": [
+        "api"
+      ],
+      "security": [
+        {
+          "bearerAuth": []
+        },
+        {
+          "sessionCookie": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "remoteId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ACCOUNT_SESSION_REQUIRED, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_REGISTERED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DEVICE_SCOPE, DEVICE_SESSION_REQUIRED, DNS_VERIFICATION_FAILED, FORBIDDEN, GUI_SESSION_REQUIRED, HOMEDESK_REALM_MISMATCH, HOMEDESK_UNCONFIGURED, NATIVE_DEVICE_REQUIRED, NATIVE_HANDOFF_INVALID, NATIVE_ORIGIN_INVALID, NATIVE_REMOTE_SCOPE, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, REMOTE_ID_CONFLICT, REMOTE_KEY_INVALID, REMOTE_PEER_EXPIRED, REMOTE_PERMIT_EXPIRED, REMOTE_PERMIT_INVALID, REMOTE_PERMIT_REVOKED, REMOTE_PERMIT_SCOPE, REMOTE_PERMIT_UNKNOWN, REMOTE_PERMIT_USED, REMOTE_PROOF_INVALID, REMOTE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT"
+          }
+        },
+        {
+          "name": "x-csrf-token",
+          "in": "header",
+          "schema": {
+            "type": "string",
+            "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ACCOUNT_SESSION_REQUIRED, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_REGISTERED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DEVICE_SCOPE, DEVICE_SESSION_REQUIRED, DNS_VERIFICATION_FAILED, FORBIDDEN, GUI_SESSION_REQUIRED, HOMEDESK_REALM_MISMATCH, HOMEDESK_UNCONFIGURED, NATIVE_DEVICE_REQUIRED, NATIVE_HANDOFF_INVALID, NATIVE_ORIGIN_INVALID, NATIVE_REMOTE_SCOPE, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, REMOTE_ID_CONFLICT, REMOTE_KEY_INVALID, REMOTE_PEER_EXPIRED, REMOTE_PERMIT_EXPIRED, REMOTE_PERMIT_INVALID, REMOTE_PERMIT_REVOKED, REMOTE_PERMIT_SCOPE, REMOTE_PERMIT_UNKNOWN, REMOTE_PERMIT_USED, REMOTE_PROOF_INVALID, REMOTE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT"
+          },
+          "description": "Required with cookie authentication. Obtain from auth/session. Not required with Bearer authentication."
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "Success"
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication failure",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission or CSRF failure",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource absent or not owned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Version, policy or state conflict",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "423": {
+          "description": "Account or device locked",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Rate or resource limit",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Dependency unavailable",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "The entire transaction failed; neither subject was partially revoked.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        }
+      },
+      "description": "Account management session and cookie CSRF required. Atomically revoke both subjects, their sessions and leases, with outbox and audit. Preserve service configuration. Use the canonical GUI UUID.",
+      "x-extension-ref": "nestlink-device-capabilities-v1"
+    },
+    "GET /api/v2/admin/device-capabilities": {
+      "operationId": "get_api_v2_admin_device_capabilities",
+      "summary": "GET /api/v2/admin/device-capabilities",
+      "tags": [
+        "api"
+      ],
+      "security": [
+        {
+          "bearerAuth": []
+        },
+        {
+          "sessionCookie": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "user_id",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "const": 1
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/schemas/AdminDeviceCapabilities"
+                    }
+                  }
+                },
+                "required": [
+                  "version",
+                  "items"
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication failure",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission or CSRF failure",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource absent or not owned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Version, policy or state conflict",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "423": {
+          "description": "Account or device locked",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Rate or resource limit",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Dependency unavailable",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/schemas/Error"
+              }
+            }
+          }
+        }
+      },
+      "description": "Live administrator account management session required. Read-only associations across accounts, optionally filtered by owner UUID. Each link retains its owner and both stored subject IDs, including revoked subjects for administrative record management. No link or revocation writes are provided here; account-scoped operations never gain administrative scope.",
+      "x-extension-ref": "nestlink-device-capabilities-v1"
+    }
+  },
+  "compatibility": {
+    "device_credential_purpose": "Optional gui/background field on legacy subject directories",
+    "device_client_type": "Optional nullable platform string from the remote binding or latest session on legacy subject directories",
+    "device_directory_fields_schema": "#/schemas/DeviceCapabilityFields",
+    "linked_subject_revocation": "DELETE /api/v2/auth/devices/{id} revokes both explicitly linked subjects",
+    "canonical_id": "Original GUI UUID; never substitute it for the remote or tunnel subject UUID",
+    "old_server": "Only HTTP 404 means the extension is unavailable; never infer associations from names",
+    "identity": "GUI/background UUIDs, credentials, service assignments and frozen auth/permit semantics remain unchanged"
+  },
+  "schemas": {
+    "LinkedDeviceCapabilities": {
+      "type": "object",
+      "properties": {
+        "physical_device_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "remote_device_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "tunnel_device_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "physical_device_id",
+        "remote_device_id",
+        "tunnel_device_id"
+      ]
+    },
+    "DeviceCapabilities": {
+      "type": "object",
+      "properties": {
+        "physical_device_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "remote_device_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tunnel_device_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "physical_device_id",
+        "remote_device_id",
+        "tunnel_device_id"
+      ]
+    },
+    "AdminDeviceCapabilities": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "physical_device_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "remote_device_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tunnel_device_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "user_id",
+        "physical_device_id",
+        "remote_device_id",
+        "tunnel_device_id"
+      ]
+    },
+    "DeviceCapabilityFields": {
+      "type": "object",
+      "properties": {
+        "credential_purpose": {
+          "type": "string",
+          "enum": [
+            "gui",
+            "background"
+          ]
+        },
+        "client_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": []
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "error_code": {
+          "type": "string",
+          "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ACCOUNT_SESSION_REQUIRED, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_REGISTERED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DEVICE_SCOPE, DEVICE_SESSION_REQUIRED, DNS_VERIFICATION_FAILED, FORBIDDEN, GUI_SESSION_REQUIRED, HOMEDESK_REALM_MISMATCH, HOMEDESK_UNCONFIGURED, NATIVE_DEVICE_REQUIRED, NATIVE_HANDOFF_INVALID, NATIVE_ORIGIN_INVALID, NATIVE_REMOTE_SCOPE, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, REMOTE_ID_CONFLICT, REMOTE_KEY_INVALID, REMOTE_PEER_EXPIRED, REMOTE_PERMIT_EXPIRED, REMOTE_PERMIT_INVALID, REMOTE_PERMIT_REVOKED, REMOTE_PERMIT_SCOPE, REMOTE_PERMIT_UNKNOWN, REMOTE_PERMIT_USED, REMOTE_PROOF_INVALID, REMOTE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT, DEVICE_CAPABILITY_LINK_CONFLICT, DEVICE_CAPABILITY_SUBJECT_INVALID"
+        },
+        "message": {
+          "type": "string",
+          "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ACCOUNT_SESSION_REQUIRED, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_REGISTERED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DEVICE_SCOPE, DEVICE_SESSION_REQUIRED, DNS_VERIFICATION_FAILED, FORBIDDEN, GUI_SESSION_REQUIRED, HOMEDESK_REALM_MISMATCH, HOMEDESK_UNCONFIGURED, NATIVE_DEVICE_REQUIRED, NATIVE_HANDOFF_INVALID, NATIVE_ORIGIN_INVALID, NATIVE_REMOTE_SCOPE, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, REMOTE_ID_CONFLICT, REMOTE_KEY_INVALID, REMOTE_PEER_EXPIRED, REMOTE_PERMIT_EXPIRED, REMOTE_PERMIT_INVALID, REMOTE_PERMIT_REVOKED, REMOTE_PERMIT_SCOPE, REMOTE_PERMIT_UNKNOWN, REMOTE_PERMIT_USED, REMOTE_PROOF_INVALID, REMOTE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT, DEVICE_CAPABILITY_LINK_CONFLICT, DEVICE_CAPABILITY_SUBJECT_INVALID"
+        },
+        "request_id": {
+          "type": "string",
+          "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ACCOUNT_SESSION_REQUIRED, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_REGISTERED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DEVICE_SCOPE, DEVICE_SESSION_REQUIRED, DNS_VERIFICATION_FAILED, FORBIDDEN, GUI_SESSION_REQUIRED, HOMEDESK_REALM_MISMATCH, HOMEDESK_UNCONFIGURED, NATIVE_DEVICE_REQUIRED, NATIVE_HANDOFF_INVALID, NATIVE_ORIGIN_INVALID, NATIVE_REMOTE_SCOPE, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, REMOTE_ID_CONFLICT, REMOTE_KEY_INVALID, REMOTE_PEER_EXPIRED, REMOTE_PERMIT_EXPIRED, REMOTE_PERMIT_INVALID, REMOTE_PERMIT_REVOKED, REMOTE_PERMIT_SCOPE, REMOTE_PERMIT_UNKNOWN, REMOTE_PERMIT_USED, REMOTE_PROOF_INVALID, REMOTE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT, DEVICE_CAPABILITY_LINK_CONFLICT, DEVICE_CAPABILITY_SUBJECT_INVALID"
+        },
+        "field_errors": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": {
+            "type": "string",
+            "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ACCOUNT_SESSION_REQUIRED, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_REGISTERED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DEVICE_SCOPE, DEVICE_SESSION_REQUIRED, DNS_VERIFICATION_FAILED, FORBIDDEN, GUI_SESSION_REQUIRED, HOMEDESK_REALM_MISMATCH, HOMEDESK_UNCONFIGURED, NATIVE_DEVICE_REQUIRED, NATIVE_HANDOFF_INVALID, NATIVE_ORIGIN_INVALID, NATIVE_REMOTE_SCOPE, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, REMOTE_ID_CONFLICT, REMOTE_KEY_INVALID, REMOTE_PEER_EXPIRED, REMOTE_PERMIT_EXPIRED, REMOTE_PERMIT_INVALID, REMOTE_PERMIT_REVOKED, REMOTE_PERMIT_SCOPE, REMOTE_PERMIT_UNKNOWN, REMOTE_PERMIT_USED, REMOTE_PROOF_INVALID, REMOTE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT, DEVICE_CAPABILITY_LINK_CONFLICT, DEVICE_CAPABILITY_SUBJECT_INVALID"
+          }
+        },
+        "current_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "current_access_policy_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "current": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        },
+        "suggestions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Known codes (consumers must handle unknown codes): ACCESS_POLICY_VERSION_CONFLICT, ACCOUNT_SESSION_REQUIRED, ADMIN_SINGLETON, ALERT_DELIVERY_FAILED, AUTH_INVALID, AUTH_REQUIRED, CLIENT_RAW_TUNNELS_DISABLED, CSRF_INVALID, CUSTOM_DOMAIN_CONFLICT, CUSTOM_DOMAIN_LIMIT, DEVICE_ALREADY_REGISTERED, DEVICE_NOT_FOUND, DEVICE_REVOKED, DEVICE_SCOPE, DEVICE_SESSION_REQUIRED, DNS_VERIFICATION_FAILED, FORBIDDEN, GUI_SESSION_REQUIRED, HOMEDESK_REALM_MISMATCH, HOMEDESK_UNCONFIGURED, NATIVE_DEVICE_REQUIRED, NATIVE_HANDOFF_INVALID, NATIVE_ORIGIN_INVALID, NATIVE_REMOTE_SCOPE, NOT_FOUND, NO_ALERT_CHANNEL, OWNERSHIP_MISMATCH, PASSWORD_CHANGE_REQUIRED, PORT_POOL_EXHAUSTED, PROXY_TYPE_UNSUPPORTED, RATE_LIMITED, RD_AUTH_REQUIRED, RD_CAPABILITY_UNSUPPORTED, RD_JSON_INVALID, RD_KEY_INVALID, RD_PROOF_INVALID, RD_PROOF_REPLAY, RD_RATE_LIMITED, RELEASE_UNAVAILABLE, REMOTE_ID_CONFLICT, REMOTE_KEY_INVALID, REMOTE_PEER_EXPIRED, REMOTE_PERMIT_EXPIRED, REMOTE_PERMIT_INVALID, REMOTE_PERMIT_REVOKED, REMOTE_PERMIT_SCOPE, REMOTE_PERMIT_UNKNOWN, REMOTE_PERMIT_USED, REMOTE_PROOF_INVALID, REMOTE_UNAVAILABLE, RESOURCE_LIMIT, SESSION_REVOKED, STATE_CONFLICT, SUBDOMAIN_PREFIX_REQUIRED, TEMPORARY_PASSWORD_EXPIRED, TRANSPORT_CONNECTIONS_ACTIVE, TRANSPORT_POOL_UNAVAILABLE, TRANSPORT_RANGE_NOT_AVAILABLE, TRANSPORT_SETTINGS_CONFLICT, UPDATE_CHECK_UNAVAILABLE, USER_DISABLED, VALIDATION_ERROR, VERSION_CONFLICT, DEVICE_CAPABILITY_LINK_CONFLICT, DEVICE_CAPABILITY_SUBJECT_INVALID"
+          }
+        }
+      },
+      "required": [
+        "error_code",
+        "message"
+      ]
+    }
+  }
+}

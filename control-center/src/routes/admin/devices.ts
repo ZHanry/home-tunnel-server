@@ -44,9 +44,13 @@ router.get(
       tags: string;
       favorite: number;
       metadata_version: number;
+      credential_purpose: "gui" | "background";
+      client_type: string | null;
     }>(
       `SELECT d.id,d.user_id,u.username,d.name,d.status,d.config_version,
-            d.applied_config_version,d.client_version,d.agent_version,d.last_seen_at,d.lease_expires_at,d.created_at,d.tags,d.favorite,d.metadata_version
+            d.applied_config_version,d.client_version,d.agent_version,d.last_seen_at,d.lease_expires_at,d.created_at,d.tags,d.favorite,d.metadata_version,d.credential_purpose,
+            COALESCE((SELECT b.platform FROM homedesk_bindings b WHERE b.device_id=d.id),
+              (SELECT s.client_type FROM sessions s WHERE s.device_id=d.id ORDER BY s.created_at DESC LIMIT 1)) AS client_type
        FROM devices d JOIN users u ON u.id=d.user_id
       WHERE u.deleted_at IS NULL AND (?='' OR d.user_id=?) AND (?='' OR d.status=?) AND (?='' OR instr(lower(d.name || d.tags),lower(?))>0)
       ORDER BY d.created_at DESC,d.id DESC LIMIT ? OFFSET ?`,

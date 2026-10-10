@@ -1,10 +1,12 @@
-# nestlink
+# NestLink
 
-Web 管理与浏览器内远控服务端，提供账号、信令、授权和穿透控制。 当前发行目标 **13.0.0 正式版**，正在实施和验收。
+Web 管理与浏览器内远控服务端，提供账号、信令、授权和穿透控制。 当前发行目标 **14.0.0 正式版**，正在构建和验收。
 
 使用自己的 HTTPS 服务和账号登录，连接配置自动获取。远控要求认证加密 P2P 直连及被控端批准或密码验证。HTTP/HTTPS 与受控 TCP/UDP 穿透、权限、端口池、访问控制和流量治理保留。
 
-平台、升级、验证边界与构建材料见 [13.0.0 说明](docs/HOMEDESK_RELEASE.md)。桌面客户端集中管理后台穿透，不分发独立 CLI/NAS 或 macOS GUI。旧界面截图从当前文档中移除。
+平台、升级、验证边界与构建材料见 [14.0.0 说明](docs/HOMEDESK_RELEASE.md)。桌面客户端集中管理后台穿透，不分发独立 CLI/NAS 或 macOS GUI。[当前网页截图与来源](docs/UI_TESTING.md)记录 14.0.0 的实际页面及示例数据范围。
+
+![NestLink 14.0.0 设备目录](docs/assets/14.0.0/devices-light-desktop.png)
 
 [项目入口](https://github.com/ZHanry/home-tunnel) · [English](README.en.md) · [构建与来源](docs/BUILDING.md)
 

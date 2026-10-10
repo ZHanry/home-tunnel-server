@@ -103,11 +103,11 @@ test("port controls fit mobile widths and translate with the rest of the console
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
-  await page.locator(".mobile-preferences [data-locale-toggle]").click();
+  await page.locator(".product-bar [data-locale-toggle]").click();
   const currentTheme = await page.locator("html").getAttribute("data-theme");
   await expect(page.getByRole("heading", { name: "Ports and protocols" })).toBeVisible();
   await expect(page.getByLabel("Enable TCP connections")).toBeVisible();
-  const toggle = page.locator(".mobile-preferences [data-theme-toggle]");
+  const toggle = page.locator(".product-bar [data-theme-toggle]");
   await toggle.click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", currentTheme === "dark" ? "light" : "dark");
   await expect(toggle).toHaveAccessibleName(currentTheme === "dark" ? "Switch to dark theme" : "Switch to light theme");

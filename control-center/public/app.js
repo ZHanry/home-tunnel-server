@@ -1,7 +1,7 @@
-import { createConnectionsView } from "./modules/connections.js?v=13.0.0";
-import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=13.0.0";
-import { tunnelVerification } from "./modules/tunnel-model.js?v=13.0.0";
-import { createAccountSecurityView } from "./modules/account-security.js?v=13.0.0";
+import { createConnectionsView } from "./modules/connections.js?v=14.0.0";
+import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=14.0.0";
+import { tunnelVerification } from "./modules/tunnel-model.js?v=14.0.0";
+import { createAccountSecurityView } from "./modules/account-security.js?v=14.0.0";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -9,23 +9,22 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=13.0.0";
-import { createDevicesView } from "./modules/devices.js?v=13.0.0";
-import { createNestLinkView as createRemoteView } from "./modules/homedesk.js?v=13.0.0";
-import { api, refreshSession, allPages } from "./modules/api.js?v=13.0.0";
+} from "./modules/forms.js?v=14.0.0";
+import { createDevicesView } from "./modules/devices.js?v=14.0.0";
+import { createNestLinkView as createRemoteView } from "./modules/homedesk.js?v=14.0.0";
+import { api, refreshSession, allPages } from "./modules/api.js?v=14.0.0";
 import {
   componentLabel,
-  configState,
   escapeHtml,
   formatBps,
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=13.0.0";
-import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=13.0.0";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=13.0.0";
-import { state } from "./modules/state.js?v=13.0.0";
-import { pagination } from "./modules/pagination.js?v=13.0.0";
+} from "./modules/format.js?v=14.0.0";
+import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=14.0.0";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=14.0.0";
+import { state } from "./modules/state.js?v=14.0.0";
+import { pagination } from "./modules/pagination.js?v=14.0.0";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -48,7 +47,7 @@ const skipLink = document.querySelector("#skip-link");
 const { renderRemote, closeRemote } = createRemoteView({ api, state, viewContent, escapeHtml });
 const { renderSecurity } = createAccountSecurityView({api,state,viewContent,escapeHtml,formatDate,openModal,field,modal,showSecret,toast,renderAccount});
 
-const { renderDevices } = createDevicesView({api,state,devicesPath,viewContent,escapeHtml,statusBadge,configState,formatDate,emptyState,isAdmin});
+const { renderDevices, showDeviceInfo } = createDevicesView({api,allPages,state,viewContent,pageActions,escapeHtml,statusBadge,formatDate,emptyState,isAdmin,navigateTo,openModal});
 
 const { renderConnections } = createConnectionsView({
   api,
@@ -70,19 +69,20 @@ const { renderConnections } = createConnectionsView({
 });
 
 const viewMeta = {
+  "admin-devices": ["全部设备", "管理员设备目录"],
   dashboard: ["系统总览", "CONTROL CENTER / DASHBOARD"],
   users: ["用户管理", "身份与权限"],
   devices: ["设备管理", "设备信任"],
-  remote: ["远程桌面", "CONTROL CENTER / REMOTE"],
+  remote: ["远程协助", "CONTROL CENTER / REMOTE"],
   connections: ["内网穿透", "受管隧道"],
   audit: ["审计事件", "操作轨迹"],
   settings: ["系统设置", "部署策略"],
-  account: ["我的账号", "密码与使用额度"],
+  account: ["账号与设置", "密码与使用额度"],
 };
 
 const userViewMeta = {
   dashboard: ["我的工作区", "只显示你的设备与隧道"],
-  devices: ["我的设备", "已登记的机器"],
+  devices: ["设备管理", "已登记的机器"],
   connections: ["我的隧道", "按权限自助开通"],
 };
 
@@ -100,9 +100,9 @@ function applyRoleChrome() {
 
 function resolveView(view) {
   if (state.me?.native_remote) return "remote";
-  if (!isAdmin() && (view === "users" || view === "audit" || view === "settings"))
-    return "dashboard";
-  return viewMeta[view] ? view : "dashboard";
+  if (!isAdmin() && (["dashboard", "admin-devices", "users", "audit", "settings"].includes(view)))
+    return "devices";
+  return viewMeta[view] ? view : "devices";
 }
 
 function viewLabels(view) {
@@ -224,6 +224,8 @@ function showLogin(message = "") {
   }
   state.users = [];
   state.devices = [];
+  state.physicalDevices = [];
+  state.renderId += 1;
   state.connections = [];
   state.me = null;
   state.csrf = "";
@@ -233,6 +235,7 @@ function showLogin(message = "") {
   disconnectRealtime();
   landingScreen.classList.add("hidden");
   appShell.classList.add("hidden");
+  document.body.classList.remove("app-active");
   authScreen.classList.remove("hidden");
   skipLink.href = "#auth-screen";
   updateDocumentMetadata();
@@ -244,6 +247,7 @@ function showLogin(message = "") {
 
 async function showApp() {
   document.body.classList.remove("auth-active");
+  document.body.classList.add("app-active");
   state.me = await api("/api/v2/auth/me");
   landingScreen.classList.add("hidden");
   authScreen.classList.add("hidden");
@@ -277,7 +281,7 @@ function renderPageActions(view) {
     account: `<button class="button button-secondary" data-action="refresh-view">刷新额度</button>`,
     users: `<button class="button button-primary" data-action="create-user">创建普通用户</button>`,
     devices: `<button class="button button-secondary" data-action="refresh-view">刷新状态</button>`,
-    connections: `<button class="button button-primary" data-action="create-connection">创建连接</button>`,
+    connections: `<button class="button button-secondary" data-action="refresh-view">刷新</button><button class="button button-primary" data-action="create-connection">创建连接</button>`,
     audit: `<button class="button button-secondary" data-action="refresh-view">刷新事件</button>`,
     settings: `<button class="button button-secondary" data-action="refresh-view">刷新设置</button>`,
   };
@@ -316,7 +320,7 @@ async function renderView(view, { background = false } = {}) {
   view = resolveView(view);
   state.currentView = view;
   viewContent.dataset.page = view;
-  if (!background) closeMoreNavigation();
+
   document
     .querySelectorAll(".nav-item")
     .forEach((item) => {
@@ -325,18 +329,16 @@ async function renderView(view, { background = false } = {}) {
       if (selected) item.setAttribute("aria-current", "page");
       else item.removeAttribute("aria-current");
     });
-  document.querySelector("#nav-more").classList.toggle(
-    "active", Boolean(document.querySelector("#nav-secondary .nav-item.active")),
-  );
   const [title, eyebrow] = viewLabels(view);
   pageTitle.textContent = title;
   pageEyebrow.textContent = eyebrow;
-  renderPageActions(view);
-  if (!background) loadingView(view);
+  if (!background) renderPageActions(view);
+  if (!background && !["devices", "admin-devices", "connections"].includes(view)) loadingView(view);
+  else viewContent.setAttribute("aria-busy", "true");
   try {
     if (view === "dashboard") await renderDashboard(renderId);
     if (view === "users") await renderUsers(renderId);
-    if (view === "devices") await renderDevices(renderId);
+    if (view === "devices" || view === "admin-devices") await renderDevices(renderId);
     if (view === "remote") await renderRemote(renderId);
     if (view === "connections") await renderConnections(renderId);
     if (view === "audit") await renderAudit(renderId);
@@ -583,9 +585,9 @@ async function openUpdates() {
     let release = null;
     release = (await checkUpdates())?.latest ?? null;
     if (!modal.open || opening !== state.renderId) return;
-    const version = capabilities.server_version ?? "13.0.0";
+    const version = capabilities.server_version ?? "14.0.0";
     document.querySelector("#current-version").textContent = version;
-    modalBody.innerHTML = `<div class="update-summary"><img src="/NestLink.svg" width="48" height="48" alt=""><div><strong>nestlink</strong><p data-no-translate>${escapeHtml(version)}</p></div></div>
+    modalBody.innerHTML = `<div class="update-summary"><img src="/NestLink.svg" width="48" height="48" alt=""><div><strong>NestLink</strong><p data-no-translate>${escapeHtml(version)}</p></div></div>
       <dl><dt>当前版本</dt><dd data-no-translate>${escapeHtml(version)}</dd><dt>可用版本</dt><dd data-no-translate>${release ? escapeHtml(release.version) : "暂时无法检查"}</dd></dl>
       <p class="release-notes">${escapeHtml(release?.notes ?? "管理自建服务、家庭设备、P2P 远控与内网穿透。")}</p>
       <a class="button button-secondary" href="${escapeHtml(release?.url ?? "https://github.com/ZHanry/home-tunnel-server/releases")}" target="_blank" rel="noopener noreferrer">发布说明与下载</a>`;
@@ -594,7 +596,7 @@ async function openUpdates() {
   }
 }
 document.querySelector("#version-button").addEventListener("click", openUpdates);
-document.querySelector("#mobile-version-button").addEventListener("click", openUpdates);
+
 
 async function renderSettings(renderId = state.renderId) {
   if (!isAdmin()) {
@@ -917,7 +919,7 @@ async function renderAccount(renderId) {
   const me = await api("/api/v2/auth/me");
   if (renderId !== state.renderId) return;
   state.me = me;
-  viewContent.innerHTML = `<section class="panel account-panel"><div class="panel-header"><div><h3 data-no-translate>${escapeHtml(me.display_name)}</h3><p class="panel-subtle">我的账号与使用额度</p></div><button class="button button-secondary" data-action="change-password">修改密码</button></div><div class="account-metrics"><div><span>本月 Web 流量</span><strong>${formatBytes(me.month_to_date_bytes)}</strong></div><div><span>月度配额</span><strong>${me.monthly_quota_bytes == null ? "不限额" : formatBytes(me.monthly_quota_bytes)}</strong></div><div><span>账号共享带宽</span><strong>${formatBps(me.bandwidth_limit_bps)}</strong></div></div><p class="helper">每月按 UTC 自然月重置。下次重置：${formatDate(me.quota_resets_at)}。TCP/UDP 不经过 Web 网关，不包含在这里的流量与配额统计中。</p><div class="actions account-signout"><button class="button button-danger" data-action="logout">退出登录</button></div></section>`;
+  viewContent.innerHTML = `${isAdmin() ? `<section class="panel administration-panel"><h3>服务管理</h3><div class="administration-links">${[["dashboard","系统总览"],["admin-devices","全部设备"],["users","用户管理"],["audit","审计事件"],["settings","系统设置"]].map(([view,label])=>`<button class="button button-secondary" data-view="${view}">${label}</button>`).join("")}</div></section>` : ""}<section class="panel account-panel"><div class="panel-header"><div><h3 data-no-translate>${escapeHtml(me.display_name)}</h3><p class="panel-subtle">我的账号与使用额度</p></div><button class="button button-secondary" data-action="change-password">修改密码</button></div><div class="account-metrics"><div><span>本月 Web 流量</span><strong>${formatBytes(me.month_to_date_bytes)}</strong></div><div><span>月度配额</span><strong>${me.monthly_quota_bytes == null ? "不限额" : formatBytes(me.monthly_quota_bytes)}</strong></div><div><span>账号共享带宽</span><strong>${formatBps(me.bandwidth_limit_bps)}</strong></div></div><p class="helper">每月按 UTC 自然月重置。下次重置：${formatDate(me.quota_resets_at)}。TCP/UDP 不经过 Web 网关，不包含在这里的流量与配额统计中。</p><div class="actions account-signout"><button class="button button-danger" data-action="logout">退出登录</button></div></section>`;
   await renderSecurity(renderId);
 }
 
@@ -1465,12 +1467,49 @@ function confirmAction(title, detail, submitLabel, onSubmit, subject = "") {
   });
 }
 
-appShell.addEventListener("click", async (event) => {
+async function handleWorkspaceAction(event) {
   const button = event.target.closest("[data-action]");
   if (!button || button.disabled) return;
   const action = button.dataset.action;
   try {
-    if (action === "refresh-view") await renderView(state.currentView);
+    if (action === "refresh-view") {
+      setBusy(button, true, "刷新中…");
+      try { await renderView(state.currentView, { background: true }); }
+      finally { if (button.isConnected) setBusy(button, false); }
+    }
+    if (action === "device-info") showDeviceInfo(button.dataset.id);
+    if (action === "manual-remote") await navigateTo("remote");
+    if (action === "directory-connect") {
+      const device = state.physicalDevices?.find(item => item.id === button.dataset.id);
+      if (device?.remote_ready && device.user_id === state.me.id) {
+        state.remoteConnectId = device.binding.remote_id;
+        await navigateTo("remote");
+        viewContent.querySelector("#remote-target-id").value = state.remoteConnectId;
+        viewContent.querySelector("#remote-connect-form").requestSubmit();
+      }
+    }
+    if (action === "device-services") {
+      modal.close("done");
+      state.connectionQuery = {page:1,search:"",device_id:button.dataset.id};
+      await navigateTo("connections");
+    }
+    if (action === "remove-physical-device") {
+      const device = state.physicalDevices?.find(item => item.id === button.dataset.id);
+      if (!device || device.user_id !== state.me.id || state.currentView === "admin-devices") return;
+      confirmAction("移除设备", device.linked ? "将撤销此设备的访问权限并停止远控与穿透，保留服务配置。" : "将撤销此设备已登记能力的访问权限，保留服务配置。", "确认移除", async () => {
+        await api(`/api/v2/auth/devices/${encodeURIComponent(device.metadata_subject.id)}`, {method:"DELETE"});
+        modal.close("done"); await renderView(state.currentView, {background:true});
+      }, device.name);
+    }
+    if (action === "purge-physical-device") {
+      if (!isAdmin() || state.currentView !== "admin-devices") return;
+      const device = state.physicalDevices?.find(item => item.id === button.dataset.id);
+      if (!device) return;
+      confirmAction("永久删除设备", "将永久删除此设备的凭据、会话、服务配置和流量记录。各能力逐项删除；发生错误请刷新核对已完成的删除。", "永久删除", async () => {
+        for (const id of device.subject_ids) await api(`/api/v1/admin/devices/${encodeURIComponent(id)}`, {method:"DELETE",body:"{}"});
+        modal.close("done");await renderView("admin-devices", {background:true});
+      }, device.name);
+    }
     if (action === "audit-page") {
       state.audit.page = Math.max(1, Number(button.dataset.page) || 1);
       await renderView("audit");
@@ -1483,17 +1522,17 @@ appShell.addEventListener("click", async (event) => {
       state.connectionQuery.page = Math.max(1, Number(button.dataset.page));
       await renderView("connections");
     }
-    if(action==="device-page") {state.deviceQuery.page=Math.max(1,Number(button.dataset.page));await renderView("devices");}
+    if (action === "device-page") { const key = state.currentView === "admin-devices" ? "adminDeviceQuery" : "deviceQuery"; state[key].page=Math.max(1,Number(button.dataset.page)); await renderView(state.currentView); }
     if (action === "remote-page") { state.remoteQuery.page = Math.max(1, Number(button.dataset.page)); await renderView("remote"); }
     if (action === "user-page") { state.userPage = Math.max(1, Number(button.dataset.page)); await renderView("users"); }
     if(action==="device-metadata") {
       const device=state.devices.find(item=>item.id===button.dataset.id);if(!device)return;
-      openModal({title:`标签与收藏 · ${device.name}`,draftId:`metadata:${device.id}`,
-        body:`${field("tags","标签（逗号分隔，最多 12 个）",(device.tags??[]).join(", "),{required:false})}<label><input type="checkbox" name="favorite" ${device.favorite?"checked":""}>收藏此设备</label>`,
+      openModal({title:`编辑标签 · ${device.name}`,draftId:`metadata:${device.id}`,
+        body:`${field("tags","标签（逗号分隔，最多 12 个）",(device.tags??[]).join(", "),{required:false})}`,
         onSubmit:async form=>{
           const tags=[...new Set(String(form.get("tags")).split(/[,，]/).map(tag=>tag.trim()).filter(Boolean))];
-          await api(`${devicesPath()}/${device.id}/metadata`,{method:"PATCH",body:JSON.stringify({tags,favorite:form.get("favorite")==="on",expected_metadata_version:device.metadata_version})});
-          modal.close("saved");await renderDevices();
+          await api(`${devicesPath()}/${device.id}/metadata`,{method:"PATCH",body:JSON.stringify({tags,expected_metadata_version:device.metadata_version})});
+          modal.close("saved");await renderView(state.currentView, { background: true });
         }});
     }
     if(action==="batch-connections") {
@@ -1633,7 +1672,9 @@ appShell.addEventListener("click", async (event) => {
   } catch (error) {
     toast(error.message || "操作失败，请重试", "error");
   }
-});
+}
+appShell.addEventListener("click", handleWorkspaceAction);
+modalBody.addEventListener("click", handleWorkspaceAction);
 
 viewContent.addEventListener("click", async (event) => {
   const copy = event.target.closest("[data-copy]");
@@ -1714,39 +1755,10 @@ viewContent.addEventListener("submit", async (event) => {
   await renderView("audit");
 });
 
-const moreNavigation = document.querySelector("#nav-more");
-const secondaryNavigation = document.querySelector("#nav-secondary");
-function closeMoreNavigation(restoreFocus = false) {
-  document.querySelector("#nav-more").setAttribute("aria-expanded", "false");
-  document.querySelector("#nav-secondary").classList.remove("is-open");
-  if (restoreFocus) document.querySelector("#nav-more").focus();
-}
-moreNavigation.addEventListener("click", () => {
-  const open = moreNavigation.getAttribute("aria-expanded") !== "true";
-  moreNavigation.setAttribute("aria-expanded", String(open));
-  secondaryNavigation.classList.toggle("is-open", open);
-  if (open) [...secondaryNavigation.querySelectorAll(".nav-item")]
-    .find((item) => item.getClientRects().length)?.focus();
+appShell.addEventListener("click", event => {
+  const button = event.target.closest("[data-view]");
+  if (button) void navigateTo(button.dataset.view);
 });
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && moreNavigation.getAttribute("aria-expanded") === "true") {
-    event.preventDefault();
-    closeMoreNavigation(true);
-  }
-});
-document.addEventListener("click", (event) => {
-  if (!event.target.closest(".nav-list")) closeMoreNavigation();
-});
-document.addEventListener("focusin", (event) => {
-  if (!event.target.closest(".nav-list")) closeMoreNavigation();
-});
-window.matchMedia("(max-width: 600px)").addEventListener("change", () => closeMoreNavigation());
-
-document.querySelectorAll("[data-view]").forEach((button) =>
-  button.addEventListener("click", () => {
-    void navigateTo(button.dataset.view);
-  }),
-);
 
 window.addEventListener("popstate", () => {
   if (!state.me) return;
@@ -1817,7 +1829,7 @@ loginForm.addEventListener("submit", async (event) => {
     button.disabled = false;
     button.removeAttribute("aria-busy");
     button.classList.remove("is-loading");
-    button.textContent = "登录控制中心";
+    button.textContent = "登录";
   }
 });
 
@@ -1900,7 +1912,7 @@ function confirmLogout() {
   );
 }
 
-document.querySelector("#logout-button").addEventListener("click", confirmLogout);
+document.querySelector("#logout-button")?.addEventListener("click", confirmLogout);
 
 function showNativeRemoteFailure() {
   closeRemote();

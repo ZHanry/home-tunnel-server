@@ -482,17 +482,15 @@ class CandidatePolicyTests(unittest.TestCase):
         compatibility = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
         self.assertIn("verified and unverified coverage", compatibility["support_policy"])
         current_notes = (ROOT / "docs/RELEASE_NOTES.md").read_text(encoding="utf-8").split("## Previous release:", 1)[0]
-        self.assertIn("remain unverified for the final release build", current_notes)
-        for coverage in (
-            "file transfer from host to viewer",
-            "fixed-password mode on the final build",
-            "Android controlling a Windows host",
-            "2-hour and 24-hour soaks and the 30-connection repeat",
-            "IPv6, blocked-UDP and network-recovery matrix",
-            "backup restore",
-            "full Gemini review of the final UI",
-        ):
-            self.assertIn(coverage, current_notes)
+        self.assertIn(compatibility["version"], current_notes)
+        for coverage in (r"真机|physical.*device", r"运营商.*NAT|carrier.*NAT", r"长期媒体|long.duration.*media"):
+            self.assertRegex(current_notes, coverage)
+        acceptance_path = ROOT / f"docs/release/acceptance-{compatibility['version']}.json"
+        if not acceptance_path.is_file():
+            self.assertIn("正在验收", current_notes)
+            self.assertIn("原始 CI", current_notes)
+            self.assertIn("哈希", current_notes)
+            self.assertIn("13.0.0 验收证据不代替本次结果", current_notes)
 
     def test_publication_refuses_replacement_and_accepts_the_frozen_tree(self):
         self.assertEqual(release_candidate.publication_tag("10.1.0"), "v10.1.0")
@@ -539,8 +537,13 @@ class CandidatePolicyTests(unittest.TestCase):
         compatibility = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
         self.assertEqual(compatibility["target_combination"]["server"], compatibility["version"])
         self.assertEqual(compatibility["target_combination"]["android"], compatibility["version"])
-        self.assertEqual(set(compatibility["tested_combination"].values()), {"10.0.0"})
-        self.assertIn("acceptance pending", compatibility["tested_combination_scope"])
+        self.assertIsNone(compatibility["tested_combination"])
+        self.assertEqual(set(compatibility["target_combination"].values()), {compatibility["version"]})
+        self.assertIn("must be recorded separately before publication", compatibility["tested_combination_scope"])
+        historical = json.loads((ROOT / "docs/release/acceptance-13.0.0.json").read_text(encoding="utf-8"))
+        self.assertEqual(historical["version"], "13.0.0")
+        self.assertEqual(historical["component"], "server")
+        self.assertIn("NestLink-Server-13.0.0.tar.gz", historical["deliverables"])
 
     def test_original_seal_and_artifact_paths_stay_intact(self):
         import tempfile

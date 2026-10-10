@@ -76,7 +76,7 @@ import sys
 metadata_path, version = sys.argv[1:]
 with open(metadata_path, encoding="utf-8") as handle:
     release = json.load(handle)
-expected_name = f"HomeTunnel-Windows-{version}-x64.zip"
+expected_name = f"NestLink-Setup-{version}-x64.exe"
 checks = {
     "version": version,
     "platform": "windows",

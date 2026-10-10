@@ -45,7 +45,7 @@ test("native launch never embeds credentials, config or a relay switch", () => {
     assert.equal(homeDeskUrl(id), null);
   }
 });
-test("a paged directory request cannot replace a closed view", async () => {
+test("a pending remote configuration cannot replace a closed view", async () => {
   const state = { renderId: 1 };
   const requests = [];
   const content = { innerHTML: "existing", querySelectorAll: () => [] };
@@ -66,6 +66,5 @@ test("a paged directory request cannot replace a closed view", async () => {
   view.closeRemote();
   await rendering;
   assert.equal(content.innerHTML, "existing");
-  assert.ok(requests.some((path) => path.includes("page=1") && path.includes("page_size=6")));
-  assert.equal(requests.length, 3);
+  assert.deepEqual(requests, ["/api/v2/homedesk/config"]);
 });

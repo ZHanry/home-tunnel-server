@@ -1,16 +1,44 @@
-import { state } from "./state.js?v=13.0.0";
-import { remoteTranslations } from "./remote/translations.js?v=13.0.0";
+import { state } from "./state.js?v=14.0.0";
+import { remoteTranslations } from "./remote/translations.js?v=14.0.0";
 
 const appShell = document.querySelector("#app-shell");
 
 const localeStorageKey = "ht_locale";
 const zhToEn = {
+  "将撤销此设备已登记能力的访问权限，保留服务配置。": "Revoke access to the device capability shown here. Keep service configuration.",
+  "账号与设置": "Account & settings",
+  "服务管理": "Server management",
+  "全部设备": "All devices",
+  "管理员设备目录": "Administrative device directory",
+  "登录": "Sign in",
+  "名称或设备 ID": "Name or device ID",
+  "设备状态": "Device status",
+  "全部状态": "All states",
+  "手动连接": "Connect by ID",
+  "刷新": "Refresh",
+  "编辑标签": "Edit tags",
+  "穿透服务": "Tunnel services",
+  "移除设备": "Remove device",
+  "永久删除设备": "Permanently delete device",
+  "确认移除": "Remove device",
+  "将撤销此设备的访问权限并停止远控与穿透，保留服务配置。": "Revoke device access and stop remote control and tunnels. Keep service configuration.",
+  "将永久删除此设备的凭据、会话、服务配置和流量记录。各能力逐项删除；发生错误请刷新核对已完成的删除。": "Permanently delete device credentials, sessions, service configuration and traffic records. Capabilities are deleted individually; refresh after an error to verify completed deletions.",
+  "平台": "Platform",
+  "标签": "Tags",
+  "远控伙伴设备": "Connect to a partner device",
+  "输入对方的设备 ID，发起远程连接。": "Enter their device ID to start a remote connection.",
+  "设备信息": "Device details",
+  "电脑": "Computers",
+  "手机与平板": "Phones and tablets",
+  "刷新中…": "Refreshing\u2026",
+  "未提供": "Unavailable",
+
   "Windows / Linux 客户端": "Windows / Linux app",
   "Linux 图形客户端": "Linux desktop app",
   "支持 x64 和 ARM64。登录账号后远控设备，并在后台运行内网穿透。": "Supports x64 and ARM64. Sign in to control devices and run tunnels in the background.",
   "下载 Linux DEB": "Download Linux DEB",
 
-  "nestlink": "nestlink",
+  "NestLink": "NestLink",
   "连接设备": "Connect",
   "未就绪": "Not ready",
   "设备 ID": "Device ID",
@@ -19,12 +47,12 @@ const zhToEn = {
   "还没有连接记录": "No recent connections",
   "远控服务尚未配置，请联系管理员。": "Remote service is not configured. Contact your administrator.",
   "还没有设备": "No devices yet",
-  "在设备上安装nestlink并登录账号。": "Install nestlink on a device and sign in.",
+  "在设备上安装NestLink并登录账号。": "Install NestLink on a device and sign in.",
   "远控设备分页": "Remote device pages",
-  "已请求打开nestlink；请在客户端登录并完成连接。": "Opening nestlink. Sign in to the app to finish connecting.",
+  "已请求打开NestLink；请在客户端登录并完成连接。": "Opening NestLink. Sign in to the app to finish connecting.",
 
-  "下载 nestlink 候选版": "Get the nestlink candidate",
-  "nestlink · 开源、自托管": "nestlink · Open source and self-hosted",
+  "下载 NestLink 候选版": "Get the NestLink candidate",
+  "NestLink · 开源、自托管": "NestLink · Open source and self-hosted",
   "用户分页": "User pages",
   "审计分页": "Audit pages",
   "设备分页": "Device pages",
@@ -36,19 +64,19 @@ const zhToEn = {
   "当前会话": "Current session",
   "家庭远控": "Family remote desktop",
   "画面、声音、输入与文件只在两端设备之间传输。": "Screen, audio, input and files travel directly between the two devices.",
-  "下载 nestlink": "Download nestlink",
+  "下载 NestLink": "Download NestLink",
   "远控必须 P2P 直连。打洞失败会明确停止，不使用中继。设备登记状态不代表已经建立远控连接。": "P2P direct connection is required. Connection failure stops the session without relay. Registration does not prove a remote session is connected.",
   "管理员尚未配置 hbbs 信令服务器与公钥。请先按部署说明完成配置。": "The administrator has not configured the hbbs server and public key. Follow the deployment guide first.",
   "远控 ID": "Remote ID",
   "登记状态": "Registration",
-  "用 nestlink 连接": "Connect with nestlink",
+  "用 NestLink 连接": "Connect with NestLink",
   "复制 ID": "Copy ID",
   "尚未登记": "Not registered",
   "最近已登记": "Recently registered",
   "未收到近期登记": "No recent registration",
-  "请在这台设备上安装 nestlink、配置远控并接入账号": "Install nestlink, configure remote access and enroll this device.",
-  "没有已接入的设备。请先在家庭电脑上安装 nestlink 并登录账号。": "No enrolled devices. Install nestlink on a family computer and sign in first.",
-  "首次连接会由系统打开 nestlink；未打开时可复制 ID，在客户端输入。隧道服务仍由“连接管理”独立管理。": "The system opens nestlink when connecting. You can also copy the ID into the app. Manage tunnels separately in Connections.",
+  "请在这台设备上安装 NestLink、配置远控并接入账号": "Install NestLink, configure remote access and enroll this device.",
+  "没有已接入的设备。请先在家庭电脑上安装 NestLink 并登录账号。": "No enrolled devices. Install NestLink on a family computer and sign in first.",
+  "首次连接会由系统打开 NestLink；未打开时可复制 ID，在客户端输入。隧道服务仍由“连接管理”独立管理。": "The system opens NestLink when connecting. You can also copy the ID into the app. Manage tunnels separately in Connections.",
   "已复制远控 ID": "Remote ID copied",
   "浏览器无法复制，请手动选中远控 ID。": "Copy is unavailable. Select the remote ID manually.",
 
@@ -213,7 +241,6 @@ const zhToEn = {
   "可远程控制": "Ready for remote control",
   离线或被控端未就绪: "Offline or host not ready",
   立即连接: "Connect now",
-  设备信息: "Device details",
   设备标识: "Device identifier",
   当前状态: "Current status",
   远控已开启: "Remote desktop enabled",
@@ -340,8 +367,8 @@ const zhToEn = {
   "已关闭，密码不会保留": "Closed. Passwords are not retained.",
   跳到主要内容: "Skip to main content",
   产品导航: "Product navigation",
-  "nestlink 首页": "nestlink home",
-  "访问 nestlink GitHub 仓库": "Visit the nestlink GitHub repository",
+  "NestLink 首页": "NestLink home",
+  "访问 NestLink GitHub 仓库": "Visit the NestLink GitHub repository",
   "GitHub 仓库": "GitHub repository",
   登录后台: "Admin sign in",
   登录控制台: "Sign in to console",
@@ -354,7 +381,7 @@ const zhToEn = {
   选择客户端平台: "Choose a client platform",
   "Windows 图形客户端": "Windows desktop client",
   桌面图形客户端: "Desktop GUI client",
-  "nestlink 桌面图形客户端开发预览": "nestlink desktop GUI development preview",
+  "NestLink 桌面图形客户端开发预览": "NestLink desktop GUI development preview",
   "Linux 客户端快速开始": "Linux client quick start",
   "Windows x64 EXE": "Windows x64 EXE",
   "当前为正式版，客户端以源码构建为主。Windows / macOS / Linux 共用图形客户端，NAS 可使用 CLI 服务。":
@@ -379,12 +406,15 @@ const zhToEn = {
   "配置已同步，安全租约持续有效": "Configuration is synced and the secure lease is valid",
   立即同步: "Sync now",
   暂停隧道: "Pause tunnels",
-  连接: "Connection",
+  连接: "Connect",
+  永久删除: "Delete permanently",
+  远控密码: "Remote password",
+  "可留空，由对方批准连接": "Leave empty to request approval",
   "2 条连接": "2 connections",
   "＋ 新建连接": "+ New connection",
   "家庭 NAS": "Home NAS",
   在线: "Online",
-  "开始使用 nestlink": "Get started with nestlink",
+  "开始使用 NestLink": "Get started with NestLink",
   安装受管客户端: "Install a managed client",
   "Windows 使用图形界面，Linux/macOS 作为系统服务运行。":
     "Use the desktop app on Windows or run the system service on Linux/macOS.",
@@ -414,7 +444,7 @@ const zhToEn = {
   "适合 NAS、家庭服务器和常开的 Linux/macOS 主机；支持实时配置通知，不含 GUI 与自动更新。":
     "Designed for NAS devices, home servers, and always-on Linux/macOS hosts, with realtime configuration notifications but no GUI or automatic updates.",
   查看安装与运维说明: "View installation and operations guide",
-  "返回 nestlink 产品首页": "Back to the nestlink home page",
+  "返回 NestLink 产品首页": "Back to the NestLink home page",
   登录控制中心: "Sign in to Control Center",
   "使用管理员账号继续。": "Continue with an administrator account.",
   "使用管理员或普通用户账号继续。": "Continue with an administrator or standard user account.",
@@ -679,8 +709,8 @@ const zhToEn = {
   "TCP/UDP 端口仍由管理员分配。": "TCP/UDP ports are still assigned by an administrator.",
   已安全退出: "Signed out securely",
   "密码已修改，请使用新密码重新登录": "Password changed; sign in again with the new password",
-  "登录后台 — nestlink": "Admin sign in — nestlink",
-  "nestlink 控制中心": "nestlink Control Center",
+  "登录后台 — NestLink": "Admin sign in — NestLink",
+  "NestLink 控制中心": "NestLink Control Center",
   请求失败: "Request failed",
   "小写字母、数字、点、下划线或连字符": "Lowercase letters, numbers, dots, underscores, or hyphens",
   "临时密码 72 小时有效，首次登录后必须修改。关闭后无法再次查看。":
@@ -1011,20 +1041,20 @@ export function updateDocumentMetadata() {
   const adminPath = location.pathname.startsWith("/admin");
   const signedIn = adminPath && !appShell.classList.contains("hidden");
   document.title = signedIn
-    ? t("nestlink控制中心", "nestlink Control Center")
+    ? t("NestLink控制中心", "NestLink Control Center")
     : adminPath
-      ? t("登录nestlink", "Sign in to nestlink")
+      ? t("登录NestLink", "Sign in to NestLink")
       : t(
-          "nestlink — 随时安全访问家里的服务",
-          "nestlink — Secure access to services at home",
+          "NestLink — 随时安全访问家里的服务",
+          "NestLink — Secure access to services at home",
         );
   document
     .querySelector('meta[name="description"]')
     ?.setAttribute(
       "content",
       t(
-        "nestlink 受管发布 Web、通用 TCP 与固定端口 UDP 服务。",
-        "nestlink publishes managed Web, general TCP, and fixed-port UDP services.",
+        "NestLink 受管发布 Web、通用 TCP 与固定端口 UDP 服务。",
+        "NestLink publishes managed Web, general TCP, and fixed-port UDP services.",
       ),
     );
 }

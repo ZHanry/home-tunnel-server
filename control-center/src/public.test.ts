@@ -83,7 +83,7 @@ test("public landing page stays available while Windows release metadata is abse
     assert.doesNotMatch(landing.body.toString("utf8"), /内部测试|Experimental|Beta/);
     assert.match(
       landing.body.toString("utf8"),
-      /href="https:\/\/github\.com\/ZHanry\/home-tunnel-client\/releases\/tag\/v13\.0\.0"/,
+      /href="https:\/\/github\.com\/ZHanry\/home-tunnel-client\/releases\/tag\/v14\.0\.0"/,
     );
     assert.match(landing.body.toString("utf8"), /id="features"/);
     assert.doesNotMatch(landing.body.toString("utf8"), /home-tunnel\/releases\/latest\/download/);
@@ -143,7 +143,7 @@ test("public landing page stays available while Windows release metadata is abse
     assert.equal(applicationScript.headers["cache-control"], "no-cache");
     const deviceScript = await request(origin + "/modules/devices.js?v=7.0.0");
     assert.equal(deviceScript.status, 200);
-    assert.match(deviceScript.body.toString("utf8"), /data-action="delete-device"/);
+    assert.match(deviceScript.body.toString("utf8"), /purge-physical-device/);
     assert.match(
       applicationScript.body.toString("utf8"),
       /凭据、会话、租约、连接和流量明细将被删除/,
@@ -161,7 +161,7 @@ test("public landing page stays available while Windows release metadata is abse
     assert.match(localeModule.body.toString("utf8"), /function updateDocumentMetadata\(\)/);
     assert.match(
       localeModule.body.toString("utf8"),
-      /nestlink — Secure access to services at home/,
+      /NestLink — Secure access to services at home/,
     );
     assert.match(localeModule.body.toString("utf8"), /record\.type === "characterData"/);
     assert.equal(localeModule.headers["cache-control"], "no-cache");

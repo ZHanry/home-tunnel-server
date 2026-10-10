@@ -3,11 +3,12 @@ import { test, expect } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-const artifactRoot = resolve("../outputs/hearth-web-20261006");
+const artifactRoot = resolve("../outputs/nestlink-web-14");
 const views = [
   "dashboard",
   "remote",
   "devices",
+  "admin-devices",
   "connections",
   "users",
   "audit",
@@ -189,7 +190,7 @@ for (const theme of ["light", "dark"]) {
         results.push({ view, ...await geometry(page, scope) });
       };
       const close = async () => {
-        await page.locator("#modal-close").click();
+        await page.locator("#modal [data-modal-cancel]").click();
         await expect(page.locator("#modal")).not.toBeVisible();
       };
       const action = async (value) => page.locator(`[data-action="${value}"]`).first().click();
@@ -222,10 +223,10 @@ for (const theme of ["light", "dark"]) {
       await action("batch-connections");
       await capture("batch-connections");
       await close();
-      await ready("devices");
-      for (const value of ["device-metadata", "delete-device"]) {
-        await action(value); await capture(value); await close();
-      }
+      await ready("admin-devices");
+      await action("device-info"); await capture("device-info");
+      await action("device-metadata"); await capture("device-metadata"); await close();
+      await action("device-info"); await action("purge-physical-device"); await capture("purge-physical-device"); await close();
       await ready("users");
       for (const value of ["create-user", "user-policy"]) {
         await action(value); await capture(value); await close();
@@ -238,8 +239,7 @@ for (const theme of ["light", "dark"]) {
       await ready("account");
       await action("change-password"); await capture("change-password"); await close();
       await expect(page.locator('[data-security]')).toHaveCount(0);
-      await page.locator(width === 390 ? '#nav-more' : '#version-button').click();
-      if (width === 390) await page.locator('#mobile-version-button').click();
+      await page.locator('#version-button').click();
       await capture('version-update'); await close();
       await action("logout"); await capture("logout"); await close();
       await ready("users");

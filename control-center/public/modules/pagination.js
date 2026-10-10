@@ -1,4 +1,4 @@
-import { t } from "./locale.js?v=13.0.0";
+import { t } from "./locale.js?v=14.0.0";
 
 export function pagination({ page = 1, pages = 1, total = 0, pageSize = 20, action, label }) {
   page = Math.max(1, Math.floor(Number(page) || 1));

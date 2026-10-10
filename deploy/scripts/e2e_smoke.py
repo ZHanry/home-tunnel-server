@@ -452,8 +452,8 @@ def validate_landing_page(page: str) -> None:
     links = Links()
     links.feed(page)
     expected = {
-        "https://github.com/ZHanry/home-tunnel-client/releases/tag/v13.0.0",
-        "https://github.com/ZHanry/home-tunnel-android/releases/tag/v13.0.0",
+        "https://github.com/ZHanry/home-tunnel-client/releases/tag/v14.0.0",
+        "https://github.com/ZHanry/home-tunnel-android/releases/tag/v14.0.0",
     }
     if not expected.issubset(links.links):
         raise RuntimeError("Landing page is missing an official component download destination")
@@ -795,7 +795,7 @@ try {
                 "name": "Deployment Smoke Device",
                 "install_id": f"smoke-{suffix}",
                 "fingerprint_hash": hashlib.sha256(f"smoke-{suffix}".encode()).hexdigest(),
-                "client_version": "13.0.0",
+                "client_version": "14.0.0",
                 "client_type": "cli", "credential_purpose": "background",
             }, user_token, (201,))
             device_id = registered["device_id"]

@@ -83,9 +83,10 @@ test("confirmation dialogs localize their consequences and preserve the selected
     await new Promise(resolve => setTimeout(resolve, 500));
     await route.continue();
   });
-  for (const [view, action] of [["users", "reset-password"], ["users", "delete-user"], ["users", "toggle-user"], ["devices", "delete-device"], ["connections", "delete-connection"]]) {
+  for (const [view, action] of [["users", "reset-password"], ["users", "delete-user"], ["users", "toggle-user"], ["admin-devices", "purge-physical-device"], ["connections", "delete-connection"]]) {
     await page.goto(`/admin#${view}`);
     await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
+    if (view === "admin-devices") await page.locator('[data-action="device-info"]').first().click();
     const button = page.locator(`[data-action="${action}"]`).first();
     // count() does not wait: the initial aria-busy=false can precede rendering.
     await expect(button).toBeAttached();
@@ -102,7 +103,7 @@ test("confirmation dialogs localize their consequences and preserve the selected
     });
     expect(geometry, `${action} readable confirmation`).toBe(true);
     for (const locale of ["zh-CN", "en"]) {
-      await page.evaluate(async locale => (await import("/modules/locale.js?v=13.0.0")).applyLocale(locale), locale);
+      await page.evaluate(async locale => (await import("/modules/locale.js?v=14.0.0")).applyLocale(locale), locale);
       await expect(page.locator(".confirmation-notice [data-no-translate]")).toHaveText(subject);
     }
     await expect.poll(() => untranslated(page, "#modal")).toEqual([]);
@@ -181,10 +182,10 @@ test("English navigation pages localize product text while preserving user conte
   }
   await expect(page.locator('[data-security]')).toHaveCount(0);
   await expect(page.locator('#view-content [data-no-translate]', { hasText: '用户定义的客户端名称' })).toContainText('用户定义的客户端名称');
-  await page.locator(".sidebar [data-locale-toggle]").click();
+  await page.locator(".product-bar [data-locale-toggle]").click();
   await expect(page.locator("#view-content")).toContainText("每月按 UTC 自然月重置");
   await expect(page.locator("#view-content")).toContainText("管理会话");
-  await page.locator(".sidebar [data-locale-toggle]").click();
+  await page.locator(".product-bar [data-locale-toggle]").click();
   await expect.poll(() => untranslated(page)).toEqual([]);
 });
 
@@ -221,7 +222,7 @@ test("network failures follow English and Chinese without losing the retry actio
   await expect(page.locator("#view-content")).toContainText("Unable to connect to the server");
   await expect(page.locator("#view-content").getByRole("button", { name: "Retry", exact: true })).toBeVisible();
   await expect.poll(() => untranslated(page)).toEqual([]);
-  await page.locator(".sidebar [data-locale-toggle]").click();
+  await page.locator(".product-bar [data-locale-toggle]").click();
   await expect(page.locator("#view-content")).toContainText("无法连接服务器，请检查网络后重试");
   await expect(page.locator("#view-content").getByRole("button", { name: "重试", exact: true })).toBeVisible();
 });

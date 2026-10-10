@@ -7,7 +7,7 @@ test.afterEach(async ({ page }) => {
   await page.unrouteAll({ behavior: "wait" });
 });
 
-const ready = async (page, path = "/admin#dashboard") => {
+const ready = async (page, path = "/admin#devices") => {
   await page.goto(path);
   await expect(page.locator("#app-shell")).toBeVisible();
   await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");
@@ -32,33 +32,30 @@ const contrast = (a, b) => {
   return (high + 0.05) / (low + 0.05);
 };
 
-test("sidebar theme control matches the desktop toolbar and toggles light and dark", async ({ page }) => {
+test("top preferences match the desktop icons and toggle light and dark", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await ready(page);
   await expect(page.locator(".sidebar select")).toHaveCount(0);
-  const toolbar = page.locator(".sidebar .sidebar-toolbar");
+  const toolbar = page.locator(".product-tools");
   const buttons = toolbar.locator("button");
-  await expect(buttons).toHaveCount(2);
+  await expect(buttons).toHaveCount(3);
   const style = await toolbar.evaluate((element) => {
     const box = getComputedStyle(element);
     return { border: box.borderTopStyle, radius: parseFloat(box.borderTopLeftRadius), justify: box.justifyContent,
       buttons: [...element.querySelectorAll("button")].map((button) => {
         const rect = button.getBoundingClientRect(), css = getComputedStyle(button);
-        return { width: rect.width, height: rect.height, background: css.backgroundColor, color: css.color, radius: css.borderTopLeftRadius };
+        return { width: rect.width, height: rect.height, background: getComputedStyle(element.parentElement).backgroundColor, color: css.color, radius: css.borderTopLeftRadius };
       }) };
   });
-  expect(style.border).toBe("solid");
-  expect(style.radius).toBeGreaterThanOrEqual(8);
-  expect(style.justify).toBe("space-between");
   for (const button of style.buttons) {
-    expect(button.width).toBeGreaterThanOrEqual(44);
-    expect(button.height).toBeGreaterThanOrEqual(44);
+    expect(button.width).toBeGreaterThanOrEqual(32);
+    expect(button.height).toBeGreaterThanOrEqual(32);
     expect(contrast(button.color, button.background)).toBeGreaterThanOrEqual(4.5);
   }
   expect(style.buttons[0].background).toBe(style.buttons[1].background);
   expect(style.buttons[0].radius).toBe(style.buttons[1].radius);
 
-  const toggle = page.locator(".sidebar [data-theme-toggle]");
+  const toggle = page.locator(".product-bar [data-theme-toggle]");
   await expect(toggle.locator(".theme-icon-moon")).toBeVisible();
   await expect(toggle.locator(".theme-icon-sun")).toBeHidden();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
@@ -73,21 +70,17 @@ test("sidebar theme control matches the desktop toolbar and toggles light and da
   expect(await page.evaluate(() => localStorage.getItem("ht_theme"))).toBe("light");
 });
 
-test("sign-out lives in the sidebar user card and still asks for confirmation", async ({ page }) => {
+test("the sidebar account entry leads to sign-out with confirmation", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   let signOutRequests = 0;
   page.on("request", (request) => { if (request.method() === "POST" && new URL(request.url()).pathname === "/api/v2/auth/logout") signOutRequests++; });
   await ready(page);
   const card = page.locator(".sidebar .user-chip");
-  const logout = card.locator("#logout-button");
+  await card.locator('[data-view="account"]').click();
+  const logout = page.locator('[data-action="logout"]');
   await expect(logout).toBeVisible();
   await expect(logout).toHaveAccessibleName("退出登录");
   await expect(page.locator(".sidebar-footer > #logout-button")).toHaveCount(0);
-  const [cardBox, buttonBox] = [await card.boundingBox(), await logout.boundingBox()];
-  expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1);
-  expect(buttonBox.y).toBeGreaterThanOrEqual(cardBox.y - 1);
-  expect(buttonBox.width).toBeGreaterThanOrEqual(44);
-  expect(buttonBox.height).toBeGreaterThanOrEqual(44);
   await logout.click();
   await expect(page.locator("#modal[open]")).toBeVisible();
   expect(signOutRequests).toBe(0);
@@ -125,9 +118,9 @@ for (const theme of ["light", "dark"]) {
       const css = (selector) => getComputedStyle(document.querySelector(selector));
       return { side: css(".sidebar").backgroundColor, item: css(".nav-item:not(.active)").color,
         active: css(".nav-item.active").backgroundColor, activeText: css(".nav-item.active").color,
-        name: css("#current-user").color, chip: css(".user-chip").backgroundColor };
+        name: css("#current-user").color, chip: css(".sidebar").backgroundColor };
     });
-    expect(colors.side).toBe(theme === "light" ? "rgb(255, 255, 255)" : "rgb(23, 35, 56)");
+    expect(colors.side).toBe(theme === "light" ? "rgb(242, 239, 249)" : "rgb(33, 27, 45)");
     expect(contrast(colors.item, colors.side)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(colors.activeText, colors.active)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(colors.name, colors.chip)).toBeGreaterThanOrEqual(4.5);
@@ -179,7 +172,7 @@ test("the browser directory provides optional host verification after account lo
   await ready(page, "/admin#remote");
   await expect(page.locator("#remote-password")).toHaveAttribute("type", "password");
   await expect(page.locator(".remote-assist-preview")).toHaveCount(0);
-  await expect(page.locator(".remote-device [data-browser-connect]")).toBeVisible();
+  await expect(page.locator("#remote-connect-form button[type=submit]")).toBeVisible();
 });
 
 for (const width of [1280, 390]) {

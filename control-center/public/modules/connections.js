@@ -1,4 +1,4 @@
-import { pagination } from "./pagination.js?v=13.0.0";
+import { pagination } from "./pagination.js?v=14.0.0";
 export function createConnectionsView({
   api,
   allPages,
@@ -24,10 +24,10 @@ export function createConnectionsView({
       page: String(filter.page),
       page_size: "20",
       search: filter.search,
-      user_id: filter.userId,
+      user_id: filter.userId??"",
     });
     const [data, devicesPayload, usersPayload] = await Promise.all([
-      api(connectionsPath() + `?${params}`),
+      filter.device_id ? allPages(connectionsPath()) : api(connectionsPath() + `?${params}`),
       allPages(devicesPath()),
       isAdmin() ? api("/api/v1/admin/users") : Promise.resolve({ items: [] }),
     ]);
@@ -36,11 +36,11 @@ export function createConnectionsView({
     if (isAdmin()) state.users = usersPayload.items;
     state.connections = annotateOwnedConnections(data.items, state.devices);
     updateTransportTunnelState(data);
-    const items = state.connections;
-    const total = Number(data.total ?? items.length),
-      pages = Number(data.total_pages ?? 1);
+    const items = filter.device_id ? state.connections.filter(item => item.device_id === filter.device_id) : state.connections;
+    const total = filter.device_id ? items.length : Number(data.total ?? items.length),
+      pages = filter.device_id ? 1 : Number(data.total_pages ?? 1);
     viewContent.innerHTML = `<form class="connection-filter panel" id="connection-filter"><div class="field"><label for="connection-search">查找连接</label><input id="connection-search" type="search" name="search" value="${escapeHtml(filter.search)}" placeholder="输入名称、地址或用户"></div>${isAdmin() ? `<div class="field"><label for="connection-owner">所属用户</label><select name="user_id" id="connection-owner"><option value="">全部用户</option>${state.users.map((u) => `<option data-no-translate value="${u.id}" ${filter.userId === u.id ? "selected" : ""}>${escapeHtml(u.display_name)} · ${escapeHtml(u.username)}</option>`).join("")}</select></div>` : ""}<button class="button button-secondary" type="submit">搜索</button></form>
-    <div class="section-intro"><p><strong>${total}</strong> 条连接</p></div>
+
     <div class="actions connection-batch"><button class="button button-secondary button-small" data-action="batch-connections" data-enabled="false">暂停所选连接</button><button class="button button-secondary button-small" data-action="batch-connections" data-enabled="true">恢复所选连接</button></div>
     ${items.length ? `<section class="connection-table" role="table" aria-label="家庭连接"><div class="connection-table-header" role="row"><div role="columnheader" data-column="name"><span class="connection-name-label">服务与设备</span></div><div role="columnheader" data-column="address">访问地址</div><div role="columnheader" data-column="target">本地目标</div><div role="columnheader" data-column="state">状态</div><div role="columnheader" data-column="actions">操作</div></div><div class="connection-grid" role="rowgroup">${items.map(renderConnectionCard).join("")}</div></section>` : `<section class="panel">${filter.search || filter.userId ? emptyState("没有匹配的连接", "请调整关键词或用户筛选后重试。") : emptyState("创建第一条家庭连接", "先在家庭电脑上安装客户端，用同一账号登录，然后把本地服务发布到公网。", "create-connection", "创建连接")}<a class="button button-secondary setup-link" href="/" target="_blank" rel="noopener">安装客户端与快速开始</a></section>`}
     ${pagination({page:filter.page,pages,total,pageSize:20,action:"connection-page",label:"穿透分页"})}`;

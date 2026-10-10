@@ -14,8 +14,10 @@ class LandingContractTest(unittest.TestCase):
 
     def test_broken_download_destinations_are_rejected(self):
         page = (ROOT / "control-center/public/index.html").read_text(encoding="utf-8")
+        destination = "home-tunnel-client/releases/tag/v14.0.0"
+        self.assertIn(destination, page)
         with self.assertRaisesRegex(RuntimeError, "download destination"):
-            module.validate_landing_page(page.replace("home-tunnel-client/releases/tag/v13.0.0", "home-tunnel-client#readme"))
+            module.validate_landing_page(page.replace(destination, "home-tunnel-client#readme"))
 
 if __name__ == "__main__":
     unittest.main()

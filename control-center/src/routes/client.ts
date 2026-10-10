@@ -363,9 +363,13 @@ router.get(
       favorite: number;
       metadata_version: number;
       last_seen_at: Date | null;
+      credential_purpose: "gui" | "background";
+      client_type: string | null;
     }>(
       `SELECT id,user_id,name,status,config_version,applied_config_version,client_version,agent_version,
-       last_seen_at,lease_expires_at,created_at,tags,favorite,metadata_version
+       last_seen_at,lease_expires_at,created_at,tags,favorite,metadata_version,credential_purpose,
+       COALESCE((SELECT b.platform FROM homedesk_bindings b WHERE b.device_id=devices.id),
+         (SELECT s.client_type FROM sessions s WHERE s.device_id=devices.id ORDER BY s.created_at DESC LIMIT 1)) AS client_type
        FROM devices WHERE ${where} ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?`,
       [...params, page_size, offset],
     );
@@ -374,6 +378,7 @@ router.get(
       items: rows.map((row) => ({
         ...row,
         username: actor.username,
+        credential_purpose: row.credential_purpose,
         tags: JSON.parse(row.tags),
         favorite: Boolean(row.favorite),
         metadata_version: Number(row.metadata_version),

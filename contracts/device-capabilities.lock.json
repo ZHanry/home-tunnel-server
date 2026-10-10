@@ -1,0 +1,14 @@
+{
+  "contract": "nestlink-device-capabilities-v1",
+  "authentication_contract": "api-v2.0.0",
+  "files": [
+    {
+      "path": "contracts/nestlink-device-capabilities.v1.json",
+      "sha256": "85858b74c6a31724958d49b4811afc7ce4a47e37f8ef4d936ac03540928ad584"
+    },
+    {
+      "path": "contracts/nestlink-device-capabilities.v1.schema.json",
+      "sha256": "f2681b5f96ca8131d0590bf57797b8d25e03f48c810d30eb51cc2edc2a65c97c"
+    }
+  ]
+}

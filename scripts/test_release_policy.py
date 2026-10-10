@@ -24,15 +24,15 @@ class ReleasePolicyTests(unittest.TestCase):
         workflow = (script.parent.parent / ".github/workflows/release.yml").read_text(encoding="utf-8")
         trigger = workflow.split("'on':\n", 1)[1].split("permissions:\n", 1)[0]
         # Stable publication downloads the accepted CI artifact and never builds images.
-        self.assertEqual(trigger, "  push:\n    tags:\n    - v*-rc.*\n    - v*-RC*\n    - v13.*\n")
+        self.assertEqual(trigger, "  push:\n    tags:\n    - v*-rc.*\n    - v*-RC*\n    - v[0-9]*.[0-9]*.[0-9]*\n")
         self.assertIn("stable: ${{ steps.version.outputs.stable }}", workflow)
         self.assertIn("python3 scripts/homedesk-release.py verify-server --input release", workflow)
         self.assertIn("run-id: ${{ needs.metadata.outputs.build-run }}", workflow)
         patterns = [line.strip()[2:] for line in trigger.splitlines() if line.strip().startswith("- ")]
-        for tag in ("v10.0.0-rc.1", "v11.2.3-rc.12", "v13.0.0"):
+        for tag in ("v10.0.0-rc.1", "v11.2.3-rc.12", "v13.0.0", "v14.0.0"):
             with self.subTest(tag=tag):
                 self.assertTrue(any(fnmatchcase(tag, pattern) for pattern in patterns))
-        for tag in ("v10.0.0", "v11.2.3", "api-v1.4.0"):
+        for tag in ("v14", "v14.0", "api-v1.4.0"):
             with self.subTest(tag=tag):
                 self.assertFalse(any(fnmatchcase(tag, pattern) for pattern in patterns))
 

@@ -58,12 +58,12 @@ test("public home keeps prototype artwork, features and language on narrow scree
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator(".marketing-brand .brand-mark img")).toBeVisible();
-  await expect(page.locator(".marketing-brand")).toContainText("nestlink");
+  await expect(page.locator(".marketing-brand")).toContainText("NestLink");
   await expect(page.locator(".hero-art .art-server")).toBeVisible();
   await expect(page.locator(".landing-features article")).toHaveCount(3);
   await expect(page.locator("#hero-download")).toHaveAttribute(
     "href",
-    "https://github.com/ZHanry/home-tunnel-client/releases/tag/v13.0.0",
+    "https://github.com/ZHanry/home-tunnel-client/releases/tag/v14.0.0",
   );
   await page.locator(".marketing-footer [data-locale-toggle]").click();
   await expect(page.locator("#hero-title")).toContainText("Bring your home services");
@@ -129,8 +129,8 @@ test("sidebar version opens official release details in a dialog", async ({ page
   await expect(page.locator('[data-view="updates"]')).toHaveCount(0);
   await page.locator("#version-button").click();
   await expect(page.locator("#modal[open]")).toBeVisible();
-  await expect(page.locator("#modal")).toContainText("13.0.0");
-  await expect(page.locator("#modal .update-summary")).toContainText("nestlink");
+  await expect(page.locator("#modal")).toContainText("14.0.0");
+  await expect(page.locator("#modal .update-summary")).toContainText("NestLink");
   await expect(page.locator('#modal a[href*="github.com/ZHanry/home-tunnel-server/releases"]')).toBeVisible();
 });
 
@@ -141,7 +141,7 @@ test("account deletion describes affected resources, supports cancellation and s
   await page.locator(".person-row .more-actions summary").first().click();
   await page.locator('[data-action="delete-user"]').first().click();
   await expect(page.locator("#modal")).toContainText("所有设备凭据和会话将撤销");
-  await page.locator("#modal-close").click();
+  await page.locator("#modal [data-modal-cancel]").click();
   await expect(page.locator(".person-row")).toHaveCount(2);
   await page.locator('[data-action="delete-user"]').first().click();
   const request = page.waitForRequest(
@@ -161,13 +161,13 @@ test("theme and locale preferences persist without translating resource names", 
   });
   await page.emulateMedia({ colorScheme: "light" });
   await ready(page);
-  const toggle = page.locator(".sidebar [data-theme-toggle]");
+  const toggle = page.locator(".product-bar [data-theme-toggle]");
   await expect(toggle).toHaveAccessibleName("切换至深色主题");
   await toggle.click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme-preference", "dark");
   await expect(toggle).toHaveAccessibleName("切换至浅色主题");
-  await page.locator(".sidebar [data-locale-toggle]").click();
+  await page.locator(".product-bar [data-locale-toggle]").click();
   await expect(toggle).toHaveAccessibleName("Switch to light theme");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator(".connection-identity h3").first()).toHaveText("在线");
@@ -184,9 +184,9 @@ test("system theme and sidebar preferences synchronize across open tabs", async 
   const second = await context.newPage();
   await second.emulateMedia({colorScheme: "dark"});
   await ready(second, "/admin#account");
-  await page.locator(".sidebar [data-theme-toggle]").click();
+  await page.locator(".product-bar [data-theme-toggle]").click();
   await expect(second.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(second.locator(".sidebar [data-theme-toggle]")).toHaveAccessibleName("切换至深色主题");
+  await expect(second.locator(".product-bar [data-theme-toggle]")).toHaveAccessibleName("切换至深色主题");
   await page.evaluate(() => localStorage.removeItem("ht_theme"));
   await expect(second.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.emulateMedia({colorScheme: "light"});
@@ -255,7 +255,8 @@ test("expired refresh returns to login", async ({ page }) => {
   await page.route("**/api/v2/auth/refresh", (route) =>
     route.fulfill({ status: 401, json: { error_code: "SESSION_REVOKED" } }),
   );
-  await page.locator('[data-view="users"]').click();
+  await page.locator('[data-view="account"]').click();
+  await page.locator('.administration-links [data-view="users"]').click();
   await expect(page.locator("#auth-screen")).toBeVisible();
   await expect(page.locator("#app-shell")).not.toBeVisible();
 });
@@ -298,10 +299,10 @@ test("unknown backup and degraded queue are never called normal", async ({ page 
   await ready(page, "/admin#dashboard");
   await expect(page.locator(".health-rail-list")).toContainText("尚无备份记录");
   await expect(page.locator(".health-rail-list")).toContainText("需要处理");
-  await page.locator(".sidebar [data-locale-toggle]").click();
+  await page.locator(".product-bar [data-locale-toggle]").click();
   await expect(page.locator(".health-rail-list")).toContainText("Healthy · 3 ms");
   await expect(page.locator(".health-rail-list")).toContainText("Queued 4");
-  await page.locator(".sidebar [data-locale-toggle]").click();
+  await page.locator(".product-bar [data-locale-toggle]").click();
   await expect(page.locator(".health-rail-list")).toContainText("正常 · 3 ms");
   await expect(page.locator(".health-rail-list")).toContainText("待处理 4");
 });
@@ -446,69 +447,41 @@ for (const width of [375, 768, 1024, 1280, 1440])
     await expect(page.locator('[data-action="edit-connection"]').first()).toBeVisible();
   });
 
-test("mobile navigation exposes labelled tabs and a keyboard accessible More panel", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 375, height: 812 });
-  await ready(page);
-  for (const view of ["dashboard", "remote", "devices", "connections"]) {
-    await expect(page.locator(`.nav-item[data-view="${view}"]`)).toBeVisible();
-    await expect(page.locator(`.nav-item[data-view="${view}"]`)).toHaveAccessibleName(/\S/);
-    await expect(page.locator(`[data-view="${view}"] .nav-mobile-label`)).toBeVisible();
-    const box = await page.locator(`.nav-item[data-view="${view}"]`).boundingBox();
-    expect(box.x).toBeGreaterThanOrEqual(0);
-    expect(box.x + box.width).toBeLessThanOrEqual(375);
-  }
-  await expect(page.locator("#nav-secondary")).toBeHidden();
-  await page.locator("#nav-more").focus();
-  await page.keyboard.press("Enter");
-  await expect(page.locator('[data-view="users"]')).toBeFocused();
-  for (const view of ["users", "audit", "settings", "account"]) {
-    await expect(page.locator(`.nav-item[data-view="${view}"]`)).toBeVisible();
-    await expect(page.locator(`.nav-item[data-view="${view}"]`)).toHaveAccessibleName(/\S/);
-  }
-  await page.keyboard.press("Escape");
-  await expect(page.locator("#nav-more")).toBeFocused();
-  await expect(page.locator("#nav-secondary")).toBeHidden();
-  await page.locator("#nav-more").click();
-  await page.locator('[data-view="settings"]').click();
-  await expect(page.locator("#page-title")).toHaveText("系统设置");
-  await expect(page.locator("#nav-more")).toHaveClass(/active/);
-  await expect(page.locator("#nav-secondary")).toBeHidden();
-  await page.locator('[data-view="devices"]').focus();
-  await page.keyboard.press("Enter");
-  await expect(page.locator("#page-title")).toHaveText("设备管理");
-  await expect(page.locator('[data-view="devices"]')).toHaveAttribute("aria-current", "page");
-  await page.locator(".mobile-preferences [data-locale-toggle]").click();
-  await expect(page.locator('[data-view="devices"]')).toHaveAccessibleName("Devices");
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-});
-
-test("mobile More hides admin routes and closes when focus leaves or the layout widens", async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 700 });
-  await ready(page, "/admin?role=user#account");
-  await page.locator("#nav-more").click();
-  for (const view of ["users", "audit", "settings"]) await expect(page.locator(`.nav-item[data-view="${view}"]`)).toBeHidden();
-  await expect(page.locator('.nav-item[data-view="account"]')).toBeFocused();
-  await expect(page.locator('#mobile-version-button')).toBeVisible();
-  await expect(page.locator('.nav-item[data-view="account"]')).toHaveAttribute("aria-current", "page");
-  await page.locator(".mobile-preferences [data-locale-toggle]").focus();
-  await expect(page.locator("#nav-secondary")).toBeHidden();
-  await page.locator("#nav-more").click();
-  await page.setViewportSize({ width: 1440, height: 960 });
-  await expect(page.locator("#nav-more")).toBeHidden();
-  await expect(page.locator('.nav-item[data-view="account"]')).toBeVisible();
-  await page.setViewportSize({ width: 320, height: 700 });
-  await expect(page.locator("#nav-secondary")).toBeHidden();
-});
+test("mobile navigation exposes three business destinations and account administration", async ({page}) => {
+    await page.setViewportSize({width:375,height:812});await ready(page);
+    for(const view of ["devices","remote","connections","account"]) {
+      const button=page.locator(`.nav-item[data-view="${view}"]`);
+      await expect(button).toBeVisible();await expect(button).toHaveAccessibleName(/\S/);
+      const box=await button.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(375);
+    }
+    await page.locator('.user-chip-name[data-view="account"]').click();
+    await page.locator('.administration-links [data-view="settings"]').click();
+    await expect(page.locator("#page-title")).toHaveText("系统设置");
+    await page.locator('[data-view="devices"]').focus();await page.keyboard.press("Enter");
+    await expect(page.locator("#page-title")).toHaveText("设备管理");
+    await expect(page.locator('[data-view="devices"]')).toHaveAttribute("aria-current","page");
+    await page.locator('.product-bar [data-locale-toggle]').click();
+    await expect(page.locator('[data-view="devices"]')).toHaveAccessibleName("Devices");
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  });
+  test("ordinary account never receives administrative navigation and direct routes resolve to devices", async ({page}) => {
+    await page.setViewportSize({width:320,height:700});await ready(page,"/admin?role=user#account");
+    await expect(page.locator('.administration-links')).toHaveCount(0);
+    await expect(page.locator('#version-button')).toBeVisible();
+    await page.goto('/admin?role=user#admin-devices');
+    await expect(page.locator('#view-content')).toHaveAttribute('aria-busy','false');
+    await expect(page.locator('#page-title')).toHaveText('设备管理');
+    await page.setViewportSize({width:1440,height:960});
+    await expect(page.locator('.nav-item[data-view="account"]')).toBeVisible();
+  });
 
 test("browser remote controls translate in both directions", async ({ page }) => {
   await ready(page, "/admin#remote");
-  await page.locator(".sidebar [data-locale-toggle]").click();
-  await expect(page.locator("#view-content")).toContainText("Connect to a device");
-  await expect(page.locator(".remote-device [data-browser-connect]")).toHaveText("Connect");
-  await page.locator(".sidebar [data-locale-toggle]").click();
-  await expect(page.locator(".remote-device [data-browser-connect]")).toHaveText("连接设备");
+  await page.locator(".product-bar [data-locale-toggle]").click();
+  await expect(page.locator("#view-content")).toContainText("Connect to a partner device");
+  await expect(page.locator("#remote-connect-form button[type=submit]")).toHaveText("Connect");
+  await page.locator(".product-bar [data-locale-toggle]").click();
+  await expect(page.locator("#remote-connect-form button[type=submit]")).toHaveText("连接");
 });
 
 test("realtime startup preserves foreground loading failures and an explicit retry", async ({ page }) => {
@@ -529,9 +502,9 @@ test("realtime startup preserves foreground loading failures and an explicit ret
     release();
     await expect(page.locator("#view-content")).toContainText("无法加载数据");
     await expect(page.locator("#view-content")).toContainText("重试");
-    await page.locator(".sidebar [data-locale-toggle]").click();
+    await page.locator(".product-bar [data-locale-toggle]").click();
     await expect(page.locator("#view-content")).toContainText("Retry");
-    await page.locator(".sidebar [data-locale-toggle]").click();
+    await page.locator(".product-bar [data-locale-toggle]").click();
     await expect(page.locator("#view-content .skeleton")).toHaveCount(0);
     await page.locator("#view-content").getByRole("button", { name: "重试", exact: true }).click();
     await expect(page.locator("#view-content")).toHaveAttribute("aria-busy", "false");

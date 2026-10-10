@@ -1,0 +1,274 @@
+{
+  "product_version": "14.0.0",
+  "source_repository": "https://github.com/ZHanry/home-tunnel-server",
+  "source_base_revision": "9645cf23871d2cb4913239eb9eff520d08c7cb23",
+  "source_state": "working tree; exact UI sources pinned below",
+  "captured_at": "2026-10-10T11:06:07.657279+00:00",
+  "capture_engine": "Playwright Chromium",
+  "data_scope": "local UI preview with synthetic account/device/service fixtures; no runtime acceptance claim",
+  "capture_commands": [
+    "pnpm exec playwright test browser-tests/nestlink14.spec.mjs browser-tests/hearth-layout.spec.mjs"
+  ],
+  "ui_source_files": [
+    {
+      "file": "control-center/public/app.js",
+      "sha256": "9177f68f96a41fcdd69488e3e70c8001af3eba1359cc463260df04c0d48fbd8d"
+    },
+    {
+      "file": "control-center/public/console.css",
+      "sha256": "025bc754d85cae36d3091df75ca81c7a5b383f9d6480e74a92bc4a9e88f18a87"
+    },
+    {
+      "file": "control-center/public/Hearth.svg",
+      "sha256": "7d7f9364ff04a67f3995e6f2e7e323205b1f08a957aaffee5ff9eb1b5d63d63c"
+    },
+    {
+      "file": "control-center/public/HomeTunnel.svg",
+      "sha256": "7d7f9364ff04a67f3995e6f2e7e323205b1f08a957aaffee5ff9eb1b5d63d63c"
+    },
+    {
+      "file": "control-center/public/index.html",
+      "sha256": "e6014319a413fe7e22df437b38991da607613bb68c4e9535120cbdd097116cb7"
+    },
+    {
+      "file": "control-center/public/modules/account-security.js",
+      "sha256": "161e794f380249ad868329f1b9461aba3638c50f7be80afeec8c7dfaeddf5f50"
+    },
+    {
+      "file": "control-center/public/modules/api.js",
+      "sha256": "82222662fdc8a849f8ffe7a92dddb1bf56240b6a4e38088e1b2706b3b9d256f8"
+    },
+    {
+      "file": "control-center/public/modules/browser-remote.js",
+      "sha256": "2a051492255b0d3b50eeae6850da026eecb95784c560ccec4a532feede5e0bf4"
+    },
+    {
+      "file": "control-center/public/modules/connections.js",
+      "sha256": "e6326421975d2f156970918b0d438937b7f7246b07d191ec763ba48105218936"
+    },
+    {
+      "file": "control-center/public/modules/devices.js",
+      "sha256": "25c543b3e2c94694969a4689d20d93ee0e1720719acc7647bcc80ff03dc54405"
+    },
+    {
+      "file": "control-center/public/modules/format.js",
+      "sha256": "b72123e07ead6d4a7bbb335c9146bd610af4dcd561dfe03a03a9397f25742854"
+    },
+    {
+      "file": "control-center/public/modules/forms.js",
+      "sha256": "869c4fd91e62fa2ff86c5c9eceda89dd9c6c092a8f0a611b4403084e80fe245d"
+    },
+    {
+      "file": "control-center/public/modules/homedesk.js",
+      "sha256": "721854fbe02184d5a9cbd8eec716735374b11fdb764aee978b3922a77837e191"
+    },
+    {
+      "file": "control-center/public/modules/locale.js",
+      "sha256": "9ea30d9dc9d80539bbd7e1d67b3b3106bb669522877cfbb9050d28ec8501f334"
+    },
+    {
+      "file": "control-center/public/modules/pagination.js",
+      "sha256": "ddca3cd92859ed438cd9ccccb6512c5ffb6ee921f56ffa89633fea0b60cb95d8"
+    },
+    {
+      "file": "control-center/public/modules/physical-devices.js",
+      "sha256": "99699585f2ab099d3c9945b429b30913f9ddca6fa3810efbb05e9525c16fbb33"
+    },
+    {
+      "file": "control-center/public/modules/realtime.js",
+      "sha256": "735922511f2da65b97a4cb35c1052878ec4fd8da6b14f8c570828c2b7c3f76f3"
+    },
+    {
+      "file": "control-center/public/modules/remote/http.js",
+      "sha256": "c4f39657f93fdd28c6688b10ebe8b2dcecd1223818fb8f9cf0fbae92ebca270c"
+    },
+    {
+      "file": "control-center/public/modules/remote/identity.js",
+      "sha256": "01336ee39c6fdffb49b31c78e0010f7676266de80ab9b6706594706526dfad9a"
+    },
+    {
+      "file": "control-center/public/modules/remote/input.js",
+      "sha256": "d460782af754a81066dcf5a59320ff0ad6da4af559b53742ed200acddffb2850"
+    },
+    {
+      "file": "control-center/public/modules/remote/payload.generated.js",
+      "sha256": "f556b7fde86e3bb7fcb21e346348653c242efe355b9e18958ee786dffba23940"
+    },
+    {
+      "file": "control-center/public/modules/remote/protocol.generated.js",
+      "sha256": "ba94122832b8849d5854432d102208d96dbc0e0f6a998aec8d58e6eaf4e4f55e"
+    },
+    {
+      "file": "control-center/public/modules/remote/protocol.js",
+      "sha256": "4fa7ff66cd0c1866521397458e5be35d4e7d02d38e4575f5233dff1b6199d8a7"
+    },
+    {
+      "file": "control-center/public/modules/remote/session.js",
+      "sha256": "15bb00cb74b80e3d27aa62dc4bf9e900a8c2e35354d192d4181ccc88eb99600b"
+    },
+    {
+      "file": "control-center/public/modules/remote/sha256-stream.js",
+      "sha256": "73fad96572877e454e16c7d5b3274ad54e12cceb22e82964ee2254ff30bebe28"
+    },
+    {
+      "file": "control-center/public/modules/remote/signal.js",
+      "sha256": "13dc5b29ea900bd9b000f42bfe7664d7bac0e7c3e1cacf137208d16fd8a05ae4"
+    },
+    {
+      "file": "control-center/public/modules/remote/transfer.js",
+      "sha256": "cfc0830e8593cebe1afbd478099b822c0f354cb1803887783bb86fc24cab0fca"
+    },
+    {
+      "file": "control-center/public/modules/remote/translations.js",
+      "sha256": "a7789dde614615e332ea17dd5d06e429bd2343bd1d7bb734f1da86a204496f2e"
+    },
+    {
+      "file": "control-center/public/modules/remote/view.js",
+      "sha256": "315e81b9ebaf4150c21f7843e724911e33b3b13d02fccd76161076b303c63103"
+    },
+    {
+      "file": "control-center/public/modules/state.js",
+      "sha256": "8ad4cd8fb91b3dc53eec4668f653bafb2732a79bf375f21c2df23ae4045ec029"
+    },
+    {
+      "file": "control-center/public/modules/tunnel-model.js",
+      "sha256": "d84115718fa2067e8ad7c9a38607e301b056a76bea0aa9ba6417f9078534e3f3"
+    },
+    {
+      "file": "control-center/public/modules/tunnel-wizard.js",
+      "sha256": "847cbe2f7cfda1bac0ffd2d3146da4cdc2773acf3b2f99e3cf207aeb7d56e750"
+    },
+    {
+      "file": "control-center/public/nestlink.css",
+      "sha256": "c6619269422946748253d7fbf781d22af5f52535075533a15ddea4497c0a1ab0"
+    },
+    {
+      "file": "control-center/public/NestLink.svg",
+      "sha256": "7d7f9364ff04a67f3995e6f2e7e323205b1f08a957aaffee5ff9eb1b5d63d63c"
+    },
+    {
+      "file": "control-center/public/prototype-theme.css",
+      "sha256": "0e6896b2dc688b6b446598815d9c3a1575e89392a834d1f86772f0fb5a9233d3"
+    },
+    {
+      "file": "control-center/public/remote.css",
+      "sha256": "e79b67245a1b609350abbe3c0fe6492f52b57e7e400e53034d78df6727fb3d8a"
+    },
+    {
+      "file": "control-center/public/theme.js",
+      "sha256": "ef07931dd68a85cbf752a9ac1e6fb6dee75bfccfb5cc65d50f076aaf4b4292ce"
+    },
+    {
+      "file": "control-center/scripts/ui-preview.mjs",
+      "sha256": "19ce01683e61048bff0d5dd0475e58653e0ad93efa3a341c6e3ddfbf6887c5c4"
+    },
+    {
+      "file": "control-center/browser-tests/nestlink14.spec.mjs",
+      "sha256": "df636d30c981b379c22c55c7e8cc50f04086b4e120b39489345fa6c6c63dfa55"
+    },
+    {
+      "file": "control-center/browser-tests/hearth-layout.spec.mjs",
+      "sha256": "3587b49a5ed3157d0b2e7486c84994adb20826e717d5eb15379bed2407a4dc68"
+    }
+  ],
+  "captures": [
+    {
+      "file": "devices-light-desktop.png",
+      "sha256": "104eac28ff87945ebbaac036803e7ba05aec9cf81b0865035e35ee25ff5ffaa3",
+      "width": 1440,
+      "height": 960,
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "light",
+      "locale": "zh-CN",
+      "page": "/admin?role=user#devices",
+      "data_scope": "physical device directory with explicit linked GUI/background and Android fixture"
+    },
+    {
+      "file": "devices-dark-desktop.png",
+      "sha256": "95083b49bd0e90401a2ca4513d486db76a2e94fe4cb47ead1a9a99e5918dd39e",
+      "width": 1440,
+      "height": 960,
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "dark",
+      "locale": "zh-CN",
+      "page": "/admin?role=user#devices",
+      "data_scope": "physical device directory with explicit linked GUI/background and Android fixture"
+    },
+    {
+      "file": "devices-light-mobile.png",
+      "sha256": "579bb9da3f66fa1cf4a2ac3f18dcfb898eee1b6408231dee9fb7f9c6ff0ea7d3",
+      "width": 390,
+      "height": 972,
+      "viewport": {
+        "width": 390,
+        "height": 960
+      },
+      "theme": "light",
+      "locale": "zh-CN",
+      "page": "/admin?role=user#devices",
+      "data_scope": "same directory at phone browser width"
+    },
+    {
+      "file": "devices-dark-mobile.png",
+      "sha256": "c610a0638a9b2ea9fb6d37232cd2c3ccb31abbef25fa6e135e60ddcff8fdfd18",
+      "width": 390,
+      "height": 972,
+      "viewport": {
+        "width": 390,
+        "height": 960
+      },
+      "theme": "dark",
+      "locale": "zh-CN",
+      "page": "/admin?role=user#devices",
+      "data_scope": "same directory at phone browser width"
+    },
+    {
+      "file": "tunnels-light-desktop.png",
+      "sha256": "5d090461ed5930372b80b2dfcb381db9435e97bacbe6d8dac8e2e79ff6b55e64",
+      "width": 1440,
+      "height": 1000,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "theme": "light",
+      "locale": "zh-CN",
+      "page": "/admin#connections",
+      "data_scope": "synthetic managed tunnel configuration"
+    },
+    {
+      "file": "remote-light-desktop.png",
+      "sha256": "73ba5a95a93104edf1c2904f942d92818ca5c2fb361dbfd642c126cda08a3151",
+      "width": 1440,
+      "height": 1000,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "theme": "light",
+      "locale": "zh-CN",
+      "page": "/admin#remote",
+      "data_scope": "remote connect form and empty recent history; no active media session"
+    },
+    {
+      "file": "login-light-mobile.png",
+      "sha256": "e70de326c3eaca42290119cdb34b6341512d3a9ffff4264f598c7f3816342226",
+      "width": 390,
+      "height": 856,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "locale": "zh-CN",
+      "page": "/admin",
+      "data_scope": "login form with expired preview session"
+    }
+  ]
+}

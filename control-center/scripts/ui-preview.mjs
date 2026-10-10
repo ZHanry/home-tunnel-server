@@ -56,10 +56,12 @@ const devices = [
     user_id: ids.user,
     username: "lin",
     name: "书房主机",
+    credential_purpose: "gui",
+    client_type: "windows",
     status: "active",
     online: true,
-    client_version: "13.0.0",
-    agent_version: "13.0.0",
+    client_version: "14.0.0",
+    agent_version: "14.0.0",
     applied_config_version: 12,
     config_version: 12,
     last_seen_at: new Date(now - 12_000).toISOString(),
@@ -70,10 +72,12 @@ const devices = [
     user_id: ids.userTwo,
     username: "ops.demo",
     name: "家庭服务器",
+    credential_purpose: "background",
+    client_type: "linux",
     status: "active",
     online: false,
-    client_version: "13.0.0",
-    agent_version: "13.0.0",
+    client_version: "14.0.0",
+    agent_version: "14.0.0",
     applied_config_version: 4,
     config_version: 5,
     last_seen_at: new Date(now - 3_600_000).toISOString(),
@@ -189,15 +193,15 @@ const domains = [];
 app.use(express.json());
 app.use(express.static(publicDirectory, { etag: false, lastModified: false, maxAge: 0 }));
 app.get("/api/v2/public/capabilities", (_request, response) =>
-  response.json({ api_major: 2, server_version: "13.0.0", contract_version: "2.0.0" }),
+  response.json({ api_major: 2, server_version: "14.0.0", contract_version: "2.0.0" }),
 );
 
 app.get("/api/v2/public/updates/:component", (request, response) =>
   response.json({
-    current_version: "13.0.0",
+    current_version: "14.0.0",
     update_available: false,
     latest: {
-      version: "13.0.0",
+      version: "14.0.0",
       notes: "NestLink release preview",
       prerelease: true,
       url:
@@ -215,6 +219,18 @@ app.get("/api/v1/public/releases/latest", (_request, response) =>
 app.get("/api/v2/auth/session", (_request, response) =>
   response.status(401).json({ error_code: "AUTH_REQUIRED", message: "Refresh preview session" }),
 );
+app.get("/api/v2/auth/device-capabilities", (_request, response) =>
+  response.json({ version: 1, items: [] }),
+);
+app.get("/api/v2/admin/device-capabilities", (_request, response) =>
+  response.json({ version: 1, items: [] }),
+);
+app.delete("/api/v2/auth/devices/:id", (request, response) => {
+  const index = devices.findIndex((device) => device.id === request.params.id);
+  if (index < 0) return response.status(404).json({ error_code: "NOT_FOUND" });
+  devices.splice(index, 1);
+  return response.sendStatus(204);
+});
 app.get("/api/v2/auth/sessions", (_request, response) => response.json({ items: [] }));
 app.post("/api/v2/auth/refresh", (_request, response) =>
   response.json({ csrf_token: "local-ui-preview" }),
@@ -582,7 +598,7 @@ app.use((request, response, next) => {
 });
 
 const server = app.listen(port, "127.0.0.1", () => {
-  console.log(`nestlink UI preview: http://127.0.0.1:${port}`);
+  console.log(`NestLink UI preview: http://127.0.0.1:${port}`);
 });
 const webSockets = new WebSocketServer({ noServer: true });
 server.on("upgrade", (request, socket, head) => {

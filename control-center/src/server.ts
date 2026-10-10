@@ -8,6 +8,7 @@ import { bootstrapAdmin, closeDatabase, migrate, pool } from "./db.js";
 import { authenticate, errorMiddleware, requestContext } from "./http.js";
 import { attachRealtime } from "./realtime.js";
 import { startDataMaintenance } from "./maintenance.js";
+import { adminDeviceCapabilitiesRouter } from "./routes/admin-device-capabilities.js";
 import { adminRouter } from "./routes/admin.js";
 import { nativeRemoteRouter, nativeRemotePublicRouter } from "./routes/native-remote.js";
 import { authRouter } from "./routes/auth.js";
@@ -104,6 +105,7 @@ export async function createApplication(
   app.use("/api/v2/auth", accountDevicesRouter);
   app.use("/api/v2/remote", remotePermitsRouter);
   app.use("/api/v2/browser", browserRemoteRouter);
+  app.use("/api/v2/admin", adminDeviceCapabilitiesRouter);
   app.use("/api/v1/admin", adminRouter);
   app.use("/api/v1", platformRouter);
   app.use("/api/v1", deviceNameRouter);
