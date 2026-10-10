@@ -5,10 +5,10 @@
   "upstream_commit": "fa3bcca2b0c4753cd4f0e2ab189dd6a5a6a15708",
   "upstream_archive_sha256": "9c6b0188a8f74e982069dc89218cc3d79bada8663cedf3b514b98847530cbf7d",
   "image": "ghcr.io/zhanry/home-tunnel-frps",
-  "image_tag": "0.70.1-r3",
-  "digest": "sha256:b5636ba951da6e27d76caff228fb17b8511695ffbcdca3a04b0bc93d593e6716",
-  "repository_revision": "be96d25667cbb39f8e3dcaf5633c61316ee1da31",
-  "workflow_run": "https://github.com/ZHanry/home-tunnel-server/actions/runs/34230007888",
+  "image_tag": "0.70.1-r4",
+  "digest": "sha256:69dd1e9a05dbef35f44436db77f88e266a2772d57a86f889ffbd982ca7798ddb",
+  "repository_revision": "0ad5a6d0e463d8d1b496e0642bf8b010ba3ec263",
+  "workflow_run": "https://github.com/ZHanry/home-tunnel-server/actions/runs/38052783144",
   "security_dependencies": {
     "upstream_commit": "fa3bcca2b0c4753cd4f0e2ab189dd6a5a6a15708",
     "module_overrides": [
@@ -21,9 +21,9 @@
       },
       {
         "path": "golang.org/x/crypto",
-        "version": "v0.56.0",
-        "sum": "h1:GUh5Ii4J5jtcseSMiRqr1jXCNHoxjeV9Fmekc2oLy6Y=",
-        "go_mod_sum": "h1:OMW5y6CY9l38uPLmxU6l6pwcXp1obtLo3e6gT7gQR2I=",
+        "version": "v0.57.0",
+        "sum": "h1:3ZVCjf8Ggz7zneR/EHRVx68Ctf+2pmIMP2UFhh9cC6M=",
+        "go_mod_sum": "h1:Fdz0i5U6CoizGwLda9DttjSk6qlZo25zYNtR+ycvuZA=",
         "advisories": [
           "GO-2026-6355",
           "GO-2026-6354",
@@ -36,10 +36,23 @@
         "sum": "h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=",
         "go_mod_sum": "h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=",
         "advisory": "GHSA-w67g-5rqw-f597"
+      },
+      {
+        "path": "golang.org/x/net",
+        "version": "v0.60.0",
+        "sum": "h1:79p50tfZlm0J9YfoDsSi639qSXNGVwEzOPLCxM2FsYU=",
+        "go_mod_sum": "h1:2DA/G1UfVbCpQPeWTmMPGY7Cs2PkBkwu743bVX5PIVg=",
+        "advisories": [
+          "GO-2026-6603",
+          "GO-2026-6610",
+          "GO-2026-6611",
+          "GO-2026-6612",
+          "GO-2026-6617"
+        ]
       }
     ],
-    "go_mod_sha256": "50d25710f6ebb84dd8a3acd2d74e1ce251e2cc2061c87ebbb09fc812513a8f85",
-    "go_sum_sha256": "f3526dabc3295be9ca389438e6592117d5487fd5ec67c544166791a1f11f7543",
+    "go_mod_sha256": "7c99f35e69ee83e4c582c41f2e41542f5d1d18647fbd8ef965eeca278e62061b",
+    "go_sum_sha256": "f9eaa0d42371f32aaee3fc6acf9b051240346e10e04512800a85ef9e0c0dcb02",
     "excluded_packages": [
       "golang.org/x/crypto/openpgp"
     ]

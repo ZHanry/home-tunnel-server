@@ -1,57 +1,61 @@
-# FRP 0.70.1 compatibility and promotion record
+# FRP 0.70.1 compatibility and reviewed dependency record
 
-Status: **approved for the supported release scope**. Production is pinned to
-the reviewed `0.70.1-r3` FRPS image. The Windows desktop client is distributed
-as `HomeTunnel-Windows-*-x64.zip` with `home-tunnel-gui.exe`.
+NestLink 14.0.0 pins the reviewed `0.70.1-r4` FRPS dependency in its Compose
+and preparation defaults. This record establishes the dependency identity and
+build checks. Application installation and remote-control acceptance are tracked
+separately in the version-specific signed release record.
 
-Review completed: 2026-08-21
+Dependency review updated: 2026-10-10
 
-Managed TCP/UDP extension review: 2026-08-21
+Managed TCP/UDP extension design review: 2026-08-21
 
 | Input | Reviewed identity |
 | --- | --- |
 | FRP release | `v0.70.1` (2026-07-23) |
 | Upstream commit | `fa3bcca2b0c4753cd4f0e2ab189dd6a5a6a15708` |
 | GitHub API source archive SHA-256 | `9c6b0188a8f74e982069dc89218cc3d79bada8663cedf3b514b98847530cbf7d` |
-| FRPS image tag | `ghcr.io/zhanry/home-tunnel-frps:0.70.1-r3` |
-| FRPS multi-architecture digest | `sha256:b5636ba951da6e27d76caff228fb17b8511695ffbcdca3a04b0bc93d593e6716` |
-| Protected FRPS workflow revision | `9e39c2b1aaa567c5ca3fda18f76b12dc2f77f52e` |
-| Protected FRPS workflow | [run 32460680110](https://github.com/ZHanry/home-tunnel/actions/runs/32460680110) |
+| FRPS image tag | `ghcr.io/zhanry/home-tunnel-frps:0.70.1-r4` |
+| FRPS multi-architecture digest | `sha256:69dd1e9a05dbef35f44436db77f88e266a2772d57a86f889ffbd982ca7798ddb` |
+| Protected FRPS workflow revision | `0ad5a6d0e463d8d1b496e0642bf8b010ba3ec263` |
+| Protected FRPS workflow | [run 38052783144](https://github.com/ZHanry/home-tunnel-server/actions/runs/38052783144) |
+| Build toolchain | Go `1.27.2` |
+| Reviewed Go security modules | NTLM `v0.1.1`, crypto `v0.57.0`, net `v0.60.0`, WebSocket `v1.5.3` |
 
 ## Decision
 
-FRP 0.70.1 is promoted atomically across the restricted Agent, FRPS,
-Dockerfiles, Compose defaults, Linux/macOS packaging, CodeQL source analysis,
-offline deployment inputs and third-party notices. The application deployment
-pins the independently built FRPS image by both its revision tag and immutable
-multi-architecture digest. The protected dependency workflow built it with Go
-1.26.6, verified the upstream source identity, ran `go vet` and
-`govulncheck`, required `linux/amd64` and `linux/arm64`, and published SBOM,
-provenance, GitHub attestation and keyless Cosign evidence.
+The upstream FRP tree remains fixed at 0.70.1. Revision r4 updates the actual
+FRPS build locks and Go toolchain to address the current HTTP/2 and standard
+library advisories. The dependency workflow verifies the upstream tag/archive,
+copies the reviewed `go.mod`/`go.sum`, builds with `-tags noweb`, and rejects
+OpenPGP imports. `go vet` and `govulncheck` 1.6.0 pass with zero vulnerable
+imported packages or reachable symbols. The remaining module-level
+GO-2026-5932 concerns the excluded OpenPGP package.
 
-The restricted Agent is independently versioned `5.0.0`. Its source build is
-reproduced from the same pinned FRP tree. Release automation bundles it into
-the Windows GUI zip and publishes checksums, an SPDX SBOM, signed
-provenance, and GitHub attestations. No MSIX package is published.
+The protected workflow built and published `linux/amd64` and `linux/arm64`,
+checked the baked L4/Ping entrypoint and rendered allow-port range, and produced
+SBOM, provenance, GitHub attestations and keyless Cosign signatures. Independent
+verification checks both the signed dependency manifest and image against
+`frps-image.yml@refs/heads/main`, the exact workflow source revision, and the
+GitHub OIDC issuer. The immutable revision tag resolves to the digest above.
 
-Windows ships the same `home-tunnel-gui` as macOS and Linux, packaged as a zip
-rather than a signed installer. The GitHub-hosted runner verifies the GUI and
-embedded Agent build. A trusted Authenticode installer remains out of scope.
+The managed Agent reports NestLink product version `14.0.0` and uses the same
+pinned FRP source. Windows x64 uses the existing package identities
+`HomeTunnel-Setup-14.0.0-x64.exe` and `HomeTunnel-Windows-14.0.0-x64.zip`;
+Linux packages target x64 and ARM64. Checksums, SPDX SBOMs, provenance and
+attestations remain required for the final application artifacts. Windows
+Authenticode signing, a clean Windows 10/11 upgrade matrix and macOS release
+acceptance are outside the verified scope of this dependency record.
 
-## Compatibility evidence
+## Dependency evidence
 
 | Gate | Result | Evidence |
 | --- | --- | --- |
-| Official tag and source identity | Pass | The tag resolves to `fa3bcca2…`; the downloaded API archive matches the recorded SHA-256. |
-| Restricted Agent API adaptation | Pass | Agent 5.0.0 uses the 0.70.1 configuration-source, aggregation, validation and unsafe-feature policy APIs. |
-| Managed whitelist tests | Pass | HTTP plus protocol-specific TCP/UDP allowlists, cross-protocol denial, visitor/plugin/common-field rejection, render shapes, and CA checks pass. |
-| Agent static and vulnerability checks | Pass | Go formatting, tests, `go vet` and `govulncheck` 1.6.0 report no reachable vulnerability. |
-| Managed CA pinning | Pass | The expected certificate is accepted and an incorrect SHA-256 is rejected. |
-| FRPS TLS and authorization plugin | Pass | Forced TLS and `Login`, `NewProxy`, `CloseProxy`, and `Ping` authorization flows complete; Ping rechecks lease and subject state. |
-| Managed L4 release smoke | Reproducible gate added | `tests/run-release-smoke.sh` drives the issued configuration through the managed Agent and verifies a 128 KiB+ binary TCP echo, a 1 KiB+ UDP datagram echo, RTSP-over-TCP `OPTIONS`/`SETUP`/`PLAY` with channel-0 interleaved media, raw disable while HTTPS remains available, and actual FRPS Ping revocation denying complete RTSP traffic within the heartbeat window. Static/helper checks pass locally; the complete Docker path runs with the RC images and package. |
-| L4 Compose exposure | Pass | `tests/run-compose-smoke.ps1` applies `deploy/compose.l4.yaml`, checks migration `008`, the generated FRPS allow-port range, and both TCP and UDP host bindings. |
-| FRPS dependency supply chain | Pass | Protected run 32460680110 produced and verified the signed, attested `amd64`/`arm64` digest recorded above. |
-| Windows GUI zip build | Pass in release workflow | GitHub-hosted Windows runner builds `home-tunnel-gui.exe` and the managed Agent into `HomeTunnel-Windows-*-x64.zip`. |
+| Official tag and source identity | Pass | Protected run 38052783144 resolves the exact upstream commit and checks the recorded API archive SHA-256. |
+| FRPS static and vulnerability checks | Pass | The reviewed Go locks and Go 1.27.2 pass `go vet` and `govulncheck`; OpenPGP is absent from the imported graph. |
+| Linux architecture matrix | Pass | The actual published OCI index contains exactly `linux/amd64` and `linux/arm64` application manifests. |
+| Baked L4/Ping configuration | Pass | The workflow checks the allow-port placeholder, `Login`/`NewProxy`/`CloseProxy`/`Ping` operations and UDP switch, then runs the entrypoint with an explicit L4 port range. |
+| Dependency supply chain | Pass | Manifest and image Cosign signatures and GitHub attestations verify against the exact protected source; the original Actions artifact ZIP matches GitHub's SHA-256 digest. |
+| Managed protocol and application release smoke | Required application gate | `tests/run-release-smoke.sh` checks real HTTP/TCP/UDP/RTSP and Ping revocation using the final application images and managed Agent; this dependency record does not substitute for that run. |
 
 ## Required source adaptations
 
@@ -65,30 +69,24 @@ FRP 0.70.1 is not a pin-only upgrade:
    are applied at the wire layer; the local whitelist compares unprefixed names
    while the FRPS plugin still sees the prefixed wire name.
 3. `validation.ValidateAllClientConfig` requires an unsafe-feature policy.
-   Home Tunnel passes `security.NewUnsafeFeatures(nil)`.
+   NestLink passes `security.NewUnsafeFeatures(nil)`.
 4. A fresh FRP checkout lacks built dashboard assets. FRPS is built with
-   `-tags noweb`; Home Tunnel does not expose the FRPS dashboard.
+   `-tags noweb`; NestLink does not expose the FRPS dashboard.
 
 ## Dependency validation
 
-- [x] Apply the reviewed Agent API adaptation and `-tags noweb` FRPS build.
-- [x] Update every active FRP pin, build input and third-party notice atomically.
-- [x] Build, audit, test the baked L4/Ping entrypoint, sign, and attest the protected `0.70.1-r3` FRPS dependency.
-- [x] Pin the exact dependency manifest and immutable multi-architecture digest.
-- [x] Make the Windows Agent resource build reproducible with
-      `SOURCE_DATE_EPOCH=0` and keep its expected SHA-256 fail-closed.
-- [x] Confirm the protected repository CI reproduces the committed Agent
-      SHA-256; if the protected toolchain differs, commit that protected hash
-      without weakening the comparison.
-- [x] Pass the complete repository and release smoke matrices on the promoted
-      commit.
-- [ ] Add a trusted Authenticode certificate and clean Windows 10/11 upgrade VM
-      matrix before making Windows distribution support claims.
-- [ ] Publish the RC only after package/image SBOM, provenance, checksum,
-      signature and attestation gates succeed.
+- [x] Keep the exact upstream identity and `-tags noweb` build.
+- [x] Use the reviewed Go 1.27.2 toolchain and actual module locks.
+- [x] Build, audit, check the baked entrypoint, sign and attest r4 for both Linux architectures.
+- [x] Verify the original signed manifest, image attestations and immutable tag.
+- [x] Pin the same r4 digest in Compose, the hbbs preparation helper and runtime test fixture.
 
-The source tree and dependency record describe the reviewed dependency input;
-they do not establish production support for the application.
+Application releases continue to require exact-source build, package, image,
+integration and signed acceptance gates. The managed Agent resource hash stays
+fail-closed, and Windows resource builds retain `SOURCE_DATE_EPOCH=0`.
+
+The dependency record does not establish production support for an application
+or acceptance for platforms and scenarios that were not actually exercised.
 
 ## Managed L4 scope
 

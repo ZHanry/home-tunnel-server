@@ -12,7 +12,7 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 IMAGE = "ghcr.io/rustdesk/rustdesk-server:1.1.16@sha256:8ecdab65deb7c84652a626380e31d11a8f1fbafd97916d57f95c20628f943c00"
-PREP = "ghcr.io/zhanry/home-tunnel-frps:0.70.1-r3@sha256:b5636ba951da6e27d76caff228fb17b8511695ffbcdca3a04b0bc93d593e6716"
+PREP = "ghcr.io/zhanry/home-tunnel-frps:0.70.1-r4@sha256:69dd1e9a05dbef35f44436db77f88e266a2772d57a86f889ffbd982ca7798ddb"
 
 
 def run(*args):

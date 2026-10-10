@@ -13,7 +13,7 @@ import tarfile
 import tempfile
 import uuid
 
-PREP_IMAGE = "ghcr.io/zhanry/home-tunnel-frps:0.70.1-r3@sha256:b5636ba951da6e27d76caff228fb17b8511695ffbcdca3a04b0bc93d593e6716"
+PREP_IMAGE = "ghcr.io/zhanry/home-tunnel-frps:0.70.1-r4@sha256:69dd1e9a05dbef35f44436db77f88e266a2772d57a86f889ffbd982ca7798ddb"
 KEYS = ("id_ed25519", "id_ed25519.pub")
 
 
