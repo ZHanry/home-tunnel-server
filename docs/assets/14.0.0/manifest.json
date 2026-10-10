@@ -271,5 +271,69 @@
       "data_scope": "login form with expired preview session"
     }
   ],
-  "ui_source_hash_encoding": "UTF-8 text with CRLF normalized to LF; matches committed Git blobs"
+  "ui_source_hash_encoding": "UTF-8 text with CRLF normalized to LF; matches committed Git blobs",
+  "tooling_security_overlay_validation": {
+    "recorded_at": "2026-10-10T12:34:54.901940+00:00",
+    "scope": "Node tooling dependency overlay only; original UI source, captures, capture time and image bytes remain unchanged; no installed runtime acceptance claim",
+    "source_base_revision": "86dd09335cb4e70d9f0e2f1a90ad040188170856",
+    "source_method": "fresh Git archive of source_base_revision overlaid with exactly the three source_files below",
+    "source_hash_encoding": "UTF-8 text with CRLF normalized to LF; matches committed Git blobs",
+    "source_files": [
+      {
+        "file": "control-center/package.json",
+        "sha256": "d0bb5040203b3fea30df38520817cb22769289ed1e1886ecee21022c74c22200"
+      },
+      {
+        "file": "control-center/pnpm-lock.yaml",
+        "sha256": "c6166ae5166b02fcd4aab51fd9f6261f79e606c5293fb98763aa837e8396173e"
+      },
+      {
+        "file": "traffic-gateway/pnpm-lock.yaml",
+        "sha256": "b4cc6592a914379175a4246b56b114474f42619f33ef82428ce438a30b51f931"
+      }
+    ],
+    "changes": [
+      "brace-expansion 5.0.9 to 5.0.12 in both Node lockfiles",
+      "control-center development yaml 2.8.2 to 2.8.3 (GHSA-48c2-rrv3-qjmp)"
+    ],
+    "tools": {
+      "node": "24.19.0",
+      "pnpm": "11.19.0",
+      "playwright": "1.58.2"
+    },
+    "actual_checkout_validation": {
+      "both_frozen_lockfile_installs": "passed",
+      "both_production_dependency_audits": "zero advisories",
+      "both_full_dependency_audits": "zero advisories",
+      "both_typescript_lint_format_checks": "passed",
+      "repository_checker": "passed",
+      "script_unit_tests": {
+        "passed": 51,
+        "failed": 0
+      }
+    },
+    "fresh_source_overlay_validation": {
+      "control_center_frozen_lockfile_install": "passed",
+      "control_center_production_dependency_audit": "zero advisories",
+      "control_center_full_dependency_audit": "zero advisories",
+      "script_unit_tests": {
+        "passed": 51,
+        "failed": 0
+      },
+      "browser_tests": {
+        "command": "pnpm exec playwright test browser-tests/nestlink14.spec.mjs browser-tests/hearth-layout.spec.mjs",
+        "initial_run": {
+          "passed": 25,
+          "failed": 1,
+          "failure": "Chromium Page.captureScreenshot protocol error in NestLink dialogs light 1920px"
+        },
+        "targeted_rerun": {
+          "test": "NestLink dialogs light 1920px",
+          "passed": 1,
+          "failed": 0
+        }
+      },
+      "original_capture_sha256_validation": "all seven original documented PNG hashes unchanged"
+    }
+  }
 }

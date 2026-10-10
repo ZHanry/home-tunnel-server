@@ -1,4 +1,4 @@
-"""Verify that the build locks contain the reviewed NTLM security override."""
+"""Verify that the build locks contain every reviewed FRP security override."""
 from pathlib import Path
 import hashlib
 import json
@@ -12,10 +12,13 @@ sum_path=folder/('frp-go.sum' if component=='client' else 'go.sum')
 pins=json.loads((folder/'security-pins.json').read_text())
 assert hashlib.sha256(mod_path.read_bytes()).hexdigest()==pins['go_mod_sha256']
 assert hashlib.sha256(sum_path.read_bytes()).hexdigest()==pins['go_sum_sha256']
+reviewed = {'github.com/Azure/go-ntlmssp': 'v0.1.1', 'golang.org/x/crypto': 'v0.57.0', 'github.com/gorilla/websocket': 'v1.5.3', 'golang.org/x/net': 'v0.60.0'}
+assert {item['path'] for item in pins['module_overrides']} == set(reviewed), 'Review changed security pins'
+assert len(pins['module_overrides']) == len(reviewed), 'Duplicate security pins'
 for override in pins['module_overrides']:
     module=override['path']
     expected=override['version']
-    assert expected == {'github.com/Azure/go-ntlmssp': 'v0.1.1', 'golang.org/x/crypto': 'v0.56.0', 'github.com/gorilla/websocket': 'v1.5.3'}[module], 'Review changed security pins'
+    assert expected == reviewed[module], 'Review changed security pins'
     versions=re.findall(r'^\s*'+re.escape(module)+r'\s+(\S+)',mod_path.read_text(),re.M)
     assert versions==[expected], 'FRP build lock does not contain the security fix'
     sums=sum_path.read_text()
@@ -23,4 +26,4 @@ for override in pins['module_overrides']:
     assert f'{module} {expected}/go.mod {override["go_mod_sum"]}' in sums
     if component=='client' and module != 'github.com/gorilla/websocket':
         assert re.findall(r'^\s*'+re.escape(module)+r'\s+(\S+)',(folder/'go.mod').read_text(),re.M)==[expected]
-print('Reviewed FRP security locks verified: NTLM v0.1.1, crypto v0.56.0')
+print('Reviewed FRP security locks verified: NTLM v0.1.1, crypto v0.57.0, net v0.60.0, WebSocket v1.5.3')

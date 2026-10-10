@@ -162,7 +162,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
       with:
-        go-version: 1.27.0
+        go-version: 1.27.2
     - name: Run production-path integration with pinned client
       env:
         RC_VERSION: ${{ needs.metadata.outputs.rc-version }}

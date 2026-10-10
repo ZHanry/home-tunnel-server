@@ -8,7 +8,7 @@ permissions:
   attestations: write
   artifact-metadata: write
 concurrency:
-  group: frps-dependency-0.70.1-r3
+  group: frps-dependency-0.70.1-r4
   cancel-in-progress: false
 env:
   FRP_VERSION: 0.70.1
@@ -16,10 +16,10 @@ env:
   FRP_COMMIT: fa3bcca2b0c4753cd4f0e2ab189dd6a5a6a15708
   FRP_ARCHIVE_SHA256: 9c6b0188a8f74e982069dc89218cc3d79bada8663cedf3b514b98847530cbf7d
   IMAGE: ghcr.io/zhanry/home-tunnel-frps
-  IMAGE_TAG: 0.70.1-r3
+  IMAGE_TAG: 0.70.1-r4
 jobs:
   publish:
-    name: Build, sign, and attest FRPS 0.70.1-r3
+    name: Build, sign, and attest FRPS 0.70.1-r4
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -27,7 +27,7 @@ jobs:
         fetch-depth: 0
     - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
       with:
-        go-version: 1.26.6
+        go-version: 1.27.2
         cache: false
     - name: Require protected main and verify upstream source identity
       shell: bash
@@ -57,6 +57,7 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
+        python3 scripts/verify-frp-security.py
         go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
         cd "$FRP_SOURCE_ROOT"
         export GOFLAGS="-mod=readonly -modfile=$GITHUB_WORKSPACE/deploy/frps/go.mod"
@@ -87,8 +88,8 @@ jobs:
           org.opencontainers.image.version=${{ env.IMAGE_TAG }}
           org.opencontainers.image.revision=${{ github.sha }}
           org.opencontainers.image.vendor=Home Tunnel
-        cache-from: type=gha,scope=frps-0.70.1-r3
-        cache-to: type=gha,mode=max,scope=frps-0.70.1-r3
+        cache-from: type=gha,scope=frps-0.70.1-r4
+        cache-to: type=gha,mode=max,scope=frps-0.70.1-r4
     - name: Require the complete Linux architecture matrix
       shell: bash
       env:
@@ -184,7 +185,7 @@ jobs:
         subject-path: frps-dependency.json
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
-        name: frps-0.70.1-r3-dependency-manifest
+        name: frps-0.70.1-r4-dependency-manifest
         path: |
           frps-dependency.json
           frps-dependency.json.sigstore.json
