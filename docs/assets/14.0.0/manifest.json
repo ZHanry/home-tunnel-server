@@ -1,9 +1,9 @@
 {
   "product_version": "14.0.0",
   "source_repository": "https://github.com/ZHanry/home-tunnel-server",
-  "source_base_revision": "de5d66bb630dc698ec42eb249e85906ab5689660",
-  "source_state": "Committed UI source; exact canonical Git blob SHA-256 values pinned below",
-  "captured_at": "2026-10-10T11:06:07.657279+00:00",
+  "source_base_revision": "01596944de0e8417bb0834628414b6a8b112f794",
+  "source_state": "UI source snapshot including theme-transition correction; exact canonical LF SHA-256 values pinned below",
+  "captured_at": "2026-10-10T11:46:14.694326+00:00",
   "capture_engine": "Playwright Chromium",
   "data_scope": "local UI preview with synthetic account/device/service fixtures; no runtime acceptance claim",
   "capture_commands": [
@@ -140,7 +140,7 @@
     },
     {
       "file": "control-center/public/nestlink.css",
-      "sha256": "2776d1135322735e83b33d1be63e29974213ed3c10a3b55eab5711edf4f51d72"
+      "sha256": "394e623c45a9d2f62d2ac90fa4048b8af18d46f28c52d3569dc7346346adb769"
     },
     {
       "file": "control-center/public/NestLink.svg",
@@ -164,7 +164,7 @@
     },
     {
       "file": "control-center/browser-tests/nestlink14.spec.mjs",
-      "sha256": "df636d30c981b379c22c55c7e8cc50f04086b4e120b39489345fa6c6c63dfa55"
+      "sha256": "b0b90fe5857e08afd9ee40dea18e7a9b197e7bb9e8340427a2712497842d58d8"
     },
     {
       "file": "control-center/browser-tests/hearth-layout.spec.mjs",

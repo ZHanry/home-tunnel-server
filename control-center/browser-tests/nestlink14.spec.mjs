@@ -78,6 +78,41 @@ test("refresh retains directory positions and errors do not masquerade as missin
   await expect(page.locator(".device-directory-row")).toHaveCount(2);
 });
 
+for (const width of [390,1440]) {
+  test(`theme changes preserve immediate button contrast and final content remains reachable at ${width}px`, async ({page}) => {
+    await fixture(page);await page.emulateMedia({colorScheme:"light",reducedMotion:"no-preference"});
+    await page.setViewportSize({width,height:844});await page.goto("/admin?role=user#devices");
+    await expect(page.locator(".device-directory-row")).toHaveCount(2);
+    for (const theme of ["dark","light"]) {
+      const contrast = await page.evaluate(() => {
+        document.querySelector('.product-bar [data-theme-toggle]').click();
+        const luminance = color => {
+          const rgb=color.match(/[\d.]+/g).slice(0,3).map(value=>Number(value)/255)
+            .map(value=>value<=.04045?value/12.92:((value+.055)/1.055)**2.4);
+          return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
+        };
+        return [...document.querySelectorAll('.workspace .button-secondary:not(:disabled)')].map(element=>{
+          const style=getComputedStyle(element),foreground=luminance(style.color),background=luminance(style.backgroundColor);
+          return {text:element.textContent,ratio:(Math.max(foreground,background)+.05)/(Math.min(foreground,background)+.05)};
+        });
+      });
+      await expect(page.locator('html')).toHaveAttribute('data-theme',theme);
+      expect(contrast.length).toBeGreaterThan(0);
+      for (const button of contrast) expect(button.ratio,`${theme}: ${button.text}`).toBeGreaterThanOrEqual(4.5);
+    }
+    if (width<760) {
+      await page.evaluate(()=>scrollTo(0,document.documentElement.scrollHeight));
+      const geometry=await page.evaluate(()=>({
+        row:[...document.querySelectorAll('.device-directory-row')].at(-1).getBoundingClientRect().bottom,
+        pagination:document.querySelector('.pagination').getBoundingClientRect().bottom,
+        navigation:document.querySelector('.sidebar').getBoundingClientRect().top,
+      }));
+      expect(geometry.row).toBeLessThanOrEqual(geometry.navigation);
+      expect(geometry.pagination).toBeLessThanOrEqual(geometry.navigation);
+    }
+  });
+}
+
 for (const theme of ["light","dark"]) for (const width of [320,390,768,1440]) {
   test(`shared lavender workspace ${theme} ${width}px supports larger controls and top preferences`, async ({page})=>{
     await fixture(page);await page.emulateMedia({colorScheme:theme,reducedMotion:"reduce"});
