@@ -39,10 +39,11 @@ verification checks both the signed dependency manifest and image against
 GitHub OIDC issuer. The immutable revision tag resolves to the digest above.
 
 The managed Agent reports NestLink product version `14.0.0` and uses the same
-pinned FRP source. Windows x64 uses the existing package identities
-`HomeTunnel-Setup-14.0.0-x64.exe` and `HomeTunnel-Windows-14.0.0-x64.zip`;
-Linux packages target x64 and ARM64. Checksums, SPDX SBOMs, provenance and
-attestations remain required for the final application artifacts. Windows
+pinned FRP source. The desktop release publishes `NestLink-Setup-14.0.0-x64.exe`,
+`NestLink-Linux-14.0.0-x64.deb` and `NestLink-Linux-14.0.0-arm64.deb`.
+Installed application and configuration identities remain compatible for upgrades.
+Checksums, SPDX SBOMs, provenance and attestations remain required for the final
+application artifacts. Windows
 Authenticode signing, a clean Windows 10/11 upgrade matrix and macOS release
 acceptance are outside the verified scope of this dependency record.
 
