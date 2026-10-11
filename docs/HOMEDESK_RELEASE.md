@@ -27,6 +27,6 @@ B 密码设置使用既有 root-admin IPC 临时 PIN 和真实 GUI。最初设�
 
 隔离联调使用 WSL X11、自签 TLS、host-network 健康 URL 适配、localhost 桥、HBBS LAN mask 和 STUN-only 后端。部分 API/Web 场景跳过任务自签证书验证，原故障与恢复记录保留。Windows/WSL 原始时间戳不改写，历史迁移结束时间的两个时钟域相差 3.394682 秒；未找到独立原始 GBK traceback 的证据限制继续披露。
 
-Windows/ARM64/Wayland 媒体、实体 Android、Android ARM64 运行、模拟器被控媒体、运营商 NAT、长期媒体、公开 CA/生产 TLS、音频、剪贴板、文件传输以及本轮未执行的完整备份恢复仍未验证。Android 已通过的媒体方向为手机控制 Linux；模拟器 slirp 内部地址导致反向测试失败，未修改产品安全策略或原安装归属。
+Windows/ARM64/Wayland 媒体、Android 真机、Android ARM64 运行、模拟器被控媒体、运营商 NAT、长期媒体、公开 CA/生产 TLS、音频、剪贴板、文件传输以及本轮未执行的完整备份恢复仍未验证。Android 已通过的媒体方向为手机控制 Linux；模拟器 slirp 内部地址导致反向测试失败，未修改产品安全策略或原安装归属。
 
 本次更新 GitHub 发行、下载站和自动更新信息，生产服务端继续运行原版本。14.0.0 使用自己的验收记录，13.0.0 历史结论单独保留。
