@@ -13,13 +13,13 @@ C 产物源码为 `b73ab0472cde66b8a06c1307bbca4b3fb34785df`，来源为成功�
 | traffic-gateway amd64/arm64 | `sha256:c721f0e1560223795da2c63c4d1ce2c54d05c8b14997914f53dd1a27557dc1aa` |
 | FRPS 独立固定依赖 | `ghcr.io/zhanry/home-tunnel-frps@sha256:69dd1e9a05dbef35f44436db77f88e266a2772d57a86f889ffbd982ca7798ddb` |
 
-产物源码提交用于绑定已构建的 C 运行时字节；正式 `v14.0.1` 标签提交还会包含本版验收 JSON 与两份发行文档。本版 owner waiver 仅允许三个发行文档与 `scripts/homedesk-release.py`、`scripts/test_homedesk_release.py` 两项政策文件相对产物源码变化；逐场景绑定这两份政策的实际 SHA-256，运行时字节保持固定。验收 `source_revision/build_run` 保留 C 产物来源，正式 Materials 的 `BUILD.json.revision/build_run` 另记实际正式提交与 release.yml run，`payload_source_revision` 保留 C 来源；正式 Materials、附件签名和校验和在真正发布后独立核验，不宣称文档提交重新构建了产物。
+产物源码提交用于绑定已构建的 C 运行时字节；正式 `v14.0.1` 标签提交还会包含本版验收 JSON 与两份发行文档。本版用户要求的 not_run 记录仅允许三个发行文档与 `scripts/homedesk-release.py`、`scripts/test_homedesk_release.py` 两项政策文件相对产物源码变化；逐场景绑定这两份政策的实际 SHA-256，运行时字节保持固定。验收 `source_revision/build_run` 保留 C 产物来源，正式 Materials 的 `BUILD.json.revision/build_run` 另记实际正式提交与 release.yml run，`payload_source_revision` 保留 C 来源；正式 Materials、附件签名和校验和在真正发布后独立核验，不宣称文档提交重新构建了产物。
 
-此前 A/B 的故障、安装链和原始尝试单独保留，13.0.0、14.0.0 及 A/B 结论不替代 C。用户取消后续远控回归并要求直接发布。未执行的 C 运行时场景明确记录为 not_run 和 owner waiver，不推断通过；通过场景才绑定实际执行原件。
+此前 A/B 的故障、安装链和原始尝试单独保留，13.0.0、14.0.0 及 A/B 结论不替代 C。用户取消后续远控回归并要求直接发布。未执行的 C 运行时场景明确记录为 not_run 并绑定用户要求，不推断通过；通过场景才绑定实际执行原件。
 
 本次仅更新 GitHub 发行、下载站和自动更新信息；正在运行的生产服务端保持原版本。
 
-The acceptance source and candidate build run identify the exact C payload bytes. Formal documentation commits and release-workflow runs remain separate. Unfinished runtime scenarios remain not_run under the explicit owner waiver. Only GitHub releases, downloads and update information change; the running production server is not upgraded.
+The acceptance source and candidate build run identify the exact C payload bytes. Formal documentation commits and release-workflow runs remain separate. Unfinished runtime scenarios remain not_run at the owner's explicit request to leave these scenarios untested. Only GitHub releases, downloads and update information change; the running production server is not upgraded.
 
 ## 本版实际验收范围
 
