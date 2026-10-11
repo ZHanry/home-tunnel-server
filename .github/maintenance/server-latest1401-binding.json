@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "ready_public_release",
+  "version": "14.0.1",
+  "repository": "ZHanry/home-tunnel-server",
+  "release_commit": "10d3f5be070b4caf4d8feb11defb86ad0e68e5d4",
+  "release_run": 38182239546,
+  "release_attempt": 1,
+  "release_id": 409971925,
+  "acceptance_sha256": "453fcaf9f9a9123ec2e7432e06acd8f4856bd9f1d9a5076c086c516d2db760f2",
+  "materials_sha256": "010223c7eb17d0d4703951113be1b878e2291c0bd3a3645c86b82d1a18b27d91",
+  "checksums_sha256": "8e3800affc88a18138250f309ee360fd2794b34fabbe0c37551cdf1ea457f81d",
+  "build_sha256": "e61499b1134d45ad2cd45c1084797a0362232872f435a096b75217da3b93cf56",
+  "build_bundle_sha256": "aa0223283cde2678cc887a0eb8b8feb3912189e98acdb406981dd82de052f45e",
+  "source_archive_sha256": "1faea38da1d6c58f545c344a8a771fc97e4c6b446e00f236a80695ecb0bfc058"
+}
