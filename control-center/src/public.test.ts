@@ -5,7 +5,7 @@ import { get } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { ASSET_VERSION } from "./version.js";
+import { APP_VERSION, ASSET_VERSION } from "./version.js";
 
 function request(
   url: string,
@@ -81,9 +81,12 @@ test("public landing page stays available while Windows release metadata is abse
     assert.match(landing.body.toString("utf8"), /桌面图形客户端/);
     assert.match(landing.body.toString("utf8"), /Linux 图形客户端/);
     assert.doesNotMatch(landing.body.toString("utf8"), /内部测试|Experimental|Beta/);
-    assert.match(
-      landing.body.toString("utf8"),
-      /href="https:\/\/github\.com\/ZHanry\/home-tunnel-client\/releases\/tag\/v14\.0\.0"/,
+    assert.ok(
+      landing.body
+        .toString("utf8")
+        .includes(
+          `href="https://github.com/ZHanry/home-tunnel-client/releases/tag/v${APP_VERSION}"`,
+        ),
     );
     assert.match(landing.body.toString("utf8"), /id="features"/);
     assert.doesNotMatch(landing.body.toString("utf8"), /home-tunnel\/releases\/latest\/download/);

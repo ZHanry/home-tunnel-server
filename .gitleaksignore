@@ -34,3 +34,8 @@ ef072a5d88717b42e1e61d8d91d03a368d29b6d6:deploy/scripts/new-selfhost-config.ps1:
 2242354fc10c6681ec0ccf33e91ab96611e60791:contracts/nestlink-auth.v2-vectors.json:generic-api-key:24
 2242354fc10c6681ec0ccf33e91ab96611e60791:contracts/nestlink-auth.v2-vectors.json:generic-api-key:27
 2242354fc10c6681ec0ccf33e91ab96611e60791:contracts/nestlink-auth.v2-vectors.json:generic-api-key:29
+
+# Public process-generation UUID for an already terminated, localhost-only UI
+# preview. It correlates child IPC messages; it is not a service/authentication key.
+# Keep the original capture manifest unchanged and ignore this exact historical hit.
+2260b4adecd8219235c6fc73e84deecf4a40558d:docs/assets/14.0.1/manifest.json:generic-api-key:326
