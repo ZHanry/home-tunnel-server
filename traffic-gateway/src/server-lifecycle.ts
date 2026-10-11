@@ -57,10 +57,10 @@ function handleRequest(request: IncomingMessage, response: ServerResponse): void
   if (
     request.url === "/healthz" &&
     [
-      "127.0.0.1:8080",
-      "localhost:8080",
-      "traffic-gateway:8080",
-      "home-tunnel-traffic-gateway:8080",
+      `127.0.0.1:${config.port}`,
+      `localhost:${config.port}`,
+      `traffic-gateway:${config.port}`,
+      `home-tunnel-traffic-gateway:${config.port}`,
     ].includes(request.headers.host ?? "")
   ) {
     response.writeHead(policies.valid() ? 200 : 503, { "content-type": "application/json" });

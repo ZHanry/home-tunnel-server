@@ -230,6 +230,7 @@ const upstreamPort = await listen(upstream);
 const controlCenterPort = await listen(controlCenter);
 
 process.env.INTERNAL_SERVICE_KEY = internalKey;
+process.env.PORT = "19081";
 process.env.FRPS_VHOST_HOST = "127.0.0.1";
 process.env.FRPS_VHOST_PORT = String(upstreamPort);
 process.env.CONTROL_CENTER_URL = `http://127.0.0.1:${controlCenterPort}`;
@@ -393,6 +394,19 @@ test("syncPolicies performs an authenticated full sync and honors 304 freshness 
   assert.equal(second["if-none-match"], '"5"');
   assert.ok(policies.expiresAt > expiresBefore, "304 must refresh snapshot expiry");
   assert.equal(policies.revision, 5);
+});
+
+test("health checks use the configured port and retain the internal host allowlist", async () => {
+  for (const name of ["127.0.0.1", "localhost", "traffic-gateway", "home-tunnel-traffic-gateway"]) {
+    const response = await gatewayRequest({ path: "/healthz", headers: { host: `${name}:19081` } });
+    assert.equal(response.status, 200);
+    assert.equal(JSON.parse(response.body.toString()).status, "healthy");
+  }
+  for (const host of ["127.0.0.1:8080", "localhost:8080", "evil.example:19081"]) {
+    const response = await gatewayRequest({ path: "/healthz", headers: { host } });
+    assert.equal(response.status, 421);
+    assert.equal(errorCode(response), "HOST_INVALID");
+  }
 });
 
 test("proxy round-trip sanitizes forwarding headers in both directions", async () => {
