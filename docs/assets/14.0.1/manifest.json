@@ -1,0 +1,331 @@
+{
+  "product_version": "14.0.1",
+  "source_repository": "https://github.com/ZHanry/home-tunnel-server",
+  "source_base_revision": "fa765744ce56076fcde364f1f11749cfe77a744a",
+  "source_state": "Uncommitted 14.0.1 maintenance metadata; exact canonical UI file hashes supplied",
+  "capture_kind": "component-preview",
+  "installed_application": false,
+  "remote_session_verified": false,
+  "captured_at": "2026-10-11T10:21:09.894Z",
+  "capture_engine": "Playwright Chromium",
+  "data_scope": "local UI preview with synthetic account/device/service fixtures; no runtime acceptance claim",
+  "ui_source_hash_encoding": "UTF-8 text with CRLF normalized to LF; matches committed Git blobs",
+  "capture_commands": [
+    "C:\\Users\\Popdo\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+    "D:\\代码\\远程控制\\.work\\14.0.1\\web-preview1401\\capture-component-preview1401.wait-for-version.cjs"
+  ],
+  "ui_source_files": [
+    {
+      "file": "control-center/public/app.js",
+      "sha256": "bd343648905304e85e2b81a40534b21093e8040c01dae832e4bedfa6e3489ffc"
+    },
+    {
+      "file": "control-center/public/console.css",
+      "sha256": "025bc754d85cae36d3091df75ca81c7a5b383f9d6480e74a92bc4a9e88f18a87"
+    },
+    {
+      "file": "control-center/public/Hearth.svg",
+      "sha256": "7d7f9364ff04a67f3995e6f2e7e323205b1f08a957aaffee5ff9eb1b5d63d63c"
+    },
+    {
+      "file": "control-center/public/HomeTunnel.svg",
+      "sha256": "7d7f9364ff04a67f3995e6f2e7e323205b1f08a957aaffee5ff9eb1b5d63d63c"
+    },
+    {
+      "file": "control-center/public/index.html",
+      "sha256": "c84573609e7fc714b7c2090077b9c5367d4b6dd3a619c4103b005122a9aa4865"
+    },
+    {
+      "file": "control-center/public/modules/account-security.js",
+      "sha256": "161e794f380249ad868329f1b9461aba3638c50f7be80afeec8c7dfaeddf5f50"
+    },
+    {
+      "file": "control-center/public/modules/api.js",
+      "sha256": "812220f48cb6a0a9fe6b928895896998ba5246f2d33e9ef651aab62d213a779c"
+    },
+    {
+      "file": "control-center/public/modules/browser-remote.js",
+      "sha256": "9911083d464dcc51a0fccb5ef6f27952a47903e364e6f53089720c148986273a"
+    },
+    {
+      "file": "control-center/public/modules/connections.js",
+      "sha256": "72d7ca360cd7f520ca117a9c71a245d712e2d65466cb6c7846014e27c322cd47"
+    },
+    {
+      "file": "control-center/public/modules/devices.js",
+      "sha256": "48a56c49b35ba64c9a88aff008e9ccbeec1501c68fe504ea18874dfbc5076446"
+    },
+    {
+      "file": "control-center/public/modules/format.js",
+      "sha256": "e2701315fdbc741f3204dfeb64997e7cc200b757bf689f3266d7edc2bbc3cec3"
+    },
+    {
+      "file": "control-center/public/modules/forms.js",
+      "sha256": "869c4fd91e62fa2ff86c5c9eceda89dd9c6c092a8f0a611b4403084e80fe245d"
+    },
+    {
+      "file": "control-center/public/modules/homedesk.js",
+      "sha256": "592760b2ce48b8948ac3a61916c3e30dd7045f2e304ac7cace035645f3e4e17e"
+    },
+    {
+      "file": "control-center/public/modules/locale.js",
+      "sha256": "7d7f42864fe99ccd303c06c64a6002fdc68ab7f6fb78a87f874478334959ad1a"
+    },
+    {
+      "file": "control-center/public/modules/pagination.js",
+      "sha256": "1910915452edba96c657ffcffc98040a4571314aa97c9b82bed627f6b38d7144"
+    },
+    {
+      "file": "control-center/public/modules/physical-devices.js",
+      "sha256": "99699585f2ab099d3c9945b429b30913f9ddca6fa3810efbb05e9525c16fbb33"
+    },
+    {
+      "file": "control-center/public/modules/realtime.js",
+      "sha256": "e7c8c1b806f967b92a618980e4d25757335357cd388222316f7d0e34a93fc2e3"
+    },
+    {
+      "file": "control-center/public/modules/remote/http.js",
+      "sha256": "c4f39657f93fdd28c6688b10ebe8b2dcecd1223818fb8f9cf0fbae92ebca270c"
+    },
+    {
+      "file": "control-center/public/modules/remote/identity.js",
+      "sha256": "01336ee39c6fdffb49b31c78e0010f7676266de80ab9b6706594706526dfad9a"
+    },
+    {
+      "file": "control-center/public/modules/remote/input.js",
+      "sha256": "d460782af754a81066dcf5a59320ff0ad6da4af559b53742ed200acddffb2850"
+    },
+    {
+      "file": "control-center/public/modules/remote/payload.generated.js",
+      "sha256": "f556b7fde86e3bb7fcb21e346348653c242efe355b9e18958ee786dffba23940"
+    },
+    {
+      "file": "control-center/public/modules/remote/protocol.generated.js",
+      "sha256": "ba94122832b8849d5854432d102208d96dbc0e0f6a998aec8d58e6eaf4e4f55e"
+    },
+    {
+      "file": "control-center/public/modules/remote/protocol.js",
+      "sha256": "4fa7ff66cd0c1866521397458e5be35d4e7d02d38e4575f5233dff1b6199d8a7"
+    },
+    {
+      "file": "control-center/public/modules/remote/session.js",
+      "sha256": "15bb00cb74b80e3d27aa62dc4bf9e900a8c2e35354d192d4181ccc88eb99600b"
+    },
+    {
+      "file": "control-center/public/modules/remote/sha256-stream.js",
+      "sha256": "73fad96572877e454e16c7d5b3274ad54e12cceb22e82964ee2254ff30bebe28"
+    },
+    {
+      "file": "control-center/public/modules/remote/signal.js",
+      "sha256": "13dc5b29ea900bd9b000f42bfe7664d7bac0e7c3e1cacf137208d16fd8a05ae4"
+    },
+    {
+      "file": "control-center/public/modules/remote/transfer.js",
+      "sha256": "cfc0830e8593cebe1afbd478099b822c0f354cb1803887783bb86fc24cab0fca"
+    },
+    {
+      "file": "control-center/public/modules/remote/translations.js",
+      "sha256": "a7789dde614615e332ea17dd5d06e429bd2343bd1d7bb734f1da86a204496f2e"
+    },
+    {
+      "file": "control-center/public/modules/remote/view.js",
+      "sha256": "315e81b9ebaf4150c21f7843e724911e33b3b13d02fccd76161076b303c63103"
+    },
+    {
+      "file": "control-center/public/modules/state.js",
+      "sha256": "8ad4cd8fb91b3dc53eec4668f653bafb2732a79bf375f21c2df23ae4045ec029"
+    },
+    {
+      "file": "control-center/public/modules/tunnel-model.js",
+      "sha256": "d84115718fa2067e8ad7c9a38607e301b056a76bea0aa9ba6417f9078534e3f3"
+    },
+    {
+      "file": "control-center/public/modules/tunnel-wizard.js",
+      "sha256": "eb14d7ca27fb60480ad10daaea0c6688910b257ee665cf0e4cca1f36bbf7836b"
+    },
+    {
+      "file": "control-center/public/nestlink.css",
+      "sha256": "394e623c45a9d2f62d2ac90fa4048b8af18d46f28c52d3569dc7346346adb769"
+    },
+    {
+      "file": "control-center/public/NestLink.svg",
+      "sha256": "7d7f9364ff04a67f3995e6f2e7e323205b1f08a957aaffee5ff9eb1b5d63d63c"
+    },
+    {
+      "file": "control-center/public/prototype-theme.css",
+      "sha256": "0e6896b2dc688b6b446598815d9c3a1575e89392a834d1f86772f0fb5a9233d3"
+    },
+    {
+      "file": "control-center/public/remote.css",
+      "sha256": "e79b67245a1b609350abbe3c0fe6492f52b57e7e400e53034d78df6727fb3d8a"
+    },
+    {
+      "file": "control-center/public/theme.js",
+      "sha256": "ef07931dd68a85cbf752a9ac1e6fb6dee75bfccfb5cc65d50f076aaf4b4292ce"
+    },
+    {
+      "file": "control-center/scripts/ui-preview.mjs",
+      "sha256": "26c8509be3e868c92c9f50845911d11f1414fb5ed881940c935532584df4bd7b"
+    },
+    {
+      "file": "control-center/browser-tests/nestlink14.spec.mjs",
+      "sha256": "13b44a91b65f7ce233183112baa4608d6f0f4cce256613475e4ed68839d717dc"
+    },
+    {
+      "file": "control-center/browser-tests/hearth-layout.spec.mjs",
+      "sha256": "3587b49a5ed3157d0b2e7486c84994adb20826e717d5eb15379bed2407a4dc68"
+    }
+  ],
+  "captures": [
+    {
+      "file": "devices-light-desktop.png",
+      "sha256": "f49c8ddc8a88f9261c2466b0e129be53fb3c14b165229e8eae58e981d7c5f252",
+      "width": 1440,
+      "height": 960,
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "light",
+      "locale": "zh-CN",
+      "page": "/admin?role=user#devices",
+      "captured_at": "2026-10-11T10:21:03.545Z",
+      "data_scope": "explicit linked GUI/background and Android synthetic fixture",
+      "external_requests": []
+    },
+    {
+      "file": "devices-dark-desktop.png",
+      "sha256": "5199c456250af2287ad90642599cf672ba6372b895078161776435c0355f5eb5",
+      "width": 1440,
+      "height": 960,
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "dark",
+      "locale": "zh-CN",
+      "page": "/admin?role=user#devices",
+      "captured_at": "2026-10-11T10:21:04.439Z",
+      "data_scope": "explicit linked GUI/background and Android synthetic fixture",
+      "external_requests": []
+    },
+    {
+      "file": "devices-light-mobile.png",
+      "sha256": "2a4e4bf596b9496a8b37e876cffb3b819869ea5ff4dbce08f5a5016dff6c3e51",
+      "width": 390,
+      "height": 972,
+      "viewport": {
+        "width": 390,
+        "height": 960
+      },
+      "theme": "light",
+      "locale": "zh-CN",
+      "page": "/admin?role=user#devices",
+      "captured_at": "2026-10-11T10:21:05.319Z",
+      "data_scope": "explicit linked GUI/background and Android synthetic fixture",
+      "external_requests": []
+    },
+    {
+      "file": "devices-dark-mobile.png",
+      "sha256": "78c9e6933d46db5cd5bd515f5b9daecc968bb6e97ddfaf7df91ab50a604ec483",
+      "width": 390,
+      "height": 972,
+      "viewport": {
+        "width": 390,
+        "height": 960
+      },
+      "theme": "dark",
+      "locale": "zh-CN",
+      "page": "/admin?role=user#devices",
+      "captured_at": "2026-10-11T10:21:06.214Z",
+      "data_scope": "explicit linked GUI/background and Android synthetic fixture",
+      "external_requests": []
+    },
+    {
+      "file": "tunnels-light-desktop.png",
+      "sha256": "508b815cd3affa49356e4ae382a21cc1fa182c2e7839c278f3cda1c3ec7b4f20",
+      "width": 1440,
+      "height": 1000,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "theme": "light",
+      "locale": "zh-CN",
+      "page": "/admin#connections",
+      "captured_at": "2026-10-11T10:21:07.101Z",
+      "data_scope": "synthetic preview; no active media or real tunnel",
+      "external_requests": []
+    },
+    {
+      "file": "remote-light-desktop.png",
+      "sha256": "1d8688a2294f1de5d6c84bdc91f3445462973beeef132e8770e17aefed9c2cea",
+      "width": 1440,
+      "height": 1000,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "theme": "light",
+      "locale": "zh-CN",
+      "page": "/admin#remote",
+      "captured_at": "2026-10-11T10:21:07.994Z",
+      "data_scope": "synthetic preview; no active media or real tunnel",
+      "external_requests": []
+    },
+    {
+      "file": "login-light-mobile.png",
+      "sha256": "b72d2b0cc4b7fadc8d6066235123b2d553a54db4bb8a2c82c119c056838c513c",
+      "width": 390,
+      "height": 856,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "locale": "zh-CN",
+      "page": "/admin",
+      "captured_at": "2026-10-11T10:21:08.898Z",
+      "data_scope": "synthetic preview; no active media or real tunnel",
+      "external_requests": []
+    },
+    {
+      "file": "version-light-desktop.png",
+      "sha256": "77bdcaf1f43b00783c3e66ba1fadd1aa955fa3745fd4e3d479cd172c325bd6e1",
+      "width": 1440,
+      "height": 960,
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "theme": "light",
+      "locale": "zh-CN",
+      "page": "/admin?role=user#devices",
+      "captured_at": "2026-10-11T10:21:09.873Z",
+      "data_scope": "explicit linked GUI/background and Android synthetic fixture",
+      "external_requests": []
+    }
+  ],
+  "runtime": {
+    "node": "v24.19.0",
+    "executable": "C:\\Users\\Popdo\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+    "executable_sha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "chromium_executable": "C:/Users/Popdo/AppData/Local/ms-playwright/chromium-1208/chrome-win64/chrome.exe",
+    "chromium_executable_sha256": "ff0c99fc5bb2301cad77930aa76e5354cf2a5fefb7efdcf3b3bc10ba0550c015",
+    "capture_tool_sha256": "82577b706d72e081727614ac2d003cb095ee59ac8c2ee7c189cdd676d265bb79",
+    "owner_shim_sha256": "27a9c3bb3e42cb610579cebe41a2ff7b25c2d489938eec4ba93dd467a8a58669",
+    "preview_source_sha256": "26c8509be3e868c92c9f50845911d11f1414fb5ed881940c935532584df4bd7b",
+    "playwright_version": "1.58.2",
+    "chromium_version": "145.0.7632.6"
+  },
+  "preview_process_identity": {
+    "action": "owned-preview-started",
+    "pid": 7652,
+    "parent_pid": 26916,
+    "startup_utc": "2026-10-11T10:21:01.207Z",
+    "generation_token": "72e7bbc1-48d2-433f-b380-afd86feaa4fb",
+    "executable": "C:\\Users\\Popdo\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+    "source": "D:\\代码\\远程控制\\.work\\12.0.0-RC1\\repos\\home-tunnel-server\\control-center\\scripts\\ui-preview.mjs",
+    "source_sha256": "26c8509be3e868c92c9f50845911d11f1414fb5ed881940c935532584df4bd7b"
+  }
+}

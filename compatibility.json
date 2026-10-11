@@ -6,16 +6,16 @@
   "contract_status": "frozen",
   "frozen_tag": "api-v2.0.0",
   "support_policy": "NestLink account authentication and native P2P permits use frozen API v2. Browser P2P has a separate versioned extension. Desktop clients own tunneling; historical background credentials and required tunnel protocols remain compatible. Release notes list verified and unverified coverage for each actual build.",
-  "version": "14.0.0",
+  "version": "14.0.1",
   "minimum_server": "14.0.0",
   "tested_combination": null,
-  "tested_combination_scope": "14.0.0 source target; final build and integration acceptance must be recorded separately before publication.",
+  "tested_combination_scope": "14.0.1 source target; final build and integration acceptance must be recorded separately before publication.",
   "previous_immutable_tag": "api-v1.6.0",
   "target_combination": {
-    "server": "14.0.0",
-    "client": "14.0.0",
-    "android": "14.0.0",
-    "agent": "14.0.0"
+    "server": "14.0.1",
+    "client": "14.0.1",
+    "android": "14.0.1",
+    "agent": "14.0.1"
   },
   "extensions": {
     "browser_remote": "nestlink-browser-v1",

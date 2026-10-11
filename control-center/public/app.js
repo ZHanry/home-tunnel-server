@@ -1,7 +1,7 @@
-import { createConnectionsView } from "./modules/connections.js?v=14.0.0";
-import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=14.0.0";
-import { tunnelVerification } from "./modules/tunnel-model.js?v=14.0.0";
-import { createAccountSecurityView } from "./modules/account-security.js?v=14.0.0";
+import { createConnectionsView } from "./modules/connections.js?v=14.0.1";
+import { openTunnelWizard, disposeTunnelWizard } from "./modules/tunnel-wizard.js?v=14.0.1";
+import { tunnelVerification } from "./modules/tunnel-model.js?v=14.0.1";
+import { createAccountSecurityView } from "./modules/account-security.js?v=14.0.1";
 import {
   formSnapshot,
   restoreSnapshot,
@@ -9,10 +9,10 @@ import {
   showFieldErrors,
   setBusy,
   changedFields,
-} from "./modules/forms.js?v=14.0.0";
-import { createDevicesView } from "./modules/devices.js?v=14.0.0";
-import { createNestLinkView as createRemoteView } from "./modules/homedesk.js?v=14.0.0";
-import { api, refreshSession, allPages } from "./modules/api.js?v=14.0.0";
+} from "./modules/forms.js?v=14.0.1";
+import { createDevicesView } from "./modules/devices.js?v=14.0.1";
+import { createNestLinkView as createRemoteView } from "./modules/homedesk.js?v=14.0.1";
+import { api, refreshSession, allPages } from "./modules/api.js?v=14.0.1";
 import {
   componentLabel,
   escapeHtml,
@@ -20,11 +20,11 @@ import {
   formatBytes,
   formatDate,
   statusBadge,
-} from "./modules/format.js?v=14.0.0";
-import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=14.0.0";
-import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=14.0.0";
-import { state } from "./modules/state.js?v=14.0.0";
-import { pagination } from "./modules/pagination.js?v=14.0.0";
+} from "./modules/format.js?v=14.0.1";
+import { localeTag, updateDocumentMetadata, t } from "./modules/locale.js?v=14.0.1";
+import { connectRealtime, disconnectRealtime } from "./modules/realtime.js?v=14.0.1";
+import { state } from "./modules/state.js?v=14.0.1";
+import { pagination } from "./modules/pagination.js?v=14.0.1";
 
 const landingScreen = document.querySelector("#landing-screen");
 const authScreen = document.querySelector("#auth-screen");
@@ -588,7 +588,7 @@ async function openUpdates() {
     let release = null;
     release = (await checkUpdates())?.latest ?? null;
     if (!modal.open || opening !== state.renderId) return;
-    const version = capabilities.server_version ?? "14.0.0";
+    const version = capabilities.server_version ?? "14.0.1";
     document.querySelector("#current-version").textContent = version;
     modalBody.innerHTML = `<div class="update-summary"><img src="/NestLink.svg" width="48" height="48" alt=""><div><strong>NestLink</strong><p data-no-translate>${escapeHtml(version)}</p></div></div>
       <dl><dt>当前版本</dt><dd data-no-translate>${escapeHtml(version)}</dd><dt>可用版本</dt><dd data-no-translate>${release ? escapeHtml(release.version) : "暂时无法检查"}</dd></dl>

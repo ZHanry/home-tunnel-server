@@ -9,7 +9,7 @@ const phone = "33333333-3333-4333-8333-333333333333";
 const subject = (id, purpose, platform, name = "共享名称") => ({
   id, user_id: owner, username: "lin", name, status: "active", online: true,
   credential_purpose: purpose, client_type: platform, tags: [], metadata_version: 1,
-  last_seen_at: "2026-10-10T08:00:00Z", client_version: "14.0.0",
+  last_seen_at: "2026-10-10T08:00:00Z", client_version: "14.0.1",
 });
 
 async function fixture(page) {

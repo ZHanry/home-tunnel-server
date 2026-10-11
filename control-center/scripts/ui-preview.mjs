@@ -60,8 +60,8 @@ const devices = [
     client_type: "windows",
     status: "active",
     online: true,
-    client_version: "14.0.0",
-    agent_version: "14.0.0",
+    client_version: "14.0.1",
+    agent_version: "14.0.1",
     applied_config_version: 12,
     config_version: 12,
     last_seen_at: new Date(now - 12_000).toISOString(),
@@ -76,8 +76,8 @@ const devices = [
     client_type: "linux",
     status: "active",
     online: false,
-    client_version: "14.0.0",
-    agent_version: "14.0.0",
+    client_version: "14.0.1",
+    agent_version: "14.0.1",
     applied_config_version: 4,
     config_version: 5,
     last_seen_at: new Date(now - 3_600_000).toISOString(),
@@ -193,21 +193,21 @@ const domains = [];
 app.use(express.json());
 app.use(express.static(publicDirectory, { etag: false, lastModified: false, maxAge: 0 }));
 app.get("/api/v2/public/capabilities", (_request, response) =>
-  response.json({ api_major: 2, server_version: "14.0.0", contract_version: "2.0.0" }),
+  response.json({ api_major: 2, server_version: "14.0.1", contract_version: "2.0.0" }),
 );
 
 app.get("/api/v2/public/updates/:component", (request, response) =>
   response.json({
-    current_version: "14.0.0",
+    current_version: "14.0.1",
     update_available: false,
     latest: {
-      version: "14.0.0",
+      version: "14.0.1",
       notes: "NestLink release preview",
       prerelease: true,
       url:
         "https://github.com/ZHanry/home-tunnel-" +
         request.params.component +
-        "/releases/tag/v13.0.0",
+        "/releases/tag/v14.0.1",
     },
   }),
 );

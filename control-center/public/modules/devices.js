@@ -1,6 +1,6 @@
-import { pagination } from "./pagination.js?v=14.0.0";
-import { t } from "./locale.js?v=14.0.0";
-import { physicalDevices, filterPhysicalDevices, deviceGroup } from "./physical-devices.js?v=14.0.0";
+import { pagination } from "./pagination.js?v=14.0.1";
+import { t } from "./locale.js?v=14.0.1";
+import { physicalDevices, filterPhysicalDevices, deviceGroup } from "./physical-devices.js?v=14.0.1";
 
 export function createDevicesView({api,allPages,state,viewContent,pageActions,escapeHtml,formatDate,emptyState,isAdmin,navigateTo,openModal}) {
   let generation=0;

@@ -1,6 +1,6 @@
 # FRP 0.70.1 compatibility and reviewed dependency record
 
-NestLink 14.0.0 pins the reviewed `0.70.1-r4` FRPS dependency in its Compose
+NestLink 14.0.0 and 14.0.1 pin the reviewed `0.70.1-r4` FRPS dependency in its Compose
 and preparation defaults. This record establishes the dependency identity and
 build checks. Application installation and remote-control acceptance are tracked
 separately in the version-specific signed release record.
@@ -38,7 +38,7 @@ verification checks both the signed dependency manifest and image against
 `frps-image.yml@refs/heads/main`, the exact workflow source revision, and the
 GitHub OIDC issuer. The immutable revision tag resolves to the digest above.
 
-The managed Agent reports NestLink product version `14.0.0` and uses the same
+The published 14.0.0 managed Agent reports NestLink product version `14.0.0` and uses the same
 pinned FRP source. The desktop release publishes `NestLink-Setup-14.0.0-x64.exe`,
 `NestLink-Linux-14.0.0-x64.deb` and `NestLink-Linux-14.0.0-arm64.deb`.
 Installed application and configuration identities remain compatible for upgrades.

@@ -29,7 +29,7 @@ class ReleasePolicyTests(unittest.TestCase):
         self.assertIn("python3 scripts/homedesk-release.py verify-server --input release", workflow)
         self.assertIn("run-id: ${{ needs.metadata.outputs.build-run }}", workflow)
         patterns = [line.strip()[2:] for line in trigger.splitlines() if line.strip().startswith("- ")]
-        for tag in ("v10.0.0-rc.1", "v11.2.3-rc.12", "v13.0.0", "v14.0.0"):
+        for tag in ("v10.0.0-rc.1", "v11.2.3-rc.12", "v13.0.0", "v14.0.0", "v14.0.1"):
             with self.subTest(tag=tag):
                 self.assertTrue(any(fnmatchcase(tag, pattern) for pattern in patterns))
         for tag in ("v14", "v14.0", "api-v1.4.0"):

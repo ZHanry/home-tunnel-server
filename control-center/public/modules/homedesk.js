@@ -1,5 +1,5 @@
-import { t } from "./locale.js?v=14.0.0";
-import { createBrowserRemote } from "./browser-remote.js?v=14.0.0";
+import { t } from "./locale.js?v=14.0.1";
+import { createBrowserRemote } from "./browser-remote.js?v=14.0.1";
 
 export function homeDeskUrl(id) {
   return typeof id==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(id)?`homedesk://${id}`:null;

@@ -63,7 +63,7 @@ test("public home keeps prototype artwork, features and language on narrow scree
   await expect(page.locator(".landing-features article")).toHaveCount(3);
   await expect(page.locator("#hero-download")).toHaveAttribute(
     "href",
-    "https://github.com/ZHanry/home-tunnel-client/releases/tag/v14.0.0",
+    "https://github.com/ZHanry/home-tunnel-client/releases/tag/v14.0.1",
   );
   await page.locator(".marketing-footer [data-locale-toggle]").click();
   await expect(page.locator("#hero-title")).toContainText("Bring your home services");
@@ -129,7 +129,7 @@ test("sidebar version opens official release details in a dialog", async ({ page
   await expect(page.locator('[data-view="updates"]')).toHaveCount(0);
   await page.locator("#version-button").click();
   await expect(page.locator("#modal[open]")).toBeVisible();
-  await expect(page.locator("#modal")).toContainText("14.0.0");
+  await expect(page.locator("#modal")).toContainText("14.0.1");
   await expect(page.locator("#modal .update-summary")).toContainText("NestLink");
   await expect(page.locator('#modal a[href*="github.com/ZHanry/home-tunnel-server/releases"]')).toBeVisible();
 });

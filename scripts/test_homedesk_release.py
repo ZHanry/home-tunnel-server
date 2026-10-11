@@ -23,7 +23,7 @@ class ProductReleaseTests(unittest.TestCase):
                 "deliverables": {}}
 
     def test_stable_versions_and_rc_are_distinct(self):
-        for value in ("13.0.0", "14.0.0", "15.2.1"):
+        for value in ("13.0.0", "14.0.0", "14.0.1", "15.2.1"):
             self.assertTrue(release.is_stable_release(value))
         for value in ("14.0.0-RC1", "14.0.0-rc.1", "v14.0.0", "14.0", "014.0.0"):
             self.assertFalse(release.is_stable_release(value))
