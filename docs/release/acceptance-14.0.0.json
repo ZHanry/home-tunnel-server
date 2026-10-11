@@ -1,0 +1,3487 @@
+{
+  "schema_version": 1,
+  "version": "14.0.0",
+  "component": "server",
+  "status": "passed_reproducible",
+  "source_revision": "299753a4c6580ac6bbc748cdee743489a3e17dba",
+  "build_run": 38053932107,
+  "build_attempt": 1,
+  "recorded_at": "2026-10-11T04:45:40.163109+00:00",
+  "deliverables": {
+    "NestLink-Server-14.0.0.tar.gz": "1a42bc2e9520c9d4d7c641af6bc3fff42bd9833880423b767485779f4e8812a7"
+  },
+  "scenarios": [
+    {
+      "name": "account-migration",
+      "status": "passed",
+      "evidence": {
+        "execution": {
+          "started_at": "2026-10-10T13:22:16.975705+00:00",
+          "finished_at": "2026-10-10T13:22:24.624674+00:00",
+          "exit_code": 0,
+          "command": "[[\"wsl\", \"-d\", \"Ubuntu\", \"-u\", \"root\", \"--\", \"python3\", \"/mnt/d/代码/远程控制/.work/14.0.0/verify-migration-replay14.py\", \"--source-sha\", \"299753a4c6580ac6bbc748cdee743489a3e17dba\"]]"
+        },
+        "observation": "Actual signed13 startup then299 schema25 to26 migration preserved old device/credential identity and service hashes in a SQLite backup clone with only026 objects/row reset. This server-only original contains no new-client participation claim. Feaf exact package/profile preservation and independent signed13 GUI compatibility are separate supporting evidence; old wrapper source map and clock discrepancy remain unchanged.",
+        "files": [
+          {
+            "path": "migration-replay14.json",
+            "sha256": "4c705f62d3c32534a4e4140fedddc4fb43fadbfa4a9fde0205bbea9c8b8bc48b",
+            "size_bytes": 5872,
+            "kind": "result"
+          },
+          {
+            "path": "executions14/final-server-migration.json",
+            "sha256": "0b977368eebf8d7c1ce60a63dfb5bfa21bf08b97a94a33280d7130c67b374f35",
+            "size_bytes": 950,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/final-server-migration.log",
+            "sha256": "b406614603b8c84209d3135df55376994c25f63aad74bbe378df0b5cdfef5c39",
+            "size_bytes": 405,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/linux-install/installed-client.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/compat13-next-final14/result.json",
+            "sha256": "2743759b526276024955a5250396b6b4bcce7da7b15abf100aea4ccb8d21e107",
+            "size_bytes": 61127,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/compat13-next-final14/audit.original.jsonl",
+            "sha256": "e6ab3e238fc8652e171b2fd1cae669ee41c8a2e5df11aef5d092980dd0256ad9",
+            "size_bytes": 39267,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/compat13-next-final14/visual-review.json",
+            "sha256": "0da0d8e480f5a30ab3b9562746ac380417a985ce229e7581b3553e690cadedac",
+            "size_bytes": 1602,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/compat13-next-palette-seal14.json",
+            "sha256": "de0e80aff73505b3372cbb4fcf856e59dfcc1b70ef53daec5ce29923c019fa65",
+            "size_bytes": 2063,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/compat13-next-palette-seal14.initial.json",
+            "sha256": "f1b9a7bc068457d3d11262ce6b5a48d5906b821c1216f65f762e036400e3024b",
+            "size_bytes": 1769,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/compat13-next-palette-seal14.log",
+            "sha256": "149b330a55c97ddd99664b40a933749e107425b835cf107108cad9d624cbbc84",
+            "size_bytes": 399,
+            "kind": "attachment"
+          },
+          {
+            "path": "server-time-provenance14-binary.json",
+            "sha256": "81023af611595961fff3a3bfca75c90c65e7c0eb277cf498892b51a1e443b880",
+            "size_bytes": 4933,
+            "kind": "attachment"
+          },
+          {
+            "path": "server-device-final14.json",
+            "sha256": "accae29e4da40f808854458f0c569110a1c5ba140eb9d0d7c80e03d3cc365941",
+            "size_bytes": 11211,
+            "kind": "attachment"
+          },
+          {
+            "path": "web-final14/result.json",
+            "sha256": "1e120beb264df37e8c21ae1a7d204cfaf8c0f58cc0641f6edebb3865987fe24c",
+            "size_bytes": 4797,
+            "kind": "attachment"
+          },
+          {
+            "path": "web-final14/devices-desktop.png",
+            "sha256": "7464fa6472dc3a5bc825e04df755ac1d69590229253b34d197eb15bca37021d0",
+            "size_bytes": 49336,
+            "kind": "attachment"
+          },
+          {
+            "path": "web-final14/devices-mobile.png",
+            "sha256": "01a6abf7318db01a261210c2bbd2eef094c1ac1b8313a37d714d168ce0aa68d8",
+            "size_bytes": 39012,
+            "kind": "attachment"
+          },
+          {
+            "path": "web-final14/devices-mobile-dark.png",
+            "sha256": "1cd0d306ec7428d45552a3b1ce33d3d6c6335a32626edc18b8866fcfa1d03e85",
+            "size_bytes": 39385,
+            "kind": "attachment"
+          },
+          {
+            "path": "web-final14/devices-mobile-bottom.png",
+            "sha256": "8961aa16e164243f7a25552dc038aeb0d6ebea4936d68d48e1e1b9479017010d",
+            "size_bytes": 31014,
+            "kind": "attachment"
+          },
+          {
+            "path": "web-final14/admin-all-devices.png",
+            "sha256": "25eb889b1a4dd837f5956ce30f3ca22bdf5ecc5c5b1f7ee253096e82b6b0e25c",
+            "size_bytes": 67543,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/final-server-device.json",
+            "sha256": "4376c3f91a37d21a11998c4e953db4379f102bf9c9f3dcf6c106c14b09126ab4",
+            "size_bytes": 965,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/final-server-device.log",
+            "sha256": "448cf0c14cbbee46821a6faf59fffe76eca02498aaf9d6769791466d4bd5ded8",
+            "size_bytes": 314,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/final-server-web.json",
+            "sha256": "223ed5b87369e4ea8b505863ea6fa7c85a6f74f51ce51273fa55c3a018a66417",
+            "size_bytes": 941,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/final-server-web.log",
+            "sha256": "ee39a79571a84879b6d7edd0a7c5b88e12c6945386ce440ccb8dc8f3859488d5",
+            "size_bytes": 310,
+            "kind": "attachment"
+          }
+        ],
+        "fixture_sources": {
+          "client": "feaf1181efe55076dead52931203a8488cbad20d",
+          "android": "dcdfc4299d1f92f46b5f3ca8e675d304f9639982",
+          "server": "299753a4c6580ac6bbc748cdee743489a3e17dba"
+        },
+        "deliverables": {
+          "NestLink-Server-14.0.0.tar.gz": "1a42bc2e9520c9d4d7c641af6bc3fff42bd9833880423b767485779f4e8812a7"
+        }
+      }
+    },
+    {
+      "name": "browser-authorization",
+      "status": "passed",
+      "evidence": {
+        "execution": {
+          "started_at": "2026-10-10T19:50:12.701865+00:00",
+          "finished_at": "2026-10-10T20:10:38.242866+00:00",
+          "exit_code": 0,
+          "command": "[[\"wsl\", \"-u\", \"root\", \"--exec\", \"node\", \"/mnt/d/代码/远程控制/.work/14.0.0/browser14-acceptance-palette.cjs\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--client-source\", \"feaf1181efe55076dead52931203a8488cbad20d\", \"--server-source\", \"299753a4c6580ac6bbc748cdee743489a3e17dba\", \"--mode\", \"connect\", \"--label\", \"palette-connect-visible14\", \"--decision-file\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/browser14/palette-connect-visible14/decision.json\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"node\", \"/mnt/d/代码/远程控制/.work/14.0.0/browser14-acceptance-palette.cjs\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--client-source\", \"feaf1181efe55076dead52931203a8488cbad20d\", \"--server-source\", \"299753a4c6580ac6bbc748cdee743489a3e17dba\", \"--mode\", \"correct-password\", \"--label\", \"palette-correct-password-live14\", \"--password-file\", \"/var/tmp/nestlink14-e2e/peers/b/browser14-password.secret\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"node\", \"/mnt/d/代码/远程控制/.work/14.0.0/browser14-acceptance-palette.cjs\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--client-source\", \"feaf1181efe55076dead52931203a8488cbad20d\", \"--server-source\", \"299753a4c6580ac6bbc748cdee743489a3e17dba\", \"--mode\", \"decline\", \"--label\", \"palette-decline-visible14\", \"--decision-file\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/browser14/palette-decline-visible14/decision.json\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"node\", \"/mnt/d/代码/远程控制/.work/14.0.0/browser14-acceptance-palette.cjs\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--client-source\", \"feaf1181efe55076dead52931203a8488cbad20d\", \"--server-source\", \"299753a4c6580ac6bbc748cdee743489a3e17dba\", \"--mode\", \"offline\", \"--label\", \"palette-offline-live14\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"node\", \"/mnt/d/代码/远程控制/.work/14.0.0/browser14-acceptance-palette.cjs\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--client-source\", \"feaf1181efe55076dead52931203a8488cbad20d\", \"--server-source\", \"299753a4c6580ac6bbc748cdee743489a3e17dba\", \"--mode\", \"revoke\", \"--label\", \"palette-revoke-visible14\", \"--decision-file\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/browser14/palette-revoke-visible14/decision.json\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"node\", \"/mnt/d/代码/远程控制/.work/14.0.0/browser14-acceptance-palette.cjs\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--client-source\", \"feaf1181efe55076dead52931203a8488cbad20d\", \"--server-source\", \"299753a4c6580ac6bbc748cdee743489a3e17dba\", \"--mode\", \"wrong-password\", \"--label\", \"palette-wrong-password-live14\"]]"
+        },
+        "observation": "Six real exact-installed feaf/B Chromium modes passed: approval/direct UDP frames and keyboard, decline, wrong password, offline404, browser management-parent revoke204/disconnect27ms, and correct private fixed password. Task STUN/network recovery and failed attempts remain attached. Temporary PIN set remains FAILED due additional trusted_devices flush of unknown origin; cleanup passed; OS root-password UI unlock remains unverified.",
+        "files": [
+          {
+            "path": "palette-final/browser14-composite14/results-composite14.json",
+            "sha256": "930cc92d1c13e4100b0a5bfa1519408d2ebf60a651fb2be27f723b084ef46a96",
+            "size_bytes": 62986,
+            "kind": "result"
+          },
+          {
+            "path": "executions14/palette-browser-connect-visible14.json",
+            "sha256": "8717db6d84ae162ab91ab5e1bcf6cb5c4851548f09c6b175b608ccd823e63588",
+            "size_bytes": 2063,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-visible14.initial.json",
+            "sha256": "7e19fae855392e46330bc6cb73a7231f2fb087637c20cad7dd397105a30c6ada",
+            "size_bytes": 1764,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-visible14.log",
+            "sha256": "a929f66badfe3dccc2ff065d2e0740470d1b9fecda03969a9d2aafb0f9a97422",
+            "size_bytes": 563,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-correct-password-live14.json",
+            "sha256": "33a80529f365206e0cfeb87f0df80b63852c4a90073fc302abcba57ab596c493",
+            "size_bytes": 2017,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-correct-password-live14.initial.json",
+            "sha256": "c3b76d669ec595250483c4cff84a4a7d98e469382ade552354d643700d4b5add",
+            "size_bytes": 1712,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-correct-password-live14.log",
+            "sha256": "ad36b5cb776b531455e454d23897e870c239b6b6fad3b70745e7c026696672ba",
+            "size_bytes": 371,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-decline-visible14.json",
+            "sha256": "8f303ed2f28945477358609a233a797946fdfeec7647506d132316bdb9a6d4dc",
+            "size_bytes": 2063,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-decline-visible14.initial.json",
+            "sha256": "7e3d8bbcff215e67e70d8da3b1151c94377f8b8f21004c0e74813a65e5293b2f",
+            "size_bytes": 1764,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-decline-visible14.log",
+            "sha256": "2c1629163808ce3017f8ae946f771f35ad28f7ef046be7f3dcf72743593404da",
+            "size_bytes": 542,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-offline-live14.json",
+            "sha256": "e4163d7d161aea740d963556476d3af10b86153d415bcf1ad812102894ca9c89",
+            "size_bytes": 1891,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-offline-live14.initial.json",
+            "sha256": "a2a080e4d608c49108fb685cc5595793111be8cae987b3c069dccf1164ce5ad8",
+            "size_bytes": 1595,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-offline-live14.log",
+            "sha256": "d012895cf8d2feb95b5d2fb42c9f04b3d242b9377b36f89cb01f4c8253211b5b",
+            "size_bytes": 332,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-revoke-visible14.json",
+            "sha256": "55c9b8a578f15c2a492c162776c14f146ece6e18a1f7ad034c14406ae5cf104e",
+            "size_bytes": 2058,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-revoke-visible14.initial.json",
+            "sha256": "9f970682ddf79bc511c6343d969b7cfc3d021616c8a6475eb7167833a0123896",
+            "size_bytes": 1760,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-revoke-visible14.log",
+            "sha256": "cd53b6b6f32beb3c5f4cd43f5f476b3be1f5277aa5de432468e6b6ee14fd1a42",
+            "size_bytes": 590,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-wrong-password-live14.json",
+            "sha256": "7f0ffca9c98cf8d458ad258d52af794900e16a06f7e861d4fdca77c2c65f3866",
+            "size_bytes": 1919,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-wrong-password-live14.initial.json",
+            "sha256": "fc51b925e2750c442037b76aa3e543a65d661d9eff467023d79e6cb365a3de62",
+            "size_bytes": 1616,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-wrong-password-live14.log",
+            "sha256": "f3b655cbdb206b1761211b6a4c571a989d780e3c856ad64c8cc4e2d652a921e8",
+            "size_bytes": 346,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14-scope-next14/scope-supplement14.json",
+            "sha256": "a2059941d67744285737bfbeb4d337d69c52626aac3ba3d2af4d934b6c7b8698",
+            "size_bytes": 61864,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/browser-connect.json",
+            "sha256": "9dffaa392cc9cc112c316a525be64d6563348f07a4b46e7aca651c5208918bde",
+            "size_bytes": 25042,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/browser-screen.png",
+            "sha256": "86cff6f570f2e69ec97063fa2ff883bf3b75f5c5e1a55792f313a0969129fd02",
+            "size_bytes": 146166,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/browser14-acceptance-palette.cjs",
+            "sha256": "0f8670abfa76751f3f1e131af234bf248ee2c88c34d48327a56566d3e29a5a00",
+            "size_bytes": 21778,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/browser14-input-target-palette.py",
+            "sha256": "60afa8c62b073e90a3f5463d9976b142d28052b5aaf55de86088e33ccb92efc9",
+            "size_bytes": 1644,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/decision.json",
+            "sha256": "fe0d02b02eef8a0c355906c4e96c288f1085fe8d19c03091b664bb52375042c1",
+            "size_bytes": 17,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/host-input.png",
+            "sha256": "0d3df14e4da92b5b070a82bfb6aa00e20319543b3b9177c3ed8828f72e839ebb",
+            "size_bytes": 52622,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/host-prompt.png",
+            "sha256": "7208bc85818c7075bbc2f09dae0def61318cc6bb5fb3d99e5ebb7e4e2cc58a54",
+            "size_bytes": 77327,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/palette-live-window14.py",
+            "sha256": "b39ca37d648f5a4f7368c47c18f6f72484c5ea8585a946a927e55ee030445c7a",
+            "size_bytes": 3175,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-visible14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/browser-correct-password.json",
+            "sha256": "100d01b298567a63d444f691fec7b690e54c4de4d79402fd687856d82a73d15e",
+            "size_bytes": 24368,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/browser-screen.png",
+            "sha256": "962a73ee42fe953585eb442959b546c5ff08c0c69434cfb862776c35b88a6424",
+            "size_bytes": 159001,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/browser14-acceptance-palette.cjs",
+            "sha256": "0f8670abfa76751f3f1e131af234bf248ee2c88c34d48327a56566d3e29a5a00",
+            "size_bytes": 21778,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/browser14-input-target-palette.py",
+            "sha256": "60afa8c62b073e90a3f5463d9976b142d28052b5aaf55de86088e33ccb92efc9",
+            "size_bytes": 1644,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/host-input.png",
+            "sha256": "598c712cafbd8bc855285293fd0154c04ebd4d0f71e71b41e7c2996a3ec8829a",
+            "size_bytes": 56756,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-correct-password-live14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/browser-decline.json",
+            "sha256": "ff394c5eda90573257cc4999b41bdabf3d8a617d564d9f55d805c86ce0e57e36",
+            "size_bytes": 22388,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/browser14-acceptance-palette.cjs",
+            "sha256": "0f8670abfa76751f3f1e131af234bf248ee2c88c34d48327a56566d3e29a5a00",
+            "size_bytes": 21778,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/browser14-input-target-palette.py",
+            "sha256": "60afa8c62b073e90a3f5463d9976b142d28052b5aaf55de86088e33ccb92efc9",
+            "size_bytes": 1644,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/decision.json",
+            "sha256": "ee30db405e0369a5b43c2227d5c77a842572d31a055c173765c49c4659467fed",
+            "size_bytes": 17,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/decline.png",
+            "sha256": "8a21e3992849c109d9472dd22bea1e5bea84cea710c73e8529549b18f39d069c",
+            "size_bytes": 20735,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/host-prompt.png",
+            "sha256": "84cce677aefae46f767558e9c2022e86a02bbe8ebd6b076c8fed19d5403c1bf6",
+            "size_bytes": 75441,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/palette-live-window14.py",
+            "sha256": "b39ca37d648f5a4f7368c47c18f6f72484c5ea8585a946a927e55ee030445c7a",
+            "size_bytes": 3175,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-decline-visible14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/browser-offline.json",
+            "sha256": "5243b3b4083b4b7c85973d49c02f41c1b7efcf2f2168a3b0026ece117610be37",
+            "size_bytes": 21774,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/browser14-acceptance-palette.cjs",
+            "sha256": "0f8670abfa76751f3f1e131af234bf248ee2c88c34d48327a56566d3e29a5a00",
+            "size_bytes": 21778,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/browser14-input-target-palette.py",
+            "sha256": "60afa8c62b073e90a3f5463d9976b142d28052b5aaf55de86088e33ccb92efc9",
+            "size_bytes": 1644,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/offline.png",
+            "sha256": "bd8be665010730fd346b03b7983b71cadff14f2445fbc7b82f0cb4ae69f1939b",
+            "size_bytes": 23591,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/palette-live-window14.py",
+            "sha256": "b39ca37d648f5a4f7368c47c18f6f72484c5ea8585a946a927e55ee030445c7a",
+            "size_bytes": 3175,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-offline-live14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/browser-revoke.json",
+            "sha256": "d496e396e3e8088062941eea65065f85e9dea288323a5a65f876aaa3600a6018",
+            "size_bytes": 25107,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/browser-screen.png",
+            "sha256": "1c035afd8a1c61fb55e7395489250f9bae7e8926f7a8e29843745042c1a268ec",
+            "size_bytes": 144919,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/browser14-acceptance-palette.cjs",
+            "sha256": "0f8670abfa76751f3f1e131af234bf248ee2c88c34d48327a56566d3e29a5a00",
+            "size_bytes": 21778,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/browser14-input-target-palette.py",
+            "sha256": "60afa8c62b073e90a3f5463d9976b142d28052b5aaf55de86088e33ccb92efc9",
+            "size_bytes": 1644,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/decision.json",
+            "sha256": "fe0d02b02eef8a0c355906c4e96c288f1085fe8d19c03091b664bb52375042c1",
+            "size_bytes": 17,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/host-input.png",
+            "sha256": "db8f2206b966c144e6390f2ee18900cbb843b30648aab8534a3927f90c0f3281",
+            "size_bytes": 51974,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/host-prompt.png",
+            "sha256": "5d6060b9d4ed8e8dbd0521ae3e61f775bed2d1e992885caea04312c10b2d4ab3",
+            "size_bytes": 77567,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/palette-live-window14.py",
+            "sha256": "b39ca37d648f5a4f7368c47c18f6f72484c5ea8585a946a927e55ee030445c7a",
+            "size_bytes": 3175,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/revoked.png",
+            "sha256": "ec8a3ac7cc080d34a50adf675b9799b0e317d4259cd4bc8ccfe253e068bf1884",
+            "size_bytes": 58001,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-revoke-visible14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/browser-wrong-password.json",
+            "sha256": "986b0be198446da3a90f2820f7276bd96bc35768099cfcb7eee32105abb12e1e",
+            "size_bytes": 21710,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/browser14-acceptance-palette.cjs",
+            "sha256": "0f8670abfa76751f3f1e131af234bf248ee2c88c34d48327a56566d3e29a5a00",
+            "size_bytes": 21778,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/browser14-input-target-palette.py",
+            "sha256": "60afa8c62b073e90a3f5463d9976b142d28052b5aaf55de86088e33ccb92efc9",
+            "size_bytes": 1644,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-wrong-password-live14/wrong-password.png",
+            "sha256": "8a21e3992849c109d9472dd22bea1e5bea84cea710c73e8529549b18f39d069c",
+            "size_bytes": 20735,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/browser14-read-ice-diagnostic.cjs",
+            "sha256": "b0a67b23f53e5a2fc2b50c2795f8e94da1178605d2654f78d45373528fdf5777",
+            "size_bytes": 4071,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/diagnostic.json",
+            "sha256": "f12ad639474658091753a1d543a23e1c4c157efdf94aa83b63c2deb425565099",
+            "size_bytes": 19379,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/record-browser14-ice-diagnostic.py",
+            "sha256": "de5f4c71e132bf0a6cb702c5f8eb5a79a3a112da7eb01ae0cc9d58c9836f08c0",
+            "size_bytes": 7888,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/browser14-read-ice-diagnostic.cjs",
+            "sha256": "0f72d9b1171caec5fa710121a4aa8261195ecc9141bff92712a225ebc1992ff0",
+            "size_bytes": 4071,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/diagnostic.json",
+            "sha256": "37d80528a352e0ddd708c7572a11efcbd14d471c7f2e66078837176521ccf67d",
+            "size_bytes": 22563,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/record-browser14-ice-diagnostic.py",
+            "sha256": "8c940dce93f9050cac2e23feccbd05ee529e131f9a5f44f3d365bc0e57020c58",
+            "size_bytes": 8131,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-ice-diagnostic-next14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-task-stun14/deployment-compose.original.yaml",
+            "sha256": "b288387e62dc1404dc7b85a20ab46339f55da806569114aad7258f5de7e98984",
+            "size_bytes": 1220,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-task-stun14/deployment-turnserver.original.conf",
+            "sha256": "dbbffd82b08f35d7925f62f9aea747153d6871a56acb71409c1b830e041a133c",
+            "size_bytes": 518,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-task-stun14/image-pull.log",
+            "sha256": "0f7dc79d6a9dca80038bae15f0b2ccca88203019c016767ec0314dfa640abff1",
+            "size_bytes": 791,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-task-stun14/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-task-stun14/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-task-stun14/probe-stun.original.py",
+            "sha256": "16170d059e3ae8429c502a1a23f2377913b600680170c03f6bd4b4079b0397fb",
+            "size_bytes": 4939,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-task-stun14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-task-stun14/recovery.json",
+            "sha256": "4302036a96e45bc300d83b502d5e1aef61a651dd4ad4db42f4213181a37db983",
+            "size_bytes": 9110,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-task-stun14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-task-stun14/start-browser14-task-stun.py",
+            "sha256": "a3b96fc4445c508c51cdc01d5642849cef3f74e2bf3fadf29fd110d059ce74d0",
+            "size_bytes": 7020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-task-stun14/task-turnserver.conf",
+            "sha256": "852ce0b1636f23ca72ff5805527894446116f64e26382aa6c06cf1397b2839b8",
+            "size_bytes": 525,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-task-stun14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/tls-bridge-loopback14/https-bridge14-loopback.cjs",
+            "sha256": "3e459cc338361dfeffebc14b926673f3f7d6d3d8fba8e6cc8908d9a8a5e16e78",
+            "size_bytes": 2333,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/tls-bridge-loopback14/original-https-bridge14.cjs",
+            "sha256": "1ef3f25fb4c53a4017b1db1827537ee3da64fe0e623a64acb21b49e01284ca0d",
+            "size_bytes": 2343,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/tls-bridge-loopback14/recovery-before.json",
+            "sha256": "78f8cd03a4d050b848e4a08d95b68ac60c9081aed6ad9f4c46c8d7c31be5e9c4",
+            "size_bytes": 612,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/tls-bridge-loopback14/recovery.json",
+            "sha256": "156d848fe8f6fd769c48fba4ba69759e2081a156a9d2e3a4df0cc8d45ba1d679",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/browser14-task-b-pin-admin.py",
+            "sha256": "0bef9f908900ff80bf1f4febc1e043e07be6c86b2ef30efb8efd848b3f78748e",
+            "size_bytes": 9309,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/operation.json",
+            "sha256": "741daee98940d558b579edf0fb41a5cfda81474bb2fb0bd8e095b7f6530da4cd",
+            "size_bytes": 22835,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/product-source-original/client/flutter/lib/nestlink_remote_settings.dart",
+            "sha256": "03e3fa10042ae2458138730efc47e67f313c7bea2f4f6995b855be1a97093a6d",
+            "size_bytes": 47674,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/product-source-original/client/libs/hbb_common/src/bytes_codec.rs",
+            "sha256": "ed5691a29df5db54716e3d5cb065479ad118a5038c35586cad1f703aa4559c47",
+            "size_bytes": 9151,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/product-source-original/client/libs/hbb_common/src/config.rs",
+            "sha256": "e4bd534c5fe4a466a3ff3bef06a859ed31c789333e6605dd3832a116740c6f78",
+            "size_bytes": 148498,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/product-source-original/client/src/core_main.rs",
+            "sha256": "98afa31352743b961c7f75a2da36f06772dba02ccf38400192eeb1629d713e08",
+            "size_bytes": 40207,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/product-source-original/client/src/ipc.rs",
+            "sha256": "e180dc7fff7bddf6a7b36adf0d77c5cf363f9c7b8cc3f24a1992cce865348b76",
+            "size_bytes": 86688,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-check-next14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/browser14-task-b-pin-admin.py",
+            "sha256": "0bef9f908900ff80bf1f4febc1e043e07be6c86b2ef30efb8efd848b3f78748e",
+            "size_bytes": 9309,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/operation.json",
+            "sha256": "723218a75a70ea98ce90707f5c7d42354537f7af99724f95d87881288be4b52f",
+            "size_bytes": 21947,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/product-source-original/client/flutter/lib/nestlink_remote_settings.dart",
+            "sha256": "03e3fa10042ae2458138730efc47e67f313c7bea2f4f6995b855be1a97093a6d",
+            "size_bytes": 47674,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/product-source-original/client/libs/hbb_common/src/bytes_codec.rs",
+            "sha256": "ed5691a29df5db54716e3d5cb065479ad118a5038c35586cad1f703aa4559c47",
+            "size_bytes": 9151,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/product-source-original/client/libs/hbb_common/src/config.rs",
+            "sha256": "e4bd534c5fe4a466a3ff3bef06a859ed31c789333e6605dd3832a116740c6f78",
+            "size_bytes": 148498,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/product-source-original/client/src/core_main.rs",
+            "sha256": "98afa31352743b961c7f75a2da36f06772dba02ccf38400192eeb1629d713e08",
+            "size_bytes": 40207,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/product-source-original/client/src/ipc.rs",
+            "sha256": "e180dc7fff7bddf6a7b36adf0d77c5cf363f9c7b8cc3f24a1992cce865348b76",
+            "size_bytes": 86688,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-set14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/browser14-task-b-pin-admin.py",
+            "sha256": "770bf713467f1003eceefe7632b53b2ffb97524b9d39c723f41d85cafaee4eaf",
+            "size_bytes": 10050,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/operation.json",
+            "sha256": "51b0dc12916db7cb29ad45461046964f0af42452ec9aea6dd41ce7868b1534c0",
+            "size_bytes": 22236,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/product-source-original/client/flutter/lib/nestlink_remote_settings.dart",
+            "sha256": "03e3fa10042ae2458138730efc47e67f313c7bea2f4f6995b855be1a97093a6d",
+            "size_bytes": 47674,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/product-source-original/client/libs/hbb_common/src/bytes_codec.rs",
+            "sha256": "ed5691a29df5db54716e3d5cb065479ad118a5038c35586cad1f703aa4559c47",
+            "size_bytes": 9151,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/product-source-original/client/libs/hbb_common/src/config.rs",
+            "sha256": "e4bd534c5fe4a466a3ff3bef06a859ed31c789333e6605dd3832a116740c6f78",
+            "size_bytes": 148498,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/product-source-original/client/src/core_main.rs",
+            "sha256": "98afa31352743b961c7f75a2da36f06772dba02ccf38400192eeb1629d713e08",
+            "size_bytes": 40207,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/product-source-original/client/src/ipc.rs",
+            "sha256": "e180dc7fff7bddf6a7b36adf0d77c5cf363f9c7b8cc3f24a1992cce865348b76",
+            "size_bytes": 86688,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-verify14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/browser14-task-b-pin-admin.py",
+            "sha256": "770bf713467f1003eceefe7632b53b2ffb97524b9d39c723f41d85cafaee4eaf",
+            "size_bytes": 10050,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/operation.json",
+            "sha256": "40c903e4abca863abc08c73b06781a98c34f3809bb4bcf0f0b3696a15e1ce21e",
+            "size_bytes": 22088,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/product-source-original/client/flutter/lib/nestlink_remote_settings.dart",
+            "sha256": "03e3fa10042ae2458138730efc47e67f313c7bea2f4f6995b855be1a97093a6d",
+            "size_bytes": 47674,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/product-source-original/client/libs/hbb_common/src/bytes_codec.rs",
+            "sha256": "ed5691a29df5db54716e3d5cb065479ad118a5038c35586cad1f703aa4559c47",
+            "size_bytes": 9151,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/product-source-original/client/libs/hbb_common/src/config.rs",
+            "sha256": "e4bd534c5fe4a466a3ff3bef06a859ed31c789333e6605dd3832a116740c6f78",
+            "size_bytes": 148498,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/product-source-original/client/src/core_main.rs",
+            "sha256": "98afa31352743b961c7f75a2da36f06772dba02ccf38400192eeb1629d713e08",
+            "size_bytes": 40207,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/product-source-original/client/src/ipc.rs",
+            "sha256": "e180dc7fff7bddf6a7b36adf0d77c5cf363f9c7b8cc3f24a1992cce865348b76",
+            "size_bytes": 86688,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser-pin-clear14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/browser-connect.json",
+            "sha256": "f99f8354eff0512043150a10d3a0abe05a91fd1e05735837ed1357862bbbf6b1",
+            "size_bytes": 20411,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/browser14-acceptance-palette.cjs",
+            "sha256": "a679137acbe36d9291f600ff7e91776106cee5931407ed3910a661e3f15c0b40",
+            "size_bytes": 20871,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/browser14-input-target-palette.py",
+            "sha256": "60afa8c62b073e90a3f5463d9976b142d28052b5aaf55de86088e33ccb92efc9",
+            "size_bytes": 1644,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/palette-live-window14.py",
+            "sha256": "b39ca37d648f5a4f7368c47c18f6f72484c5ea8585a946a927e55ee030445c7a",
+            "size_bytes": 3175,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/browser-connect.json",
+            "sha256": "c3810768b0750a21443ed7e3619e171ae15cc38c9dac0165726b5dfd12315b1e",
+            "size_bytes": 20448,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/browser14-acceptance-palette.cjs",
+            "sha256": "6e15b424c0b33bdb4f2260b1ca9db0a0eb09f406eff3f0853d4598d54fda1d15",
+            "size_bytes": 21685,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/browser14-input-target-palette.py",
+            "sha256": "60afa8c62b073e90a3f5463d9976b142d28052b5aaf55de86088e33ccb92efc9",
+            "size_bytes": 1644,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/failure-browser.png",
+            "sha256": "196e649f5024b967f7a2c4833e9f228e784f2be6fe883316c5f09d82112420ad",
+            "size_bytes": 97657,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/palette-live-window14.py",
+            "sha256": "b39ca37d648f5a4f7368c47c18f6f72484c5ea8585a946a927e55ee030445c7a",
+            "size_bytes": 3175,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-diagnostic14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/browser-connect.json",
+            "sha256": "75edfef19b2a7b99c747cd21f9c535b91070bc64c15bf3babca593fc31e3c9cb",
+            "size_bytes": 20869,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/browser14-acceptance-palette.cjs",
+            "sha256": "6e15b424c0b33bdb4f2260b1ca9db0a0eb09f406eff3f0853d4598d54fda1d15",
+            "size_bytes": 21685,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/browser14-input-target-palette.py",
+            "sha256": "60afa8c62b073e90a3f5463d9976b142d28052b5aaf55de86088e33ccb92efc9",
+            "size_bytes": 1644,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/failure-browser.png",
+            "sha256": "4e3adc37d0533b7319f3dbf1739f938df213616ef578a457ef2985e9c45cd07c",
+            "size_bytes": 20164,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/palette-live-window14.py",
+            "sha256": "b39ca37d648f5a4f7368c47c18f6f72484c5ea8585a946a927e55ee030445c7a",
+            "size_bytes": 3175,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-recovered14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/browser-connect.json",
+            "sha256": "6d51be2075b117d05ace96de3c4df4f021994cb8e7734a356dd5f5c6b37c4094",
+            "size_bytes": 21640,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/browser14-acceptance-palette.cjs",
+            "sha256": "6e15b424c0b33bdb4f2260b1ca9db0a0eb09f406eff3f0853d4598d54fda1d15",
+            "size_bytes": 21685,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/browser14-input-target-palette.py",
+            "sha256": "60afa8c62b073e90a3f5463d9976b142d28052b5aaf55de86088e33ccb92efc9",
+            "size_bytes": 1644,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/failure-browser.png",
+            "sha256": "8a21e3992849c109d9472dd22bea1e5bea84cea710c73e8529549b18f39d069c",
+            "size_bytes": 20735,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/host-prompt.png",
+            "sha256": "a653753f6bdc85c0a18ffece0cd2e5a9d35d19d5f1f2804f76e2ed4b65f668ee",
+            "size_bytes": 43714,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/palette-live-window14.py",
+            "sha256": "b39ca37d648f5a4f7368c47c18f6f72484c5ea8585a946a927e55ee030445c7a",
+            "size_bytes": 3175,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-stun14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/browser-connect.json",
+            "sha256": "3d3097e979ad410fffa09abdcf591ba977f74e61bf92324e976259df94e35ebf",
+            "size_bytes": 21640,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/browser14-acceptance-palette.cjs",
+            "sha256": "0f8670abfa76751f3f1e131af234bf248ee2c88c34d48327a56566d3e29a5a00",
+            "size_bytes": 21778,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/browser14-input-target-palette.py",
+            "sha256": "60afa8c62b073e90a3f5463d9976b142d28052b5aaf55de86088e33ccb92efc9",
+            "size_bytes": 1644,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/decision.json",
+            "sha256": "fe0d02b02eef8a0c355906c4e96c288f1085fe8d19c03091b664bb52375042c1",
+            "size_bytes": 17,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/failure-browser.png",
+            "sha256": "8a21e3992849c109d9472dd22bea1e5bea84cea710c73e8529549b18f39d069c",
+            "size_bytes": 20735,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/host-prompt.png",
+            "sha256": "c18f5e18a761bd4e9c0003ebc036e03e6850428bdcc75876c31e0f89cd8f379d",
+            "size_bytes": 77328,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/palette-live-window14.py",
+            "sha256": "b39ca37d648f5a4f7368c47c18f6f72484c5ea8585a946a927e55ee030445c7a",
+            "size_bytes": 3175,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/verify-installed-client14-palette.py",
+            "sha256": "58748e542da2549793e6bbb87f85f9dd74b1a9e646adcfdb98ab024219a62053",
+            "size_bytes": 805,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/palette-connect-prompt14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/browser14-host-ui-palette.py",
+            "sha256": "564a06fb6dce0367552ee28b460ecd658c732938f4b08bb421c9771a5d795485",
+            "size_bytes": 7604,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/operation.json",
+            "sha256": "775d41cd253a2362f84e5aaf5a3b5e2bc17d55619d43946a3876fd2d2a0fb43a",
+            "size_bytes": 21134,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/palette-live-window14.py",
+            "sha256": "b39ca37d648f5a4f7368c47c18f6f72484c5ea8585a946a927e55ee030445c7a",
+            "size_bytes": 3175,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/screen.png",
+            "sha256": "93898c6e088cdaca266664561290d63f7cd7cf5f93038041327413181a6c90a0",
+            "size_bytes": 76547,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/security-unlock14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/browser14-host-ui-palette.py",
+            "sha256": "564a06fb6dce0367552ee28b460ecd658c732938f4b08bb421c9771a5d795485",
+            "size_bytes": 7604,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/operation.json",
+            "sha256": "c0b8f67eb7e01fc643985da49db194f7016ea83dbb0209a9762a587a30699897",
+            "size_bytes": 21988,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/screen.png",
+            "sha256": "9d62ccabcda625b810f16a2579fda538ed0567156ed45010bd2b3c3b31a48c7e",
+            "size_bytes": 80297,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/native-auth14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/browser14-host-ui-palette.py",
+            "sha256": "aca67aff55f9f4de19437e5a206e3bbf16c7c16eb378261527e377bc6514f2a9",
+            "size_bytes": 8007,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/operation.json",
+            "sha256": "fa165a70578222b59a4e26306eb72db2484cb854c26bc050b0dac3d8ca620ef1",
+            "size_bytes": 21819,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/screen.png",
+            "sha256": "1d7853ff3f30daefa8b3b444ef5941d3be68c43caf5335bb22a338d9ba445eef",
+            "size_bytes": 76836,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/cancel-os-auth14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/browser14-host-ui-palette.py",
+            "sha256": "aca67aff55f9f4de19437e5a206e3bbf16c7c16eb378261527e377bc6514f2a9",
+            "size_bytes": 8007,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/operation.json",
+            "sha256": "5d46aa21ff238bbaf96d21c7b44936b826348bfae8ca910f95ae0d8299822492",
+            "size_bytes": 21401,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/screen.png",
+            "sha256": "5561abb644ac9014db2411230d25eac3f0247d8b8501bfe688d3f9c2d6d9ca4e",
+            "size_bytes": 78881,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/pin-unlock14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/browser14-host-ui-palette.py",
+            "sha256": "aca67aff55f9f4de19437e5a206e3bbf16c7c16eb378261527e377bc6514f2a9",
+            "size_bytes": 8007,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/operation.json",
+            "sha256": "beb1e79df23e0c6bff1f082170a490bfa65a0f6b2bc3bae146adaed5ecf9e8a9",
+            "size_bytes": 21401,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/screen.png",
+            "sha256": "57695fb5eec4b153527ca15f84bd07f87c21c5f27e949570fce23193eabd0638",
+            "size_bytes": 76414,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-save14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/browser14-host-ui-palette.py",
+            "sha256": "aca67aff55f9f4de19437e5a206e3bbf16c7c16eb378261527e377bc6514f2a9",
+            "size_bytes": 8007,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/operation.json",
+            "sha256": "b036382f41e7446891df5d01dcbf9ffe790325a33dd3e9a12647734753100b5e",
+            "size_bytes": 21401,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/screen.png",
+            "sha256": "442c49235cafd5ae3a682724168db3f048f0b411913fb5663685fc6ce96d2d98",
+            "size_bytes": 76139,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/password-mode14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/browser14-host-ui-palette.py",
+            "sha256": "aca67aff55f9f4de19437e5a206e3bbf16c7c16eb378261527e377bc6514f2a9",
+            "size_bytes": 8007,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/operation.json",
+            "sha256": "81ffb6aea4853eeba27f746259350988fd1360f96ca6413f95497670903cab3f",
+            "size_bytes": 21401,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/screen.png",
+            "sha256": "b5fec21dc4e8230d04892d07c95e662a3a0ff125612abed63b11a40f46e4104e",
+            "size_bytes": 80918,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/approval-click-restore14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/browser14-host-ui-palette.py",
+            "sha256": "aca67aff55f9f4de19437e5a206e3bbf16c7c16eb378261527e377bc6514f2a9",
+            "size_bytes": 8007,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/inputs-original/image-record.json",
+            "sha256": "d0381a10158d71f414520809d9a9b6b31707b7d920591c61985d2f6be6307aea",
+            "size_bytes": 255,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/inputs-original/installed-record.json",
+            "sha256": "590d86761f14c2a3c649e0680ea68d09a949c12a3dcf36603819b3f35e034d43",
+            "size_bytes": 24545,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/inputs-original/inventory.json",
+            "sha256": "02038a7c44b8f28ba86f8cab17856838ee80be0560de5f822f04ec6f9925d2b6",
+            "size_bytes": 30860446,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/inputs-original/plan.json",
+            "sha256": "5df2c9736ca90e93a0d1238ab0ec870a69ebe991430011c3731927d6a92ace3c",
+            "size_bytes": 683,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/operation.json",
+            "sha256": "e0719231d05f652fba69748ca7049d63910b4aa015ba8551798aa1134eb1041d",
+            "size_bytes": 21402,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/palette-binding14.py",
+            "sha256": "4abebfbd6475e8b35119e6feb6d48da0cc00bab370274960cada812c7908a4f7",
+            "size_bytes": 9020,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/palette-live-window14.py",
+            "sha256": "7c2867b1aa71c0dcef688ae54505a6fd4c088cb95cc57066e163e4800a259f00",
+            "size_bytes": 3387,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/record-execution14.py",
+            "sha256": "e426ef3a880c1fa06139ba3f8dd5f5078b30601c13a42386c039814ee6b4755f",
+            "size_bytes": 2632,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/run-fixture14.py",
+            "sha256": "46d3b56f389c8aac9e9bf93b49a5cd68301946531c0c521cb6c2ccfeb4c92ab0",
+            "size_bytes": 7990,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/screen.png",
+            "sha256": "fb978467f374ee76c62f8afeb9d4c3bc37b590592166020ba4052abf66d433b9",
+            "size_bytes": 79004,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/verify-fixture-image14.py",
+            "sha256": "d020b48766351db6fcb2e41ad56416ac05a7a0df46c5bd044cdf53e016eeabe7",
+            "size_bytes": 3036,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14/host-config/settings-lock-cleanup14/verify-installed-client14.py",
+            "sha256": "fe485dad2b81640d9932ac53c31f48de197b7ac78af97e98ae8d49010d0cecc9",
+            "size_bytes": 2929,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14-composite14/results-composite14.json",
+            "sha256": "930cc92d1c13e4100b0a5bfa1519408d2ebf60a651fb2be27f723b084ef46a96",
+            "size_bytes": 62986,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-assemble14.initial.json",
+            "sha256": "82b472f53a71a51f106a5b90ee69272670a73b9814ef92a05cd3e798471218bb",
+            "size_bytes": 2074,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-assemble14.json",
+            "sha256": "f0477a631ba49cc41f372b3ad873f74d05218471c1acb4a8b21829493693151d",
+            "size_bytes": 2366,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-assemble14.log",
+            "sha256": "0e11f4f4a86f8d028785819cf05892defa312f21a348422eacae5bdd16fd636c",
+            "size_bytes": 327,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-ice-diagnostic-next14.initial.json",
+            "sha256": "07cd43455220b0a74170794d2deca9ef3d3e135aeaed76ec4848ad1e791f4791",
+            "size_bytes": 1523,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-ice-diagnostic-next14.json",
+            "sha256": "c5a2f14f388fd3840c87b8618c9ac8d0201c37d763b1f11d0097adb051f1df02",
+            "size_bytes": 1826,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-ice-diagnostic-next14.log",
+            "sha256": "993624b1375f0eadeb69a64e0781a6f60242368b5f43d58a43d9bad613ca7976",
+            "size_bytes": 1145,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-task-stun14.initial.json",
+            "sha256": "f371dcc615cc3583f52196f844038df0f24b3ba7626145306e922d3618c63538",
+            "size_bytes": 1218,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-task-stun14.json",
+            "sha256": "c55087d3e49c1cbd67a305a503065ee20ca33f8cf59148a47fd42c21c6e9a8e0",
+            "size_bytes": 1511,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-task-stun14.log",
+            "sha256": "82cc931520fb638c3eabad14d4445c4b6399f735dbdc19fcfcc92ad75b0ed9ed",
+            "size_bytes": 690,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-pin-check-next14.initial.json",
+            "sha256": "54cc547f60dd193cd08d3367ee84c90454ef4b555f015196bb0db7878b5d79d2",
+            "size_bytes": 1539,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-pin-check-next14.json",
+            "sha256": "a2cbcb11289b0eaa80ec103432bbe3ae3c6066fdc9a365e6b0f408668f548c95",
+            "size_bytes": 1837,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-pin-check-next14.log",
+            "sha256": "cbc2c50200bfc719cec22eb99d0195f596fec8eda29f1f62642a4c9388bcd2bc",
+            "size_bytes": 735,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-pin-set14.initial.json",
+            "sha256": "4f6be36da0714ba83e2e7de5e84a288f1cc62072a6f215050737684badd5d579",
+            "size_bytes": 1527,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-pin-set14.json",
+            "sha256": "0bbeb32b757fbbcfcdfcf6d8a13939935bf3491a810272893d2bbb9ad6248fdf",
+            "size_bytes": 1818,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-pin-set14.log",
+            "sha256": "4028745ca217ce5d6d2efe9b4f6c322987605620d3a1d3c0ece02ce703ccf904",
+            "size_bytes": 846,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-pin-verify14.initial.json",
+            "sha256": "136ad8142c3d54b391aae615c92f7fe122a40a20f764601519391ad619a736aa",
+            "size_bytes": 1536,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-pin-verify14.json",
+            "sha256": "4fdebbab872b29e3adfed2b2e0d3865d9f958288cd6a2cf63d799befe36a3119",
+            "size_bytes": 1830,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-pin-verify14.log",
+            "sha256": "6e1836f6244b748486c5c9bbab32d79e46da84e94a3a09c3a47f90dbe3bb4b4a",
+            "size_bytes": 736,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-pin-clear14.initial.json",
+            "sha256": "dbb8544bf729c874cf08296201ff16b663b1fa40dc3827c688ac91a731757d76",
+            "size_bytes": 1533,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-pin-clear14.json",
+            "sha256": "ab22a2dc8e978a98c0f0be9b5a217f4d8f04e4af49d5cab12c69eeb67c2d3648",
+            "size_bytes": 1826,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-pin-clear14.log",
+            "sha256": "e9383089f2e1dd0d0880a96ed7e806d4b09a0cdd24d99e4f73b658bfec39654a",
+            "size_bytes": 819,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect14.initial.json",
+            "sha256": "4fd2f601fb3ecb4466458e51d5da8763c00a50fb5ee6c3111ec1e747649f1958",
+            "size_bytes": 1740,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect14.json",
+            "sha256": "c2f38fa878f9bee1f6eb68273cf71c6efb7a249392a08975279096a532b2c924",
+            "size_bytes": 2031,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect14.log",
+            "sha256": "3a98efa161ae1355e09f5a6ba0a9fe2d33cc2be5f87cb54e917cde251842a65d",
+            "size_bytes": 164,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-diagnostic14.initial.json",
+            "sha256": "c6e958986b4c585e4919d0d49b4409092f08694545bb6cbad30d7b8e7906b880",
+            "size_bytes": 1773,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-diagnostic14.json",
+            "sha256": "0ad1e3a087013ed81478dd472bfe12e0ab34d82f52b0eeff8ce79ff3b4700218",
+            "size_bytes": 2075,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-diagnostic14.log",
+            "sha256": "3a98efa161ae1355e09f5a6ba0a9fe2d33cc2be5f87cb54e917cde251842a65d",
+            "size_bytes": 164,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-recovered14.initial.json",
+            "sha256": "dd5503bc602007fb3cfb481e4933ce09eea7c3e7a74e191ae12092ee53ae46c1",
+            "size_bytes": 1770,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-recovered14.json",
+            "sha256": "fe9e7ab9c5fa002ba8e0a651863f69ee848a8f1325d43d98bc37cf58b983682f",
+            "size_bytes": 2071,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-recovered14.log",
+            "sha256": "3a98efa161ae1355e09f5a6ba0a9fe2d33cc2be5f87cb54e917cde251842a65d",
+            "size_bytes": 164,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-stun14.initial.json",
+            "sha256": "ab0560852bb5dac2951abb2864c2989f4ed0144a086f8613f3cb707a6b78ddec",
+            "size_bytes": 1755,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-stun14.json",
+            "sha256": "1c7c35eaf4ed26f6a59a3c09c37e5b38393ce915def33a8ab482741ae8c3c574",
+            "size_bytes": 2051,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-stun14.log",
+            "sha256": "4c28c8eaced00783e86ccc4c3cace2116bb121c02f67a154d66e82f78324b7b7",
+            "size_bytes": 336,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-prompt14.initial.json",
+            "sha256": "2d89fb31bd404ef9c3d4046a8e5ff06fa843eb1d9b5c6c13ecfdaa050ebac858",
+            "size_bytes": 1761,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-prompt14.json",
+            "sha256": "e84e846a45daad4dd847dd6bc7e5946acc54f7db3689d8ddc4077536b958e7dd",
+            "size_bytes": 2059,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-connect-prompt14.log",
+            "sha256": "e1f8e9abc23c60f85fadec0aa9701a664e5d433a8257a6195d859888b575a38d",
+            "size_bytes": 338,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-security-unlock14.initial.json",
+            "sha256": "72ee8f473eefcf196a0ffba74466660d42963e36f28c1a6fc6453707345b3aee",
+            "size_bytes": 1482,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-security-unlock14.json",
+            "sha256": "244b34d6356e3cbf4773a2798d14d423730acc1ba94a27b4b525d228fc6c1294",
+            "size_bytes": 1786,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-security-unlock14.log",
+            "sha256": "7a337d073a0f9e2e01f1418eb76d9006fd63039e8ba58075b65866b650bb6cae",
+            "size_bytes": 1038,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-native-auth14.initial.json",
+            "sha256": "9bd18cfa0d163fe86382416dac1e671705f6abfdd2c110e917431b2214811b10",
+            "size_bytes": 1428,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-native-auth14.json",
+            "sha256": "724592bb35bd5773dc807b9578201a306c3ab8a366a6cd5440d9b80872267e0b",
+            "size_bytes": 1728,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-native-auth14.log",
+            "sha256": "82bcb25d8f1037f26b21ece0db1f9daf1355a266fbaf892e99ade4ce500083f1",
+            "size_bytes": 1166,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-cancel-os-auth14.initial.json",
+            "sha256": "17a5a25a3d1af6daaa4e4f871a63ce48536771b5e0c4b141772a86ebd723a46d",
+            "size_bytes": 1500,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-cancel-os-auth14.json",
+            "sha256": "5f62b963a5a9116fc3910551dcdab71b9119541d274c64030396d0cb1cef2555",
+            "size_bytes": 1803,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-cancel-os-auth14.log",
+            "sha256": "f1eb20c68ef00683f668780510a98a03a6beb53c68a1a43798f7b274144d1c91",
+            "size_bytes": 1165,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-pin-unlock14.initial.json",
+            "sha256": "1284fe7671ff1064f1ee1aa8adce7959b18b36d4fb660902be86f1b3a45dc9c8",
+            "size_bytes": 1472,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-pin-unlock14.json",
+            "sha256": "4ceaea54a10ac35447ac5c6d7063e0a9cafaac1f39e706c3ed4ce3f78492e002",
+            "size_bytes": 1771,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-pin-unlock14.log",
+            "sha256": "bda16cecf963701de60ecc6c8bec981cfb18bca8bc058f3bfc3d30757e048e36",
+            "size_bytes": 880,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-password-save14.initial.json",
+            "sha256": "866dda36213630b48107810b23bc81734c748cd03ad5aed7e9b98ccf4d6d9360",
+            "size_bytes": 1478,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-password-save14.json",
+            "sha256": "02c1f3ea0f537cb835f6b66165892f92b412b157c99255d0d3348a6e0b198d98",
+            "size_bytes": 1780,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-password-save14.log",
+            "sha256": "fc64731ed236f66aa8084c929bf3c0e6be3047000cf8d6878f586a3463b6f6cd",
+            "size_bytes": 883,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-password-mode14.initial.json",
+            "sha256": "543571a468b77d7b8dde2e5ca33cd448bd5ada263200e36c9a08bf785ac6267a",
+            "size_bytes": 1478,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-password-mode14.json",
+            "sha256": "974e29d63b197bfee6258a8702155a829c86be6e4f48938c1eaf90fbc1732b4c",
+            "size_bytes": 1780,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-password-mode14.log",
+            "sha256": "5611a4500c9a830d4dc1df95302dba58689dca2f53b0d425e15c8a9117f4d9a4",
+            "size_bytes": 883,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-approval-click-restore14.initial.json",
+            "sha256": "958cd2673793df7f3413c5b11d3d80f635ed1845f0321c4ff54ced982ebaef39",
+            "size_bytes": 1496,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-approval-click-restore14.json",
+            "sha256": "984298d4cfc1013d446c178a16636cb3b2789ebf6a22236c06b137118396cb4f",
+            "size_bytes": 1807,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-approval-click-restore14.log",
+            "sha256": "abda8e79fece460607bfbdbadde2803414ceca952fa842307075ede73879b165",
+            "size_bytes": 892,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-settings-lock-cleanup14.initial.json",
+            "sha256": "6aa848283da301072c8d04a792267edc8191e6dedc87f654a3c4ebb03850f968",
+            "size_bytes": 1495,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-settings-lock-cleanup14.json",
+            "sha256": "d88dc3280323957cee12c7650d3a4e213591e652a43766cbeb13a7d696de6a4e",
+            "size_bytes": 1805,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-host-settings-lock-cleanup14.log",
+            "sha256": "555b2400ac9218768805751ff2a274a0168b8bfa7fb43701506334b1e9080b81",
+            "size_bytes": 891,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/browser14-scope-next14/active-bridge-log-snapshot.original.log",
+            "sha256": "739b1282c289f645d5913f31a24973e7ced9e00ec11df9f524af5df5ebe17d96",
+            "size_bytes": 2086189,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/root-evidence-audit14/pin-helper-audit14.json",
+            "sha256": "e4b53586b293cb2bc004b1dd6a9e2bede3abb5a870b8d283037924e78151e98f",
+            "size_bytes": 13973,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/root-evidence-audit14/pin-helper-followup14.json",
+            "sha256": "135a9d12afcff2562ebf78ea38fe14e54f04203d94503baf6988abbbdc006432",
+            "size_bytes": 4323,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-scope-next-seal14.json",
+            "sha256": "5a312c5058fa5c9c5fee8ebb8bcbe122a0994e582e7d8eddc2bd626e75acd9c0",
+            "size_bytes": 1484,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-scope-next-seal14.initial.json",
+            "sha256": "550274dba0c3d4de0bb5dc0c29ce61c707a123ff210dbd5c8ce799f66aecb7b5",
+            "size_bytes": 1185,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-browser-scope-next-seal14.log",
+            "sha256": "9a3ab790d24f3e059f871f84ec60b4a01dc119f837d086566d70f15e470164c8",
+            "size_bytes": 399,
+            "kind": "attachment"
+          },
+          {
+            "path": "web-final14/result.json",
+            "sha256": "1e120beb264df37e8c21ae1a7d204cfaf8c0f58cc0641f6edebb3865987fe24c",
+            "size_bytes": 4797,
+            "kind": "attachment"
+          },
+          {
+            "path": "web-final14/devices-desktop.png",
+            "sha256": "7464fa6472dc3a5bc825e04df755ac1d69590229253b34d197eb15bca37021d0",
+            "size_bytes": 49336,
+            "kind": "attachment"
+          },
+          {
+            "path": "web-final14/devices-mobile.png",
+            "sha256": "01a6abf7318db01a261210c2bbd2eef094c1ac1b8313a37d714d168ce0aa68d8",
+            "size_bytes": 39012,
+            "kind": "attachment"
+          },
+          {
+            "path": "web-final14/devices-mobile-dark.png",
+            "sha256": "1cd0d306ec7428d45552a3b1ce33d3d6c6335a32626edc18b8866fcfa1d03e85",
+            "size_bytes": 39385,
+            "kind": "attachment"
+          },
+          {
+            "path": "web-final14/devices-mobile-bottom.png",
+            "sha256": "8961aa16e164243f7a25552dc038aeb0d6ebea4936d68d48e1e1b9479017010d",
+            "size_bytes": 31014,
+            "kind": "attachment"
+          },
+          {
+            "path": "web-final14/admin-all-devices.png",
+            "sha256": "25eb889b1a4dd837f5956ce30f3ca22bdf5ecc5c5b1f7ee253096e82b6b0e25c",
+            "size_bytes": 67543,
+            "kind": "attachment"
+          }
+        ],
+        "fixture_sources": {
+          "client": "feaf1181efe55076dead52931203a8488cbad20d",
+          "android": "dcdfc4299d1f92f46b5f3ca8e675d304f9639982",
+          "server": "299753a4c6580ac6bbc748cdee743489a3e17dba"
+        },
+        "deliverables": {
+          "NestLink-Server-14.0.0.tar.gz": "1a42bc2e9520c9d4d7c641af6bc3fff42bd9833880423b767485779f4e8812a7"
+        }
+      }
+    },
+    {
+      "name": "managed-tunnels",
+      "status": "passed",
+      "evidence": {
+        "execution": {
+          "started_at": "2026-10-10T19:33:20.934596+00:00",
+          "finished_at": "2026-10-11T04:40:31.646155+00:00",
+          "exit_code": 0,
+          "command": "[[\"wsl\", \"-u\", \"root\", \"--exec\", \"python3\", \"/mnt/d/代码/远程控制/.work/14.0.0/tunnels14-configure-palette.py\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--server-image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--config\", \"/mnt/d/代码/远程控制/.work/14.0.0/tunnels14-palette-input.json\", \"--output-dir\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/tunnels-configured14\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"python3\", \"/mnt/d/代码/远程控制/.work/14.0.0/transport14-probe-palette.py\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--server-image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--config\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/tunnels-configured14/tunnels-config.json\", \"--output-dir\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/tunnels-fresh-exact14\", \"--phase\", \"fresh\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"python3\", \"/mnt/d/代码/远程控制/.work/14.0.0/transport14-probe-palette.py\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--server-image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--config\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/tunnels-configured14/tunnels-config.json\", \"--output-dir\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/tunnels-foreground-exact14\", \"--phase\", \"foreground-revoked\", \"--revocation-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/foreground-revoked14/revoke-result.json\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"python3\", \"/mnt/d/代码/远程控制/.work/14.0.0/transport14-probe-palette.py\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--server-image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--config\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/tunnels-configured14/tunnels-config.json\", \"--output-dir\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/tunnels-physical-exact14\", \"--phase\", \"physical-revoked\", \"--revocation-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/physical-revoked14/revoke-result.json\"]]"
+        },
+        "observation": "Exact signed299 control/gateway/FRPS and feaf client returned fresh HTTP, local HTTPS backend, TCP and UDP markers. All four survived foreground-only revocation. Physical-device revocation blocked all four with unchanged saved configuration; original probes and revocation bindings establish actual sequence.",
+        "files": [
+          {
+            "path": "palette-final/tunnels-configured14/tunnels-config.json",
+            "sha256": "642c66131874c4dfa9ef12de1989081f7254a8380239b7c6627bea2a138dab5b",
+            "size_bytes": 24220,
+            "kind": "result"
+          },
+          {
+            "path": "palette-final/tunnels-fresh-exact14/tunnels-probe.json",
+            "sha256": "1a405caf92a93c82269e02676596d218345ccb56d527f89504ec50ca81c1affc",
+            "size_bytes": 24898,
+            "kind": "result"
+          },
+          {
+            "path": "palette-final/tunnels-foreground-exact14/tunnels-probe.json",
+            "sha256": "7493223431eaef87288ecdcfed0200d2e58f5fbab159da5605941fd9486721e5",
+            "size_bytes": 25034,
+            "kind": "result"
+          },
+          {
+            "path": "palette-final/tunnels-physical-exact14/tunnels-probe.json",
+            "sha256": "6c3dfa39a4d9f14c93986b88ad839c3d1ab52c4d5b9e86173ccfa2eee51a96b0",
+            "size_bytes": 24784,
+            "kind": "result"
+          },
+          {
+            "path": "executions14/palette-tunnels-configured14.json",
+            "sha256": "21814bd18e71a9b15095b6a49269e439c6550f68f73361a31fc9f914c2aacb96",
+            "size_bytes": 1914,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-tunnels-configured14.initial.json",
+            "sha256": "8c915ab3fc2b4bb7001257a81103053e65f0f00aef2c5b012b2bbde79e4cbbc5",
+            "size_bytes": 1620,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-tunnels-configured14.log",
+            "sha256": "3a2f34f53d621501e19f6ec3935cd8087678b6a3d8b64235880882f8f2bd8b47",
+            "size_bytes": 349,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-tunnels-fresh-exact14.json",
+            "sha256": "14d053301c4ed7a54a02e480346674e53e3b886231da3c51e163f3f6062af504",
+            "size_bytes": 1980,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-tunnels-fresh-exact14.initial.json",
+            "sha256": "957c8056f3c6afd60ca862277c121951f89f68b74c4850d6a9dffb2cb13a2c91",
+            "size_bytes": 1685,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-tunnels-fresh-exact14.log",
+            "sha256": "70877bf50109ae205d26458d09444fd59fffdc2cb8dd73bb8276fb0151f030f4",
+            "size_bytes": 349,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-tunnels-foreground-exact14.json",
+            "sha256": "86511f35a9db0890f3f6c1d27b55b8bf666a7840c63eed569f09fc3a719efe30",
+            "size_bytes": 2165,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-tunnels-foreground-exact14.initial.json",
+            "sha256": "2d607a588d14563f19b3cb9dd1b6003fb101bd12cdc92137581dbeb548c809c9",
+            "size_bytes": 1865,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-tunnels-foreground-exact14.log",
+            "sha256": "9b492fce3584af19d73746dd1420b258289ee290d67f07444b685727d4fa1d6d",
+            "size_bytes": 222,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-tunnels-physical-exact14.json",
+            "sha256": "cb6bf797894069fac1463cb21293594ae5c0f2e4eaec5bae99390612594e8712",
+            "size_bytes": 2155,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-tunnels-physical-exact14.initial.json",
+            "sha256": "279c8c695be226e47029efda3abe15bf9203b1ef94f5a4106bcf6f9da449a21b",
+            "size_bytes": 1857,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-tunnels-physical-exact14.log",
+            "sha256": "d88a25a7cab346dbd72861afe5cfc94f3783d3ded011dc697c13e9bc5cebdd9c",
+            "size_bytes": 220,
+            "kind": "attachment"
+          }
+        ],
+        "fixture_sources": {
+          "client": "feaf1181efe55076dead52931203a8488cbad20d",
+          "android": "dcdfc4299d1f92f46b5f3ca8e675d304f9639982",
+          "server": "299753a4c6580ac6bbc748cdee743489a3e17dba"
+        },
+        "deliverables": {
+          "NestLink-Server-14.0.0.tar.gz": "1a42bc2e9520c9d4d7c641af6bc3fff42bd9833880423b767485779f4e8812a7"
+        }
+      }
+    },
+    {
+      "name": "native-authorization",
+      "status": "passed",
+      "evidence": {
+        "execution": {
+          "started_at": "2026-10-11T04:36:56.847256+00:00",
+          "finished_at": "2026-10-11T04:40:20.712164+00:00",
+          "exit_code": 0,
+          "command": "[[\"wsl\", \"-u\", \"root\", \"--exec\", \"python3\", \"/mnt/d/代码/远程控制/.work/14.0.0/native14-acceptance-palette.py\", \"start\", \"feaf1181efe55076dead52931203a8488cbad20d\", \"palette-native-revoke14\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--server-image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--output-root\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/native14\", \"--field\", \"555\", \"570\", \"--submit\", \"780\", \"571\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"python3\", \"/mnt/d/代码/远程控制/.work/14.0.0/native14-acceptance-palette.py\", \"accept\", \"feaf1181efe55076dead52931203a8488cbad20d\", \"palette-native-revoke14\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--server-image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--output-root\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/native14\", \"--point\", \"1147\", \"459\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"python3\", \"/mnt/d/代码/远程控制/.work/14.0.0/native14-acceptance-palette.py\", \"input\", \"feaf1181efe55076dead52931203a8488cbad20d\", \"palette-native-revoke14\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--server-image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--output-root\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/native14\", \"--point\", \"474\", \"236\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"python3\", \"/mnt/d/代码/远程控制/.work/14.0.0/native14-acceptance-palette.py\", \"record\", \"feaf1181efe55076dead52931203a8488cbad20d\", \"palette-native-revoke14\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--server-image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--output-root\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/native14\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"python3\", \"/mnt/d/代码/远程控制/.work/14.0.0/revoke-installed14-palette.py\", \"foreground\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--server-image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--config\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/tunnels-configured14/tunnels-config.json\", \"--output-dir\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/foreground-revoked14\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"python3\", \"/mnt/d/代码/远程控制/.work/14.0.0/native14-acceptance-palette.py\", \"revoked\", \"feaf1181efe55076dead52931203a8488cbad20d\", \"palette-native-revoke14\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--server-image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--output-root\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/native14\"], [\"wsl\", \"-u\", \"root\", \"--exec\", \"python3\", \"/mnt/d/代码/远程控制/.work/14.0.0/revoke-installed14-palette.py\", \"physical-device\", \"--plan\", \"/mnt/d/代码/远程控制/.work/14.0.0/release-evidence-tools/plan14.palette.json\", \"--inventory\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/client-palette-final/inventory.json\", \"--installed-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/linux-install/installed-client.json\", \"--server-image-record\", \"/mnt/d/代码/远程控制/.work/14.0.0/ci14/server-palette-final/artifacts/candidate-assets/files/image-control-center.json\", \"--config\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/tunnels-configured14/tunnels-config.json\", \"--output-dir\", \"/mnt/d/代码/远程控制/.work/14.0.0/evidence/palette-final/physical-revoked14\"]]"
+        },
+        "observation": "New exact native session showed B screen and remote keyboard marker with reverse direct TCP pair before foreground management-session revocation. Actual endpoint closure followed; device subjects remained active. Later physical capability removal revoked both linked subjects/leases, preserving saved services and other same-account GUI/Android plus other-account state. Historical server transaction checks support their own scope.",
+        "files": [
+          {
+            "path": "palette-final/native14/palette-native-revoke14/native-session.json",
+            "sha256": "03b35ca31c859c834998ae763d2c9ddf805ba84e736e0edc12fda7a0cfdc2d9f",
+            "size_bytes": 20077,
+            "kind": "result"
+          },
+          {
+            "path": "palette-final/native14/palette-native-revoke14/native-revoked.json",
+            "sha256": "350a015c249d0d48e244fbe9a469186c94f40f220cfd3891ee70fd65348e4584",
+            "size_bytes": 18344,
+            "kind": "result"
+          },
+          {
+            "path": "palette-final/foreground-revoked14/revoke-result.json",
+            "sha256": "a3d1723e8138d9c092d1941aeadcf715bab06ee146b20e1732728bf9b0e0356d",
+            "size_bytes": 23760,
+            "kind": "result"
+          },
+          {
+            "path": "palette-final/physical-revoked14/revoke-result.json",
+            "sha256": "e433067e6e28c86ff2559ed9166148949aecf93cd047c009d0b3e3fca2b17fb5",
+            "size_bytes": 23822,
+            "kind": "result"
+          },
+          {
+            "path": "executions14/palette-native-revoke-start14.json",
+            "sha256": "9582e06587f22100722ba3367d0786ff7124db1f5d542a52a65c961db7bedc02",
+            "size_bytes": 1969,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoke-start14.initial.json",
+            "sha256": "4903b66005d7e336282a7bbd0a4a0d05a4b4de7d2f19c7c6420a1ef25d6e2bf4",
+            "size_bytes": 1674,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoke-start14.log",
+            "sha256": "864089c6fa62fd6f386f15ea429d3e2737a172d86d9f9c20224027663f5c41bf",
+            "size_bytes": 74,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoke-accept14.json",
+            "sha256": "71c196825c1658b785916284fcdce08c9e2c58ca5c3a5c084876a1b5970929ab",
+            "size_bytes": 1932,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoke-accept14.initial.json",
+            "sha256": "d8b171a54727bb24e8ca0734a8546ac7bc7fade6c40a85a2819dd801c24fc451",
+            "size_bytes": 1636,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoke-accept14.log",
+            "sha256": "b4c9453c71e2bce92f3216947868ea7c461932361dcadcd8605f650c8f33de1d",
+            "size_bytes": 55,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoke-input14.json",
+            "sha256": "a968529f64ef7616a8889dc3486a3e7370e6ef0dfe91e859aed8dfda2ea71577",
+            "size_bytes": 1928,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoke-input14.initial.json",
+            "sha256": "825ce04f5c34d6a152b02576548f9edf49563b5f2a4e7a97a37446585490c020",
+            "size_bytes": 1633,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoke-record14.json",
+            "sha256": "db0a83ddc75a4605280b6ac62b35826a647791f108ec581c38565329855bfac8",
+            "size_bytes": 1891,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoke-record14.initial.json",
+            "sha256": "884482fa69bed099aa366db9cefc913ae72de9c94cc18a41d0da1cb94ccdf6dd",
+            "size_bytes": 1595,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoke-record14.log",
+            "sha256": "19d98aa090b060307ce0e8346dd0683d140b22d0a12c020df88eb4b9feb4a41a",
+            "size_bytes": 229,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-foreground-revoke14.json",
+            "sha256": "f8665e36ed8c3bcb4656b732fe73233adc1399ff850b3e157ed41551cfcc9fd0",
+            "size_bytes": 1965,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-foreground-revoke14.initial.json",
+            "sha256": "762ef2f01b566a38575c4f17fb1e5dce3ac6abc1ebf4efe4f822c06cd75914ed",
+            "size_bytes": 1672,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-foreground-revoke14.log",
+            "sha256": "5bad393451b8023db9ac795140562850e6d38a7eae488eab7839f183d2372db6",
+            "size_bytes": 216,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoked14.json",
+            "sha256": "dcf870980ef5e27a957f64e4095fec5dcd4ba1673da586461f98f3c964560216",
+            "size_bytes": 1880,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoked14.initial.json",
+            "sha256": "388c0ed789d739ecf59c6057a867bd38268a379e3c5f4a345c8b45629fb2d81d",
+            "size_bytes": 1590,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-native-revoked14.log",
+            "sha256": "e4d12e84531005f63d4c8a45b7c11df48aa2ac720bc5823dd3cacba39b643d72",
+            "size_bytes": 17388,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-physical-revoke14.json",
+            "sha256": "05d3f40251935015a3f8528f5f2654e08ad7a295fb97a63b1963c78a74012502",
+            "size_bytes": 1964,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-physical-revoke14.initial.json",
+            "sha256": "9a5cf05e50558c212fe90942d30255723b629fced19d41c6b66d6de9c15374cc",
+            "size_bytes": 1673,
+            "kind": "attachment"
+          },
+          {
+            "path": "executions14/palette-physical-revoke14.log",
+            "sha256": "9887d6a1a098f01004fccbd6a2a58d4fb73a1186731cc6ccfa030f1fdf5dc327",
+            "size_bytes": 214,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/native14/palette-native-revoke14/controller-before-request.png",
+            "sha256": "58d25c5022fb48bdc1c27caed27e53ab25ec07bcd3cba95d3d172325acffa676",
+            "size_bytes": 52133,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/native14/palette-native-revoke14/controller-input.png",
+            "sha256": "cc4647351f5b3a352f34b1818c41ba69d89b655e750654eb5ef1365b6e3e33e1",
+            "size_bytes": 115539,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/native14/palette-native-revoke14/controller-request.png",
+            "sha256": "727d417800b16d437aec242c8d2e8ff9525763e4e02721458ee5de78e2f78900",
+            "size_bytes": 20085,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/native14/palette-native-revoke14/host-after-approval.png",
+            "sha256": "90a504b8ec2d41fc864b561e12d7c88dc37753234459d9b8d76f835186f960bf",
+            "size_bytes": 77999,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/native14/palette-native-revoke14/host-approval.png",
+            "sha256": "71d36e04bf9096b53edd0584215ebb3523cda1a83677a924d9e087e413cb9706",
+            "size_bytes": 97368,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/native14/palette-native-revoke14/host-input.png",
+            "sha256": "53108990ec0b0864ea4caa52486bbdd7b16c82ae404285f1fa0906227eaf3b9a",
+            "size_bytes": 70924,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/native14/palette-native-revoke14/native-screen.png",
+            "sha256": "fabfcc3fd2c3f37a949e7610da535e16cde031d1519ff0db9501da1a69b6273b",
+            "size_bytes": 25613,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/native14/palette-native-revoke14/controller-revoked.png",
+            "sha256": "1c714be0611099ae6ec3a5ab094383f8b50550a732a31c6c12378e6694f11230",
+            "size_bytes": 107932,
+            "kind": "attachment"
+          },
+          {
+            "path": "palette-final/native14/palette-native-revoke14/host-revoked.png",
+            "sha256": "53108990ec0b0864ea4caa52486bbdd7b16c82ae404285f1fa0906227eaf3b9a",
+            "size_bytes": 70924,
+            "kind": "attachment"
+          },
+          {
+            "path": "server-device-final14.json",
+            "sha256": "accae29e4da40f808854458f0c569110a1c5ba140eb9d0d7c80e03d3cc365941",
+            "size_bytes": 11211,
+            "kind": "attachment"
+          }
+        ],
+        "fixture_sources": {
+          "client": "feaf1181efe55076dead52931203a8488cbad20d",
+          "android": "dcdfc4299d1f92f46b5f3ca8e675d304f9639982",
+          "server": "299753a4c6580ac6bbc748cdee743489a3e17dba"
+        },
+        "deliverables": {
+          "NestLink-Server-14.0.0.tar.gz": "1a42bc2e9520c9d4d7c641af6bc3fff42bd9833880423b767485779f4e8812a7"
+        }
+      }
+    }
+  ],
+  "quality_evidence": {
+    "source_ci": "https://github.com/ZHanry/home-tunnel-server/actions/runs/38053932107",
+    "CodeQL": "https://github.com/ZHanry/home-tunnel-server/actions/runs/38053760026",
+    "Secret scan": "https://github.com/ZHanry/home-tunnel-server/actions/runs/38053760027"
+  },
+  "reproduction": {
+    "source_plan": "Frozen release-evidence-tools/plan14.palette.json with exact feaf/dcdf/299 mapping; independently verified ci14/server-palette-final/inventory.json.",
+    "original_commands": "New phases index original argv/initial/final receipts/raw logs. Three historical server-only wrappers had final receipt/raw log only and no initial receipt; preserve that format without reconstruction. Assembly is read-only.",
+    "environment": "Task WSL amd64 X11 A/B and Chromium private same-host direct TCP/UDP, self-signed TLS; root recovered bridge/network and private STUN-only backend; no TURN/media relay.",
+    "migration_limit": "Actual signed13 and299 migration of a SQLite backup clone reset only026 objects/row; original unupgraded live production migration is unverified.",
+    "security_boundary": "PINset failed after additional trusted_devices flush of unknown semantic origin; read-only verify and strict PINclear passed; GTK root authentication was cancelled.",
+    "time_provenance": "Preserve Windows wrappers and WSL runtime clock domains, original3.394682s migration finish discrepancy and missing original GBK traceback; bounded later samples are attached.",
+    "empty_originals": "Zero-byte originals remain hashed in sealed composite/scope maps; acceptance file entries contain only nonempty originals because the external builder requires positive size."
+  },
+  "unverified": [
+    "OS-root-password-UI-unlock",
+    "audio-clipboard-file-transfer",
+    "carrier-network-NAT",
+    "carrier-network-nat",
+    "full-arm64-integration",
+    "full-arm64-local-integration",
+    "long-duration-media",
+    "original-production13-database-migration",
+    "original-trusted_devices-semantic-preservation",
+    "physical-Android-device",
+    "physical-android-device",
+    "public-CA-production-TLS",
+    "public-production-ca-tls",
+    "this-round-backup-restore",
+    "windows-arm64-wayland-media"
+  ],
+  "scope": "Exact signed299 server CI payload/immutable amd64 control/gateway/FRPS and installed feaf client in local Windows/WSL X11 task fixture; six real browser modes, native and three-phase four-protocol tunnel evidence. Historical server-only migration/API/Web retain their original scope and clock domains; no production deployment. PIN set extra trusted_devices flush remains failed/semantically unknown; OS root-password GUI unlock unverified.",
+  "images": {
+    "control-center": {
+      "image": "ghcr.io/zhanry/home-tunnel-control-center",
+      "digest": "sha256:b6e43b72494cca541c023b366e27504a46ac1acea0ec4c504adb4f15a6b0cb46",
+      "revision": "299753a4c6580ac6bbc748cdee743489a3e17dba"
+    },
+    "traffic-gateway": {
+      "image": "ghcr.io/zhanry/home-tunnel-traffic-gateway",
+      "digest": "sha256:8c07824ea38e5cf2297ad0ff80711c90f688b1a82f7fe9dc62d406a9328515cb",
+      "revision": "299753a4c6580ac6bbc748cdee743489a3e17dba"
+    }
+  }
+}
